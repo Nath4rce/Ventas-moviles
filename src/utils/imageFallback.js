@@ -86,3 +86,4 @@ export const userAvatars = [
 export function getRandomAvatar() {
   return userAvatars[Math.floor(Math.random() * userAvatars.length)]
 }
+
