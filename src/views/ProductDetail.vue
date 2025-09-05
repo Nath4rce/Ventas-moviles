@@ -131,6 +131,17 @@
                 <i class="fas fa-user me-2"></i>
                 Vendido por: <strong>{{ product.sellerName }}</strong>
               </p>
+              <p v-if="product.sellerPhone" class="text-muted mb-1">
+                <i class="fas fa-phone me-2"></i>
+                WhatsApp: 
+                <a 
+                  :href="whatsappLink" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  <strong>{{ product.sellerPhone }}</strong>
+                </a>
+              </p>
             </div>
 
             <!-- Precio -->
@@ -152,10 +163,26 @@
             <!-- Acciones -->
             <div class="actions-section">
               <div class="d-grid gap-2 d-md-flex">
-                <button class="btn btn-primary btn-lg flex-fill">
-                  <i class="fas fa-shopping-cart me-2"></i>
-                  Comprar Ahora
+                <!-- Botón de WhatsApp reemplazando Comprar ahora -->
+                <a 
+                  v-if="product.sellerPhone"
+                  :href="whatsappLink" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  class="btn btn-success btn-lg flex-fill"
+                >
+                  <i class="fab fa-whatsapp me-2"></i>
+                  Comprar por WhatsApp
+                </a>
+                <button 
+                  v-else 
+                  class="btn btn-secondary btn-lg flex-fill" 
+                  disabled
+                >
+                  <i class="fas fa-ban me-2"></i>
+                  WhatsApp no disponible
                 </button>
+
                 <button class="btn btn-outline-primary btn-lg">
                   <i class="fas fa-heart me-2"></i>
                   Favorito
@@ -331,7 +358,6 @@ export default {
     }
 
     const goToSlide = (index) => {
-      // Cambiar a la slide específica
       const carousel = document.getElementById('productCarousel')
       if (carousel) {
         const bsCarousel = new bootstrap.Carousel(carousel)
@@ -340,7 +366,6 @@ export default {
     }
 
     const handleImageError = (event) => {
-      // Crear una imagen de fallback con SVG
       const fallbackSvg = `data:image/svg+xml,${encodeURIComponent(`
         <svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
           <rect width="600" height="400" fill="#fef2f2"/>
@@ -354,6 +379,12 @@ export default {
       `)}`
       event.target.src = fallbackSvg
     }
+
+    const whatsappLink = computed(() => {
+      if (!product.value?.sellerPhone) return null
+      const message = `Hola, estoy interesado en el producto: ${product.value.title} por $${formatPrice(product.value.price)}`
+      return `https://wa.me/${product.value.sellerPhone}?text=${encodeURIComponent(message)}`
+    })
 
     const submitReview = async () => {
       if (!newReview.rating || !newReview.comment.trim()) return
@@ -371,11 +402,9 @@ export default {
 
         await productsStore.addReview(reviewData)
         
-        // Limpiar formulario
         newReview.rating = 0
         newReview.comment = ''
         
-        // Mostrar mensaje de éxito
         alert('Reseña enviada exitosamente')
       } catch (error) {
         alert('Error al enviar la reseña')
@@ -385,7 +414,6 @@ export default {
     }
 
     onMounted(() => {
-      // Inicializar autenticación si hay datos guardados
       authStore.initAuth()
     })
 
@@ -403,7 +431,8 @@ export default {
       formatDate,
       goToSlide,
       handleImageError,
-      submitReview
+      submitReview,
+      whatsappLink
     }
   }
 }
