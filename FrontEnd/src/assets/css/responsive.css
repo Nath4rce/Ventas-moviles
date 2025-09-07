@@ -1,0 +1,136 @@
+/* Responsive Design - Mobile First */
+
+/* Mobile: < 768px */
+@media (max-width: 767px) {
+  /* Texto más legible en mobile */
+  body {
+    font-size: 0.95rem;
+  }
+  
+  /* Botones más grandes para touch */
+  .btn {
+    min-height: 44px;
+    padding: 0.75rem 1.5rem;
+  }
+  
+  .btn-sm {
+    min-height: 36px;
+    padding: 0.5rem 1rem;
+  }
+  
+  /* Cards más compactas */
+  .card-body {
+    padding: var(--spacing-md);
+  }
+  
+  /* Mejor espaciado en formularios */
+  .form-control,
+  .form-select {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+  }
+  
+  /* Navegación más accesible */
+  .navbar-nav .nav-link {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+  }
+  
+  /* Mejoras en tablas */
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+  
+  /* Mejoras en modales */
+  .modal-dialog {
+    margin: 0.5rem;
+  }
+  
+  .modal-content {
+    border-radius: var(--border-radius-lg);
+  }
+  
+  /* Espaciado mobile */
+  .py-5 {
+    padding-top: var(--spacing-xl) !important;
+    padding-bottom: var(--spacing-xl) !important;
+  }
+  
+  .mb-4 {
+    margin-bottom: var(--spacing-lg) !important;
+  }
+  
+  /* Contenedores mobile */
+  .container {
+    padding-left: var(--spacing-md);
+    padding-right: var(--spacing-md);
+  }
+}
+
+/* Tablet/Laptop: 768px - 1199px */
+@media (min-width: 768px) {
+  .main-content {
+    padding-top: 40px;
+  }
+  
+  .display-4 {
+    font-size: 3rem;
+  }
+  
+  .lead {
+    font-size: 1.25rem;
+  }
+  
+  .py-5 {
+    padding-top: var(--spacing-xxl) !important;
+    padding-bottom: var(--spacing-xxl) !important;
+  }
+  
+  .mb-4 {
+    margin-bottom: var(--spacing-xl) !important;
+  }
+  
+  .container {
+    padding-left: var(--spacing-lg);
+    padding-right: var(--spacing-lg);
+  }
+  
+  /* Mejoras de grid en tablet */
+  .row.g-4 > * {
+    padding: var(--spacing-md);
+  }
+}
+
+/* Desktop: 1200px+ */
+@media (min-width: 1200px) {
+  .main-content {
+    padding-top: 60px;
+  }
+  
+  .display-4 {
+    font-size: 3.5rem;
+  }
+  
+  .lead {
+    font-size: 1.3rem;
+  }
+  
+  .py-5 {
+    padding-top: 4rem !important;
+    padding-bottom: 4rem !important;
+  }
+  
+  .mb-4 {
+    margin-bottom: 2.5rem !important;
+  }
+  
+  .container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+  
+  /* Mejoras de grid en desktop */
+  .row.g-4 > * {
+    padding: 1.5rem;
+  }
+}
