@@ -14,10 +14,12 @@ router.post('/login', validateLogin, async (req, res) => {
     const db = getDatabase();
 
     // Buscar usuario por ID estudiantil
-    const result = await db.query(
-      'SELECT * FROM users WHERE student_id = $1',
-      [studentId]
-    );
+    const result = await new Promise((resolve, reject) => {
+      db.get('SELECT * FROM users WHERE student_id = ?', [studentId], (err, row) => {
+        if (err) reject(err);
+        else resolve({ rows: row ? [row] : [] });
+      });
+    });
 
     if (result.rows.length === 0) {
       return res.status(401).json({

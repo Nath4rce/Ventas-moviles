@@ -7,7 +7,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const userRoutes = require('./routes/users');
-const { initializeDatabase } = require('./config/database');
+const { initializeDatabase } = require('./config/database-sqlite');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
