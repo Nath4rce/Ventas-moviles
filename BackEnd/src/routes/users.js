@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { getDatabase } = require('../config/database');
+const { getDatabase } = require('../config/database-sqlite');
 const { validateProfileUpdate, validatePasswordChange } = require('../middleware/validation');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 

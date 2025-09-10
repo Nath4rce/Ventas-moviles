@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { getDatabase } = require('../config/database');
+const { getDatabase } = require('../config/database-sqlite');
 const { validateLogin, validateRegister } = require('../middleware/validation');
 const { authenticateToken } = require('../middleware/auth');
 
@@ -77,10 +77,12 @@ router.post('/register', validateRegister, async (req, res) => {
     const db = getDatabase();
 
     // Verificar si el usuario ya existe
-    const existingUserResult = await db.query(
-      'SELECT id FROM users WHERE student_id = $1 OR email = $2',
-      [studentId, email]
-    );
+    const existingUserResult = await new Promise((resolve, reject) => {
+      db.get('SELECT id FROM users WHERE student_id = ? OR email = ?', [studentId, email], (err, row) => {
+        if (err) reject(err);
+        else resolve({ rows: row ? [row] : [] });
+      });
+    });
 
     if (existingUserResult.rows.length > 0) {
       return res.status(409).json({
@@ -93,10 +95,22 @@ router.post('/register', validateRegister, async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Crear nuevo usuario
-    const result = await db.query(
-      'INSERT INTO users (student_id, email, name, password, role) VALUES ($1, $2, $3, $4, $5) RETURNING id, student_id, email, name, role, created_at',
-      [studentId, email, name, hashedPassword, 'student']
-    );
+    const result = await new Promise((resolve, reject) => {
+      db.run(
+        'INSERT INTO users (student_id, email, name, password, role) VALUES (?, ?, ?, ?, ?)',
+        [studentId, email, name, hashedPassword, 'student'],
+        function(err) {
+          if (err) reject(err);
+          else {
+            // Obtener el usuario creado
+            db.get('SELECT id, student_id, email, name, role, created_at FROM users WHERE id = ?', [this.lastID], (err, row) => {
+              if (err) reject(err);
+              else resolve({ rows: [row] });
+            });
+          }
+        }
+      );
+    });
 
     const newUser = result.rows[0];
 

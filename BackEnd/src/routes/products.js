@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { getDatabase } = require('../config/database');
+const { getDatabase } = require('../config/database-sqlite');
 const { validateProduct, validateProductId, validateSearch } = require('../middleware/validation');
 const { authenticateToken, optionalAuth, requireRole } = require('../middleware/auth');
 
@@ -58,25 +58,21 @@ router.get('/', validateSearch, optionalAuth, (req, res) => {
 
     // Aplicar filtros
     if (q) {
-      paramCount++;
       query += ` AND (p.title LIKE ? OR p.description LIKE ?)`;
       params.push(`%${q}%`, `%${q}%`);
     }
 
     if (category) {
-      paramCount++;
       query += ` AND p.category = ?`;
       params.push(category);
     }
 
     if (minPrice) {
-      paramCount++;
       query += ` AND p.price >= ?`;
       params.push(parseFloat(minPrice));
     }
 
     if (maxPrice) {
-      paramCount++;
       query += ` AND p.price <= ?`;
       params.push(parseFloat(maxPrice));
     }
