@@ -104,26 +104,77 @@
       <!-- Contenido principal -->
       <div class="row g-4">
         <!-- Gestión de usuarios -->
-        <div class="col-12 col-lg-6">
+        <div class="col-12">
           <div class="card">
             <div class="card-header bg-light">
-              <h5 class="mb-0">
-                <i class="fas fa-users me-2"></i>
-                Gestión de Usuarios
-              </h5>
+              <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                  <i class="fas fa-users me-2"></i>
+                  Gestión de Usuarios
+                </h5>
+                <button 
+                  class="btn btn-primary btn-sm"
+                  @click="showCreateUserModal = true"
+                >
+                  <i class="fas fa-user-plus me-1"></i>
+                  Nuevo Usuario
+                </button>
+              </div>
             </div>
             <div class="card-body">
+              <!-- Filtros de búsqueda -->
+              <div class="row g-3 mb-4">
+                <div class="col-12 col-md-4">
+                  <label class="form-label fw-semibold">Buscar por NRC</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    v-model="userFilters.nrc"
+                    placeholder="Ej: 12345"
+                    @input="applyUserFilters"
+                  >
+                </div>
+                <div class="col-12 col-md-4">
+                  <label class="form-label fw-semibold">Tipo de Usuario</label>
+                  <select 
+                    class="form-select" 
+                    v-model="userFilters.role"
+                    @change="applyUserFilters"
+                  >
+                    <option value="all">Todos los tipos</option>
+                    <option value="admin">Administrador</option>
+                    <option value="seller">Vendedor</option>
+                    <option value="buyer">Estudiante</option>
+                  </select>
+                </div>
+                <div class="col-12 col-md-4">
+                  <label class="form-label fw-semibold">Estado</label>
+                  <select 
+                    class="form-select" 
+                    v-model="userFilters.status"
+                    @change="applyUserFilters"
+                  >
+                    <option value="all">Todos</option>
+                    <option value="active">Activos</option>
+                    <option value="inactive">Inactivos</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Tabla de usuarios -->
               <div class="table-responsive">
                 <table class="table table-sm">
                   <thead>
                     <tr>
                       <th>Usuario</th>
+                      <th>NRC</th>
                       <th>Rol</th>
                       <th>Estado</th>
+                      <th>Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="user in users" :key="user.id">
+                    <tr v-for="user in filteredUsers" :key="user.id">
                       <td>
                         <div class="d-flex align-items-center">
                           <img 
@@ -140,12 +191,38 @@
                         </div>
                       </td>
                       <td>
+                        <span class="badge bg-info">{{ user.nrc }}</span>
+                      </td>
+                      <td>
                         <span class="badge" :class="getRoleBadgeClass(user.role)">
                           {{ getRoleName(user.role) }}
                         </span>
                       </td>
                       <td>
-                        <span class="badge bg-success">Activo</span>
+                        <span 
+                          class="badge" 
+                          :class="user.isActive ? 'bg-success' : 'bg-danger'"
+                        >
+                          {{ user.isActive ? 'Activo' : 'Inactivo' }}
+                        </span>
+                      </td>
+                      <td>
+                        <div class="btn-group btn-group-sm" role="group">
+                          <button 
+                            class="btn btn-outline-warning"
+                            @click="toggleUserStatus(user.id)"
+                            :title="user.isActive ? 'Desactivar' : 'Activar'"
+                          >
+                            <i :class="user.isActive ? 'fas fa-pause' : 'fas fa-play'"></i>
+                          </button>
+                          <button 
+                            class="btn btn-outline-primary"
+                            @click="openChangeRoleModal(user)"
+                            title="Cambiar rol"
+                          >
+                            <i class="fas fa-user-edit"></i>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   </tbody>
@@ -235,6 +312,32 @@
                       <option value="danger">Importante</option>
                     </select>
                   </div>
+                  
+                  <!-- Filtros de destinatarios -->
+                  <div class="col-12 col-md-4">
+                    <label class="form-label fw-semibold">Destinatarios</label>
+                    <select 
+                      class="form-select" 
+                      v-model="notificationForm.recipients"
+                      @change="handleRecipientChange"
+                    >
+                      <option value="all">Todos los usuarios</option>
+                      <option value="sellers">Solo vendedores</option>
+                      <option value="students">Solo estudiantes</option>
+                      <option value="nrc">NRC específico</option>
+                    </select>
+                  </div>
+                  
+                  <div v-if="notificationForm.recipients === 'nrc'" class="col-12 col-md-4">
+                    <label class="form-label fw-semibold">NRC</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      v-model="notificationForm.nrc"
+                      placeholder="Ej: 12345"
+                    >
+                  </div>
+                  
                   <div class="col-12">
                     <label for="notificationMessage" class="form-label fw-semibold">Mensaje</label>
                     <textarea
@@ -255,7 +358,7 @@
                       >
                         <i v-if="sendingNotification" class="fas fa-spinner fa-spin me-2"></i>
                         <i v-else class="fas fa-paper-plane me-2"></i>
-                        {{ sendingNotification ? 'Enviando...' : 'Enviar a Todos' }}
+                        {{ sendingNotification ? 'Enviando...' : 'Enviar Notificación' }}
                       </button>
                       <button 
                         type="button" 
@@ -273,6 +376,124 @@
           </div>
         </div>
       </div>
+
+      <!-- Modal para crear usuario -->
+      <div v-if="showCreateUserModal" class="modal show d-block" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Crear Nuevo Usuario</h5>
+              <button type="button" class="btn-close" @click="showCreateUserModal = false"></button>
+            </div>
+            <div class="modal-body">
+              <form @submit.prevent="createUser">
+                <div class="row g-3">
+                  <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold">ID Estudiantil *</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      v-model="newUser.studentId"
+                      placeholder="Ej: 20210001"
+                      required
+                    >
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold">NRC *</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      v-model="newUser.nrc"
+                      placeholder="Ej: 12345"
+                      required
+                    >
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label fw-semibold">Nombre Completo *</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      v-model="newUser.name"
+                      placeholder="Nombre del usuario"
+                      required
+                    >
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold">Email *</label>
+                    <input
+                      type="email"
+                      class="form-control"
+                      v-model="newUser.email"
+                      placeholder="usuario@universidad.edu"
+                      required
+                    >
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <label class="form-label fw-semibold">Rol *</label>
+                    <select class="form-select" v-model="newUser.role" required>
+                      <option value="buyer">Estudiante</option>
+                      <option value="seller">Vendedor</option>
+                      <option value="admin">Administrador</option>
+                    </select>
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label fw-semibold">Contraseña *</label>
+                    <input
+                      type="password"
+                      class="form-control"
+                      v-model="newUser.password"
+                      placeholder="Contraseña temporal"
+                      required
+                    >
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" @click="showCreateUserModal = false">Cancelar</button>
+                  <button type="submit" class="btn btn-primary" :disabled="creatingUser">
+                    <i v-if="creatingUser" class="fas fa-spinner fa-spin me-2"></i>
+                    {{ creatingUser ? 'Creando...' : 'Crear Usuario' }}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal para cambiar rol -->
+      <div v-if="showChangeRoleModal" class="modal show d-block" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Cambiar Rol de Usuario</h5>
+              <button type="button" class="btn-close" @click="showChangeRoleModal = false"></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <strong>Usuario:</strong> {{ selectedUser?.name }} ({{ selectedUser?.studentId }})
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Nuevo Rol</label>
+                <select class="form-select" v-model="newRole">
+                  <option value="buyer">Estudiante</option>
+                  <option value="seller">Vendedor</option>
+                  <option value="admin">Administrador</option>
+                </select>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" @click="showChangeRoleModal = false">Cancelar</button>
+              <button type="button" class="btn btn-primary" @click="changeUserRole" :disabled="changingRole">
+                <i v-if="changingRole" class="fas fa-spinner fa-spin me-2"></i>
+                {{ changingRole ? 'Cambiando...' : 'Cambiar Rol' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overlay para modales -->
+      <div v-if="showCreateUserModal || showChangeRoleModal" class="modal-backdrop show"></div>
     </div>
   </div>
 </template>
@@ -292,11 +513,34 @@ export default {
 
     const loading = ref(false)
     const sendingNotification = ref(false)
+    const creatingUser = ref(false)
+    const changingRole = ref(false)
+    const showCreateUserModal = ref(false)
+    const showChangeRoleModal = ref(false)
+    const selectedUser = ref(null)
+    const newRole = ref('buyer')
+
+    const userFilters = reactive({
+      nrc: '',
+      role: 'all',
+      status: 'all'
+    })
+
+    const newUser = reactive({
+      studentId: '',
+      nrc: '',
+      name: '',
+      email: '',
+      role: 'buyer',
+      password: ''
+    })
 
     const notificationForm = reactive({
       title: '',
       message: '',
-      type: 'info'
+      type: 'info',
+      recipients: 'all',
+      nrc: ''
     })
 
     // Estadísticas
@@ -307,8 +551,10 @@ export default {
       totalNotifications: notificationsStore.notifications.length
     }))
 
-    // Usuarios
-    const users = computed(() => authStore.users)
+    // Usuarios filtrados
+    const filteredUsers = computed(() => {
+      return authStore.searchUsers(userFilters)
+    })
 
     // Productos recientes
     const recentProducts = computed(() => 
@@ -384,6 +630,78 @@ export default {
       notificationForm.title = ''
       notificationForm.message = ''
       notificationForm.type = 'info'
+      notificationForm.recipients = 'all'
+      notificationForm.nrc = ''
+    }
+
+    // Funciones de gestión de usuarios
+    const applyUserFilters = () => {
+      // Los filtros se aplican automáticamente por computed
+    }
+
+    const createUser = async () => {
+      creatingUser.value = true
+      try {
+        const result = await authStore.createUser(newUser)
+        if (result.success) {
+          alert('Usuario creado exitosamente')
+          showCreateUserModal.value = false
+          resetNewUserForm()
+        } else {
+          alert(result.message)
+        }
+      } catch (error) {
+        alert('Error al crear el usuario')
+      } finally {
+        creatingUser.value = false
+      }
+    }
+
+    const resetNewUserForm = () => {
+      newUser.studentId = ''
+      newUser.nrc = ''
+      newUser.name = ''
+      newUser.email = ''
+      newUser.role = 'buyer'
+      newUser.password = ''
+    }
+
+    const toggleUserStatus = (userId) => {
+      const result = authStore.toggleUserStatus(userId)
+      if (result.success) {
+        alert(`Usuario ${result.user.isActive ? 'activado' : 'desactivado'} exitosamente`)
+      } else {
+        alert(result.message)
+      }
+    }
+
+    const openChangeRoleModal = (user) => {
+      selectedUser.value = user
+      newRole.value = user.role
+      showChangeRoleModal.value = true
+    }
+
+    const changeUserRole = async () => {
+      changingRole.value = true
+      try {
+        const result = authStore.changeUserRole(selectedUser.value.id, newRole.value)
+        if (result.success) {
+          alert('Rol cambiado exitosamente')
+          showChangeRoleModal.value = false
+        } else {
+          alert(result.message)
+        }
+      } catch (error) {
+        alert('Error al cambiar el rol')
+      } finally {
+        changingRole.value = false
+      }
+    }
+
+    const handleRecipientChange = () => {
+      if (notificationForm.recipients !== 'nrc') {
+        notificationForm.nrc = ''
+      }
     }
 
     onMounted(() => {
@@ -394,9 +712,17 @@ export default {
     return {
       loading,
       sendingNotification,
+      creatingUser,
+      changingRole,
+      showCreateUserModal,
+      showChangeRoleModal,
+      selectedUser,
+      newRole,
+      userFilters,
+      newUser,
       notificationForm,
       stats,
-      users,
+      filteredUsers,
       recentProducts,
       isSiteDisabled,
       getRoleName,
@@ -405,7 +731,14 @@ export default {
       formatPrice,
       toggleSiteStatus,
       sendNotification,
-      resetNotificationForm
+      resetNotificationForm,
+      applyUserFilters,
+      createUser,
+      resetNewUserForm,
+      toggleUserStatus,
+      openChangeRoleModal,
+      changeUserRole,
+      handleRecipientChange
     }
   }
 }

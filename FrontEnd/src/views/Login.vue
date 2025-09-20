@@ -80,13 +80,11 @@
                 </button>
               </form>
 
-              <!-- Enlace a registro -->
+              <!-- Mensaje informativo -->
               <div class="text-center mt-4">
-                <p class="mb-0">
-                  ¿No tienes cuenta?
-                  <router-link to="/register" class="text-primary fw-semibold text-decoration-none">
-                    Regístrate aquí
-                  </router-link>
+                <p class="mb-0 text-muted">
+                  <i class="fas fa-info-circle me-1"></i>
+                  El registro debe ser realizado por un administrador
                 </p>
               </div>
 
