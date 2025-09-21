@@ -1,27 +1,28 @@
 # Antojitos UPB - Frontend
 
-Frontend del marketplace interno de estudiantes de la Universidad Pontificia Bolivariana, desarrollado con Vue 3.
+Frontend del marketplace interno de estudiantes de la Universidad Pontificia Bolivariana, desarrollado con Vue 3 y conectado a un backend Node.js completo.
 
 ## Características Técnicas
 
-### Funcionalidades Actuales
-- **Autenticación completa**: Login y registro con ID estudiantil
-- **Sistema de roles**: Comprador, Vendedor y Administrador
-- **Marketplace**: Catálogo de productos con filtros y búsqueda
-- **Gestión de productos**: Los vendedores pueden publicar productos
-- **Panel administrativo**: Control del sitio y envío de notificaciones
+### Funcionalidades Implementadas
+- **Autenticación completa**: Login y registro con ID estudiantil y JWT
+- **Sistema de roles**: Comprador, Vendedor y Administrador con permisos específicos
+- **Marketplace completo**: Catálogo de productos con filtros, búsqueda y paginación
+- **Gestión de productos**: Los vendedores pueden publicar, editar y gestionar productos
+- **Sistema de reseñas**: Calificaciones y comentarios de productos
+- **Panel administrativo**: Control total del sitio, gestión de usuarios y notificaciones
 - **Diseño responsive**: Mobile first con breakpoints adaptativos
-- **Sistema de favoritos**: Los usuarios pueden marcar productos como favoritos
-- **Notificaciones**: Sistema de notificaciones en tiempo real
+- **Sistema de notificaciones**: Notificaciones dirigidas por rol y NRC
+- **Gestión de imágenes**: Múltiples imágenes por producto con fallback
 
 ### Tecnologías Utilizadas
-- **Vue 3** - Framework JavaScript reactivo
-- **Vue Router** - Enrutamiento de la aplicación
-- **Pinia** - Gestión de estado global
+- **Vue 3** - Framework JavaScript reactivo con Composition API
+- **Vue Router** - Enrutamiento de la aplicación con guards de autenticación
+- **Pinia** - Gestión de estado global moderna
 - **Bootstrap 5** - Framework CSS responsive
-- **Font Awesome** - Iconografía
-- **Vite** - Herramienta de construcción
-- **Axios** - Cliente HTTP para API
+- **Font Awesome** - Iconografía completa
+- **Vite** - Herramienta de construcción rápida
+- **Axios** - Cliente HTTP para comunicación con API REST
 
 ## Diseño Responsive
 
@@ -40,42 +41,77 @@ Frontend del marketplace interno de estudiantes de la Universidad Pontificia Bol
 
 ## Instalación y Ejecución
 
-### Requisitos
+### Requisitos Previos
 - Node.js 16+
 - npm o yarn
+- Backend Node.js funcionando (puerto 3000)
 
-### Comandos de Ejecución
+### Configuración del Proyecto
 
-```bash
-# Instalar dependencias
-npm install
+1. **Instalar dependencias:**
+   ```bash
+   npm install
+   ```
 
-# Desarrollo
-npm run dev
+2. **Configurar variables de entorno:**
+   Crear archivo `.env` en la raíz del frontend:
+   ```env
+   VITE_API_URL=http://localhost:3000
+   VITE_APP_NAME=Antojitos UPB
+   ```
 
-# Construcción para producción
-npm run build
+3. **Ejecutar en desarrollo:**
+   ```bash
+   npm run dev
+   ```
 
-# Vista previa de la construcción
-npm run preview
-```
+4. **Construcción para producción:**
+   ```bash
+   npm run build
+   ```
+
+5. **Vista previa de la construcción:**
+   ```bash
+   npm run preview
+   ```
+
+### Configuración del Backend
+Asegúrate de que el backend esté funcionando en `http://localhost:3000` antes de iniciar el frontend.
 
 ## Usuarios de Prueba
 
 ### Administrador
 - **ID**: 20210001
 - **Contraseña**: admin123
-- **Funciones**: Control total, envío de notificaciones, gestión de usuarios
+- **Funciones**: 
+  - Control total del sistema
+  - Gestión de usuarios (crear, activar/desactivar, cambiar roles)
+  - Gestión de productos y categorías
+  - Envío de notificaciones masivas
+  - Estadísticas generales del sitio
+  - Habilitar/deshabilitar el sitio
 
 ### Vendedor
 - **ID**: 20210002
 - **Contraseña**: vendedor123
-- **Funciones**: Publicar productos, gestionar inventario, ver estadísticas
+- **Funciones**: 
+  - Publicar productos (máximo 1 activo)
+  - Gestionar inventario
+  - Ver estadísticas de productos
+  - Responder a compradores
+  - Gestionar perfil
 
-### Comprador
+### Comprador/Estudiante
 - **ID**: 20210003
 - **Contraseña**: comprador123
-- **Funciones**: Navegar, comprar, marcar favoritos, gestionar perfil
+- **Funciones**: 
+  - Navegar por el catálogo
+  - Buscar y filtrar productos
+  - Ver detalles de productos
+  - Contactar vendedores por WhatsApp
+  - Dejar reseñas y calificaciones
+  - Gestionar perfil personal
+  - Recibir notificaciones
 
 ## Estructura del Proyecto
 
@@ -137,25 +173,42 @@ Para personalizar la aplicación:
 3. **Rutas**: Modifica `src/router/index.js`
 4. **Estado**: Actualiza los stores en `src/stores/`
 
-## API Integration
+## Integración con API
 
 ### Autenticación
-- Login con ID estudiantil y contraseña
-- Registro de nuevos usuarios
-- Renovación automática de tokens JWT
-- Logout seguro
+- **Login**: POST `/api/auth/login` con ID estudiantil y contraseña
+- **Registro**: POST `/api/auth/register` para nuevos usuarios
+- **Perfil**: GET `/api/auth/me` para obtener datos del usuario
+- **JWT**: Tokens seguros con expiración de 24 horas
+- **Logout**: POST `/api/auth/logout` para cerrar sesión
 
 ### Productos
-- Listado con filtros y paginación
-- Búsqueda por texto y categoría
-- Detalles de producto individual
-- Gestión de productos (vendedores)
+- **Listado**: GET `/api/products` con filtros, búsqueda y paginación
+- **Detalle**: GET `/api/products/:id` para información completa
+- **Crear**: POST `/api/products` (solo vendedores autenticados)
+- **Actualizar**: PUT `/api/products/:id` (propietario o admin)
+- **Eliminar**: DELETE `/api/products/:id` (desactivar producto)
+- **Categorías**: GET `/api/products/categories`
 
-### Usuarios
-- Perfil de usuario
-- Gestión de favoritos
-- Sistema de notificaciones
-- Estadísticas (vendedores)
+### Reseñas
+- **Listar**: GET `/api/reviews/product/:productId`
+- **Crear**: POST `/api/reviews` (usuarios autenticados)
+- **Actualizar**: PUT `/api/reviews/:id` (propietario)
+- **Eliminar**: DELETE `/api/reviews/:id` (propietario)
+- **Estadísticas**: GET `/api/reviews/stats/:productId`
+
+### Notificaciones
+- **Listar**: GET `/api/notifications` (del usuario actual)
+- **Marcar leída**: PUT `/api/notifications/:id/read`
+- **Marcar todas**: PUT `/api/notifications/read-all`
+- **Estado del sitio**: GET `/api/notifications/site-status`
+
+### Administración
+- **Estadísticas**: GET `/api/admin/stats`
+- **Usuarios**: GET `/api/admin/users` con filtros
+- **Crear usuario**: POST `/api/admin/users`
+- **Cambiar estado**: PUT `/api/admin/users/:id/toggle-status`
+- **Cambiar rol**: PUT `/api/admin/users/:id/role`
 
 ## Despliegue
 
@@ -260,7 +313,3 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo LICENSE para más detal
 - Sara Soto
 
 Universidad Pontificia Bolivariana - 2025
-
----
-
-¡Disfruta comprando y vendiendo en Antojitos UPB!

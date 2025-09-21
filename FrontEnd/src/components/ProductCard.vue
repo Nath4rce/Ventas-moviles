@@ -142,6 +142,8 @@
 </template>
 
 <script>
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 import ImageWithFallback from './ImageWithFallback.vue'
 
 export default {
@@ -162,6 +164,8 @@ export default {
   },
   emits: ['view-details'],
   setup(props, { emit }) {
+    const router = useRouter()
+    const authStore = useAuthStore()
     const getCategoryIcon = (category) => {
       const icons = {
         alimentos: 'fas fa-utensils',
@@ -192,6 +196,10 @@ export default {
     }
 
     const viewDetails = () => {
+      if (!authStore.isAuthenticated) {
+        router.push('/login')
+        return
+      }
       emit('view-details', props.product.id)
     }
 

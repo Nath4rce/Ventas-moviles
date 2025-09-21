@@ -3,7 +3,6 @@ import { useAuthStore } from '../stores/auth'
 
 // Lazy loading de componentes
 const Login = () => import('../views/Login.vue')
-const Register = () => import('../views/Register.vue')
 const Landing = () => import('../views/Landing.vue')
 const ProductDetail = () => import('../views/ProductDetail.vue')
 const PublishProduct = () => import('../views/PublishProduct.vue')
@@ -23,16 +22,9 @@ const routes = [
     meta: { requiresGuest: true }
   },
   {
-    path: '/register',
-    name: 'Register',
-    component: Register,
-    meta: { requiresGuest: true }
-  },
-  {
     path: '/landing',
     name: 'Landing',
-    component: Landing,
-    meta: { requiresAuth: true }
+    component: Landing
   },
   {
     path: '/product/:id',

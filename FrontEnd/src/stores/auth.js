@@ -13,7 +13,9 @@ export const useAuthStore = defineStore('auth', {
         password: 'admin123',
         role: 'admin',
         name: 'Administrador',
-        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face'
+        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face',
+        isActive: true,
+        nrc: '00000'
       },
       {
         id: 2,
@@ -22,7 +24,9 @@ export const useAuthStore = defineStore('auth', {
         password: 'vendedor123',
         role: 'seller',
         name: 'Juan Vendedor',
-        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face'
+        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face',
+        isActive: true,
+        nrc: '11111'
       },
       {
         id: 3,
@@ -31,7 +35,31 @@ export const useAuthStore = defineStore('auth', {
         password: 'comprador123',
         role: 'buyer',
         name: 'María Compradora',
-        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face'
+        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face',
+        isActive: true,
+        nrc: '12345'
+      },
+      {
+        id: 4,
+        studentId: '20210004',
+        email: 'estudiante@universidad.edu',
+        password: 'estudiante123',
+        role: 'buyer',
+        name: 'Carlos Estudiante',
+        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face',
+        isActive: true,
+        nrc: '67890'
+      },
+      {
+        id: 5,
+        studentId: '20210005',
+        email: 'vendedor2@universidad.edu',
+        password: 'vendedor123',
+        role: 'seller',
+        name: 'Ana Vendedora',
+        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face',
+        isActive: false,
+        nrc: '54321'
       }
     ]
   }),
@@ -109,6 +137,77 @@ export const useAuthStore = defineStore('auth', {
         this.user = JSON.parse(savedUser)
         this.isAuthenticated = true
       }
+    },
+
+    // Crear nuevo usuario (solo admin)
+    async createUser(userData) {
+      // Verificar si el ID estudiantil ya existe
+      const existingUser = this.users.find(u => u.studentId === userData.studentId)
+      if (existingUser) {
+        return { success: false, message: 'ID estudiantil ya registrado' }
+      }
+
+      // Verificar si el email ya existe
+      const existingEmail = this.users.find(u => u.email === userData.email)
+      if (existingEmail) {
+        return { success: false, message: 'Email ya registrado' }
+      }
+
+      // Crear nuevo usuario
+      const newUser = {
+        id: Math.max(...this.users.map(u => u.id)) + 1,
+        studentId: userData.studentId,
+        email: userData.email,
+        password: userData.password,
+        role: userData.role || 'buyer',
+        name: userData.name,
+        avatar: userData.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face',
+        isActive: true,
+        nrc: userData.nrc
+      }
+
+      this.users.push(newUser)
+      return { success: true, user: newUser }
+    },
+
+    // Activar/desactivar usuario
+    toggleUserStatus(userId) {
+      const user = this.users.find(u => u.id === userId)
+      if (user) {
+        user.isActive = !user.isActive
+        return { success: true, user }
+      }
+      return { success: false, message: 'Usuario no encontrado' }
+    },
+
+    // Cambiar rol de usuario
+    changeUserRole(userId, newRole) {
+      const user = this.users.find(u => u.id === userId)
+      if (user) {
+        user.role = newRole
+        return { success: true, user }
+      }
+      return { success: false, message: 'Usuario no encontrado' }
+    },
+
+    // Buscar usuarios por filtros
+    searchUsers(filters = {}) {
+      let filteredUsers = [...this.users]
+
+      if (filters.nrc) {
+        filteredUsers = filteredUsers.filter(u => u.nrc.includes(filters.nrc))
+      }
+
+      if (filters.role && filters.role !== 'all') {
+        filteredUsers = filteredUsers.filter(u => u.role === filters.role)
+      }
+
+      if (filters.status && filters.status !== 'all') {
+        const isActive = filters.status === 'active'
+        filteredUsers = filteredUsers.filter(u => u.isActive === isActive)
+      }
+
+      return filteredUsers
     }
   }
 })

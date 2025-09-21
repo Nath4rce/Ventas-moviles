@@ -1,187 +1,219 @@
-# Antojitos UPB - Backend API
+# Backend - Antojitos UPB
 
-Backend API para el marketplace interno de estudiantes de la Universidad Pontificia Bolivariana.
+Backend para el marketplace universitario Antojitos UPB desarrollado con Node.js, Express y MySQL.
 
 ## Características
 
-- **Autenticación JWT**: Sistema seguro de login y registro
+- **Autenticación JWT**: Sistema de login/registro seguro
 - **Gestión de Productos**: CRUD completo para productos
-- **Gestión de Usuarios**: Perfiles, notificaciones y favoritos
-- **Subida de Archivos**: Imágenes para productos y perfiles
-- **Base de Datos SQLite**: Base de datos ligera para desarrollo
-- **Validación de Datos**: Middleware de validación robusto
-- **Rate Limiting**: Protección contra abuso de API
-- **CORS**: Configurado para desarrollo y producción
+- **Sistema de Reseñas**: Calificaciones y comentarios
+- **Notificaciones**: Sistema de notificaciones dirigidas
+- **Panel de Administración**: Gestión completa de usuarios y contenido
+- **Seguridad**: Rate limiting, CORS, Helmet, validaciones
+- **Base de Datos**: MySQL con triggers y procedimientos almacenados
 
 ## Requisitos
 
-- Node.js 16+
+- Node.js 16+ 
+- MySQL 8.0+
 - npm o yarn
 
-## Instalación
+## 🛠️ Instalación
 
-1. **Instalar dependencias:**
+1. **Clonar el repositorio**
+   ```bash
+   git clone <repository-url>
+   cd BackEnd
+   ```
+
+2. **Instalar dependencias**
    ```bash
    npm install
    ```
 
-2. **Configurar variables de entorno:**
-   Crear archivo `.env` en la raíz del proyecto:
+3. **Configurar variables de entorno**
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Editar el archivo `.env` con tu configuración:
    ```env
+   DB_HOST=localhost
+   DB_USER=root
+   DB_PASSWORD=tu_password
+   DB_NAME=antojitos_upb
+   DB_PORT=3306
    PORT=3000
    NODE_ENV=development
-   JWT_SECRET=tu_jwt_secret_muy_seguro_aqui
-   UPLOAD_PATH=./uploads
-   MAX_FILE_SIZE=5242880
-   RATE_LIMIT_WINDOW_MS=900000
-   RATE_LIMIT_MAX_REQUESTS=100
+   JWT_SECRET=tu_super_secret_jwt_key
+   CORS_ORIGIN=http://localhost:5173
    ```
 
-3. **Ejecutar en desarrollo:**
+4. **Configurar la base de datos**
+   - Crear la base de datos MySQL
+   - Ejecutar el script `DataBase/database_schema.sql`
+
+5. **Iniciar el servidor**
    ```bash
+   # Desarrollo
    npm run dev
-   ```
-
-4. **Ejecutar en producción:**
-   ```bash
+   
+   # Producción
    npm start
    ```
 
 ## API Endpoints
 
-### Autenticación
-- `POST /api/auth/login` - Iniciar sesión
-- `POST /api/auth/register` - Registrar usuario
-- `GET /api/auth/me` - Obtener perfil actual
-- `POST /api/auth/logout` - Cerrar sesión
-- `POST /api/auth/refresh` - Renovar token
+### Autenticación (`/api/auth`)
+- `POST /login` - Iniciar sesión
+- `POST /register` - Registro de usuario
+- `GET /me` - Obtener usuario actual
+- `POST /logout` - Cerrar sesión
+- `PUT /profile` - Actualizar perfil
 
-### Productos
-- `GET /api/products` - Listar productos (con filtros)
-- `GET /api/products/:id` - Obtener producto por ID
-- `POST /api/products` - Crear producto (vendedores)
-- `PUT /api/products/:id` - Actualizar producto
-- `DELETE /api/products/:id` - Eliminar producto
-- `GET /api/products/user/:userId` - Productos de un usuario
+### Productos (`/api/products`)
+- `GET /` - Listar productos (con filtros)
+- `GET /categories` - Obtener categorías
+- `GET /:id` - Obtener producto por ID
+- `POST /` - Crear producto (autenticado)
+- `PUT /:id` - Actualizar producto (propietario/admin)
+- `DELETE /:id` - Desactivar producto (propietario/admin)
+- `GET /user/:userId` - Productos de un usuario
 
-### Usuarios
-- `GET /api/users/profile` - Obtener perfil
-- `PUT /api/users/profile` - Actualizar perfil
-- `PUT /api/users/password` - Cambiar contraseña
-- `GET /api/users/notifications` - Obtener notificaciones
-- `PUT /api/users/notifications/:id/read` - Marcar notificación como leída
-- `PUT /api/users/notifications/read-all` - Marcar todas como leídas
-- `GET /api/users/favorites` - Obtener favoritos
-- `POST /api/users/favorites/:productId` - Agregar a favoritos
-- `DELETE /api/users/favorites/:productId` - Eliminar de favoritos
-- `GET /api/users/stats` - Estadísticas (vendedores)
+### Reseñas (`/api/reviews`)
+- `GET /product/:productId` - Reseñas de un producto
+- `POST /` - Crear reseña (autenticado)
+- `PUT /:id` - Actualizar reseña (propietario)
+- `DELETE /:id` - Eliminar reseña (propietario)
+- `GET /user/:userId` - Reseñas de un usuario
+- `GET /stats/:productId` - Estadísticas de reseñas
 
-### Utilidades
-- `GET /api/health` - Estado del servidor
+### Notificaciones (`/api/notifications`)
+- `GET /` - Notificaciones del usuario
+- `PUT /:id/read` - Marcar como leída
+- `PUT /read-all` - Marcar todas como leídas
+- `POST /` - Crear notificación (admin)
+- `GET /admin` - Todas las notificaciones (admin)
+- `DELETE /:id` - Eliminar notificación (admin)
+- `GET /site-status` - Estado del sitio
+- `PUT /site-status` - Cambiar estado (admin)
+
+### Administración (`/api/admin`)
+- `GET /stats` - Estadísticas generales
+- `GET /users` - Listar usuarios (con filtros)
+- `POST /users` - Crear usuario
+- `PUT /users/:id/toggle-status` - Activar/desactivar usuario
+- `PUT /users/:id/role` - Cambiar rol de usuario
+- `GET /products` - Todos los productos (admin)
+- `PUT /products/:id/toggle-status` - Activar/desactivar producto
+- `GET /categories` - Categorías
+- `POST /categories` - Crear categoría
 
 ## Autenticación
 
-La API utiliza JWT (JSON Web Tokens) para autenticación. Incluye el token en el header:
+El API utiliza JWT (JSON Web Tokens) para la autenticación. Incluye el token en el header:
 
 ```
-Authorization: Bearer <tu_token>
+Authorization: Bearer <token>
 ```
 
 ## Base de Datos
 
-La aplicación utiliza SQLite como base de datos para facilitar el desarrollo. Se crean automáticamente las siguientes tablas:
+### Tablas Principales
+- `usuarios` - Información de usuarios
+- `productos` - Catálogo de productos
+- `categorias` - Categorías de productos
+- `resenas` - Reseñas de productos
+- `notificaciones` - Sistema de notificaciones
+- `usuario_notificaciones` - Relación usuario-notificación
 
-- **users**: Información de usuarios
-- **products**: Catálogo de productos
-- **notifications**: Sistema de notificaciones
-- **favorites**: Productos favoritos de usuarios
+### Características de BD
+- Triggers automáticos para actualizar ratings
+- Procedimientos almacenados para notificaciones
+- Vistas optimizadas para consultas frecuentes
+- Índices para mejorar rendimiento
 
-### Scripts de Base de Datos
+## Seguridad
 
-- `npm run setup-db`: Crear la base de datos y verificar conexión
-- `npm run reset-db`: Eliminar todas las tablas (solo desarrollo)
+- **Rate Limiting**: Límite de requests por IP
+- **CORS**: Configuración de orígenes permitidos
+- **Helmet**: Headers de seguridad
+- **Validación**: Validación de entrada con express-validator
+- **JWT**: Tokens seguros con expiración
+- **Bcrypt**: Hash seguro de contraseñas
 
-## Roles de Usuario
+## Despliegue
 
-- **admin**: Acceso completo al sistema
-- **seller**: Puede crear y gestionar productos
-- **student**: Usuario estándar, puede comprar y marcar favoritos
-
-## Estructura del Proyecto
-
-```
-BackEnd/
-├── src/
-│   ├── config/
-│   │   ├── database.js          # Configuración de PostgreSQL
-│   │   └── database-sqlite.js   # Configuración de SQLite
-│   ├── middleware/
-│   │   ├── auth.js              # Middleware de autenticación
-│   │   └── validation.js        # Validaciones de datos
-│   ├── routes/
-│   │   ├── auth.js              # Rutas de autenticación
-│   │   ├── products.js          # Rutas de productos
-│   │   └── users.js             # Rutas de usuarios
-│   └── server.js                # Servidor principal
-├── scripts/
-│   ├── setup-database.js        # Script de configuración de DB
-│   └── reset-database.js        # Script de reset de DB
-├── uploads/                     # Archivos subidos
-├── .env                        # Variables de entorno
-├── package.json                # Dependencias y scripts
-└── README.md                   # Este archivo
+### Variables de Entorno de Producción
+```env
+NODE_ENV=production
+DB_HOST=tu_host_mysql
+DB_USER=tu_usuario
+DB_PASSWORD=tu_password_seguro
+JWT_SECRET=clave_jwt_muy_segura
+CORS_ORIGIN=https://tu-dominio.com
 ```
 
-## Scripts Disponibles
+### Comandos de Producción
+```bash
+# Instalar dependencias de producción
+npm install --production
 
-- `npm start` - Ejecutar en producción
-- `npm run dev` - Ejecutar en desarrollo con nodemon
-- `npm test` - Ejecutar tests
-- `npm run setup-db` - Configurar base de datos
-- `npm run reset-db` - Resetear base de datos (solo desarrollo)
+# Iniciar servidor
+npm start
+```
 
-## Notas de Seguridad
+## Logs
 
-- Las contraseñas se hashean con bcrypt
-- Rate limiting configurado para prevenir abuso
-- Validación de archivos para subidas
-- Headers de seguridad con Helmet
-- CORS configurado apropiadamente
-
-## Usuarios de Prueba
-
-El sistema incluye usuarios de prueba por defecto:
-
-- **Admin**: ID: 20210001, Contraseña: admin123
-- **Vendedor**: ID: 20210002, Contraseña: vendedor123  
-- **Estudiante**: ID: 20210003, Contraseña: comprador123
+El servidor registra:
+- Requests HTTP con método, ruta e IP
+- Errores de base de datos
+- Errores de autenticación
+- Errores de validación
 
 ## Desarrollo
 
-### Cambiar de SQLite a PostgreSQL
+### Estructura del Proyecto
+```
+BackEnd/
+├── config/
+│   └── database.js          # Configuración de BD
+├── middleware/
+│   ├── auth.js              # Middleware de autenticación
+│   └── validation.js        # Validaciones
+├── routes/
+│   ├── auth.js              # Rutas de autenticación
+│   ├── products.js          # Rutas de productos
+│   ├── reviews.js           # Rutas de reseñas
+│   ├── notifications.js     # Rutas de notificaciones
+│   └── admin.js             # Rutas de administración
+├── server.js                # Servidor principal
+├── package.json             # Dependencias
+└── README.md               # Documentación
+```
 
-Para usar PostgreSQL en lugar de SQLite:
-
-1. Instalar PostgreSQL
-2. Cambiar la importación en `server.js`:
-   ```javascript
-   const { initializeDatabase } = require('./config/database');
-   ```
-3. Configurar las variables de entorno de PostgreSQL
-
-### Migración de Base de Datos
-
-La aplicación crea automáticamente las tablas al iniciar. Para desarrollo, puedes usar:
-
+### Scripts Disponibles
 ```bash
-npm run reset-db  # Eliminar todas las tablas
-npm run dev       # Recrear tablas con datos de prueba
+npm start          # Iniciar servidor
+npm run dev        # Desarrollo con nodemon
 ```
 
 ## Contribución
 
 1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
+2. Crear rama para feature (`git checkout -b feature/nueva-funcionalidad`)
+3. Commit cambios (`git commit -m 'Agregar nueva funcionalidad'`)
+4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
+5. Crear Pull Request
+
+## Licencia
+
+Este proyecto está bajo la Licencia MIT.
+
+## Soporte
+
+Para soporte técnico o preguntas:
+- Crear un issue en el repositorio
+- Contactar al equipo de desarrollo
+
+---
