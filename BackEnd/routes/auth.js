@@ -62,7 +62,6 @@ router.post('/login', validateLogin, async (req, res) => {
           isActive: user.is_active
         }
       }
-    }
     });
 
   } catch (error) {
