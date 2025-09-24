@@ -8,7 +8,7 @@
               <!-- Logo y título -->
               <div class="text-center mb-4">
                 <i class="fas fa-graduation-cap text-primary mb-3" style="font-size: 3rem;"></i>
-                <h2 class="fw-bold text-primary">Antojitos UPB</h2>
+                <h2 class="fw-bold text-primary">Ventas Moviles UPB</h2>
                 <p class="text-muted">Inicia sesión en tu cuenta</p>
               </div>
 

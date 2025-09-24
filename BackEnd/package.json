@@ -1,7 +1,7 @@
 {
-  "name": "antojitos-upb-backend",
+  "name": "ventasmoviles-upb-backend",
   "version": "1.0.0",
-  "description": "Backend para el marketplace Antojitos UPB",
+  "description": "Backend para el marketplace Ventas Moviles UPB",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -9,7 +9,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": ["marketplace", "universidad", "nodejs", "express", "mysql"],
-  "author": "Antojitos UPB Team",
+  "author": "Ventas Moviles UPB Team",
   "license": "MIT",
   "dependencies": {
     "express": "^4.18.2",

@@ -10,7 +10,7 @@
                 <i class="fas fa-cog me-2"></i>
                 Panel de Administración
               </h2>
-              <p class="text-muted mb-0">Gestiona el marketplace de Antojitos UPB</p>
+              <p class="text-muted mb-0">Gestiona el marketplace de Ventas Moviles UPB</p>
             </div>
             <div class="d-flex gap-2">
               <button 

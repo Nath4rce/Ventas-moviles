@@ -5,7 +5,7 @@
         <div class="col-md-6">
           <h5 class="fw-bold mb-3">
             <i class="fas fa-graduation-cap me-2"></i>
-            Antojitos UPB
+            Ventas Moviles UPB
           </h5>
           <p class="mb-0">
             El marketplace interno de la universidad. 

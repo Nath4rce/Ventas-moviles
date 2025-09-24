@@ -1,7 +1,7 @@
 {
-  "name": "antojitos-upb",
+  "name": "ventasmoviles-upb",
   "version": "1.0.0",
-  "description": "Antojitos UPB - Marketplace interno para estudiantes con Vue 3 y Bootstrap",
+  "description": "Ventas Moviles UPB - Marketplace interno para estudiantes con Vue 3 y Bootstrap",
   "main": "index.js",
   "scripts": {
     "dev": "vite",

@@ -1,12 +1,12 @@
 -- =====================================================
--- BASE DE DATOS PARA ANTOJITOS UPB - MARKETPLACE
+-- BASE DE DATOS PARA VENTAS MOVILES UPB - MARKETPLACE
 -- =====================================================
 -- Este script crea la estructura completa de la base de datos
 -- para el sistema de marketplace interno de la universidad
 
 -- Crear base de datos
-CREATE DATABASE IF NOT EXISTS antojitos_upb;
-USE antojitos_upb;
+CREATE DATABASE IF NOT EXISTS ventasmoviles_upb;
+USE ventasmoviles_upb;
 
 -- =====================================================
 -- TABLA DE USUARIOS
@@ -243,7 +243,7 @@ INSERT INTO resenas (producto_id, usuario_id, rating, comentario) VALUES
 
 -- Insertar notificaciones de ejemplo
 INSERT INTO notificaciones (titulo, mensaje, tipo, destinatario_tipo) VALUES
-('Bienvenido a Antojitos UPB', '¡Bienvenido al marketplace interno de la universidad!', 'info', 'all'),
+('Bienvenido a Ventas Moviles UPB', '¡Bienvenido al marketplace interno de la universidad!', 'info', 'all'),
 ('Nuevo producto disponible', 'Se ha agregado un nuevo producto que podría interesarte', 'success', 'students'),
 ('Mantenimiento programado', 'El sitio estará en mantenimiento el próximo fin de semana', 'warning', 'all');
 
@@ -390,7 +390,7 @@ CREATE INDEX idx_notificaciones_usuario ON usuario_notificaciones (usuario_id, i
 -- COMENTARIOS FINALES
 -- =====================================================
 -- Esta base de datos está diseñada para soportar todas las funcionalidades
--- del marketplace Antojitos UPB, incluyendo:
+-- del marketplace Ventas Moviles UPB, incluyendo:
 -- - Gestión completa de usuarios con roles y NRC
 -- - Catálogo de productos con imágenes y reseñas
 -- - Sistema de notificaciones dirigidas

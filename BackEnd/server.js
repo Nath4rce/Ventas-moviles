@@ -66,7 +66,7 @@ app.get('/health', (req, res) => {
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    message: 'API de Antojitos UPB - Marketplace Universitario',
+    message: 'API de Ventas Moviles UPB - Marketplace Universitario',
     version: '1.0.0',
     endpoints: {
       auth: '/api/auth',

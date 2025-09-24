@@ -3,7 +3,7 @@
     <div class="container">
       <router-link class="navbar-brand fw-bold" to="/landing">
         <i class="fas fa-graduation-cap me-2"></i>
-        Antojitos UPB
+        Ventas Moviles UPB
       </router-link>
 
       <button 

@@ -1,6 +1,6 @@
-# Backend - Antojitos UPB
+# Backend - Ventas Moviles UPB
 
-Backend para el marketplace universitario Antojitos UPB desarrollado con Node.js, Express y MySQL.
+Backend para el marketplace universitario Ventas Moviles UPB desarrollado con Node.js, Express y MySQL.
 
 ## Características
 
@@ -41,7 +41,7 @@ Backend para el marketplace universitario Antojitos UPB desarrollado con Node.js
    DB_HOST=localhost
    DB_USER=root
    DB_PASSWORD=tu_password
-   DB_NAME=antojitos_upb
+   DB_NAME=ventasmoviles_upb
    DB_PORT=3306
    PORT=3000
    NODE_ENV=development

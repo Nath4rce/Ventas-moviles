@@ -1,9 +1,9 @@
-# Antojitos UPB - Frontend
+# Ventas Moviles UPB - Frontend
 
 Frontend del marketplace interno de estudiantes de la Universidad Pontificia Bolivariana, desarrollado con Vue 3 y conectado a un backend Node.js completo.
 
 ## Características Técnicas
-
+s
 ### Funcionalidades Implementadas
 - **Autenticación completa**: Login y registro con ID estudiantil y JWT
 - **Sistema de roles**: Comprador, Vendedor y Administrador con permisos específicos
@@ -57,7 +57,7 @@ Frontend del marketplace interno de estudiantes de la Universidad Pontificia Bol
    Crear archivo `.env` en la raíz del frontend:
    ```env
    VITE_API_URL=http://localhost:3000
-   VITE_APP_NAME=Antojitos UPB
+   VITE_APP_NAME=Ventas Moviles UPB
    ```
 
 3. **Ejecutar en desarrollo:**
@@ -305,7 +305,7 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo LICENSE para más detal
 
 ## Desarrollado por
 
-**Antojitos UPB Team**
+**Ventas Moviles UPB Team**
 - Juan David Parra Sierra
 - Natalia Arce Penuela
 - Santiago Viana Ayala

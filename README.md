@@ -1,10 +1,10 @@
-# Antojitos UPB - Marketplace Estudiantil
+# Ventas Moviles UPB - Marketplace Estudiantil
 
 Marketplace interno completo para estudiantes de la Universidad Pontificia Bolivariana, desarrollado con Vue 3, Node.js y MySQL.
 
 ## Descripción del Proyecto
 
-Antojitos UPB es una plataforma web completa que permite a los estudiantes de la universidad comprar y vender productos entre ellos. La aplicación incluye un sistema robusto de autenticación JWT, gestión completa de productos, sistema de reseñas, notificaciones dirigidas y un panel administrativo avanzado.
+Ventas Moviles UPB es una plataforma web completa que permite a los estudiantes de la universidad comprar y vender productos entre ellos. La aplicación incluye un sistema robusto de autenticación JWT, gestión completa de productos, sistema de reseñas, notificaciones dirigidas y un panel administrativo avanzado.
 
 ### Características Principales
 - **Marketplace completo** con catálogo de productos, filtros y búsqueda
@@ -126,7 +126,7 @@ Ventas-moviles-main/
 2. **Configurar la Base de Datos:**
    ```sql
    -- Crear base de datos
-   CREATE DATABASE antojitos_upb;
+   CREATE DATABASE ventasmoviles_upb;
    
    -- Ejecutar el esquema
    SOURCE DataBase/database_schema.sql;
@@ -369,8 +369,8 @@ npm run build
 Este proyecto está bajo la Licencia MIT. Ver el archivo LICENSE para más detalles.
 
 ## Equipo de Desarrollo
-
-**Antojitos UPB Team**
+s
+**Ventas Moviles UPB Team**
 - Juan David Parra Sierra
 - Natalia Arce Penuela
 - Santiago Viana Ayala
@@ -390,4 +390,4 @@ Para más información detallada, consulta los README específicos de cada módu
 
 ---
 
-**¡Disfruta comprando y vendiendo en Antojitos UPB! 🛒✨**
+**¡Disfruta comprando y vendiendo en Vsentas Moviles UPB! 🛒✨**
