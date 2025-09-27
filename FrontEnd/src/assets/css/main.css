@@ -1,0 +1,26 @@
+/* Archivo principal de estilos - Ventas Moviles UPB */
+
+/* Importar variables primero */
+@import './variables.css';
+
+/* Importar estilos base */
+@import './base.css';
+
+/* Importar componentes */
+@import './components.css';
+
+/* Importar responsive */
+@import './responsive.css';
+
+/* Estilos específicos de la aplicación */
+.main-content {
+  min-height: calc(100vh - 120px);
+  padding-top: 20px;
+}
+
+/* Estilos específicos para mobile */
+@media (max-width: 767px) {
+  .main-content {
+    padding-top: 15px;
+  }
+}
