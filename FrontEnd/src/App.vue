@@ -5,6 +5,8 @@
       <router-view />
     </main>
     <Footer v-if="!isLoginPage" />
+        <ScreenLoading v-if="loading" message="Cargando página..." />
+    <Error v-else-if="hasError" :error="errorMessage" />
   </div>
 </template>
 
@@ -13,12 +15,16 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import Navbar from './components/Navbar.vue'
 import Footer from './components/Footer.vue'
+import ScreenLoading from "./components/ScreenLoading.vue";
+import Error from "./components/Error.vue";
 
 export default {
   name: 'App',
   components: {
     Navbar,
-    Footer
+    Footer,
+    ScreenLoading,
+    Error
   },
   setup() {
     const route = useRoute()
@@ -30,7 +36,18 @@ export default {
     return {
       isLoginPage
     }
-  }
+  },
+  data() {
+    return {
+      loading: false,
+      hasError: false,
+      errorMessage: null,
+    };
+  },
+  created() {
+    // Exponer el estado global para que el router lo controle
+    window.$app = this;
+  },
 }
 </script>
 

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import Error from "../components/Error.vue";
 
 // Lazy loading de componentes
 const Login = () => import('../views/Login.vue')
@@ -55,6 +56,13 @@ const routes = [
     name: 'Profile',
     component: Profile,
     meta: { requiresAuth: true }
+  },
+
+  {
+    path: "/:pathMatch(.*)*", 
+    name: "NotFound", 
+    component: Error, 
+    props: { error: "Ruta inválida (404)" }
   }
 ]
 
@@ -87,5 +95,6 @@ router.beforeEach((to, from, next) => {
   
   next()
 })
+
 
 export default router
