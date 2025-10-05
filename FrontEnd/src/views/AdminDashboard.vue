@@ -643,6 +643,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { useProductsStore } from '../stores/products'
 import { useNotificationsStore } from '../stores/notifications'
+import { useNotificacion } from '../utils/useNotificacion'
 
 export default {
   name: 'AdminDashboard',
@@ -650,6 +651,7 @@ export default {
     const authStore = useAuthStore()
     const productsStore = useProductsStore()
     const notificationsStore = useNotificationsStore()
+    const notificacion = useNotificacion()
 
     const loading = ref(false)
     const sendingNotification = ref(false)
@@ -790,9 +792,9 @@ export default {
           notificationForm.type
         )
         resetNotificationForm()
-        alert('Notificación enviada exitosamente')
+        notificacion.success('Notificación enviada exitosamente')
       } catch (error) {
-        alert('Error al enviar la notificación')
+        notificacion.error('Error al enviar la notificación')
       } finally {
         sendingNotification.value = false
       }
@@ -819,9 +821,9 @@ export default {
     const toggleProductStatus = (productId) => {
       const result = productsStore.toggleProductStatus(productId)
       if (result.success) {
-        alert(`Producto ${result.product.isActive ? 'activado' : 'desactivado'} exitosamente`)
+        notificacion.success(`Producto ${result.product.isActive ? 'activado' : 'desactivado'} exitosamente`)
       } else {
-        alert(result.message)
+        notificacion.error(result.message)
       }
     }
 
@@ -830,14 +832,14 @@ export default {
       try {
         const result = await authStore.createUser(newUser)
         if (result.success) {
-          alert('Usuario creado exitosamente')
+          notificacion.success('Usuario creado exitosamente')
           showCreateUserModal.value = false
           resetNewUserForm()
         } else {
-          alert(result.message)
+          notificacion.error(result.message)
         }
       } catch (error) {
-        alert('Error al crear el usuario')
+        notificacion.error('Error al crear el usuario')
       } finally {
         creatingUser.value = false
       }
@@ -855,9 +857,9 @@ export default {
     const toggleUserStatus = (userId) => {
       const result = authStore.toggleUserStatus(userId)
       if (result.success) {
-        alert(`Usuario ${result.user.isActive ? 'activado' : 'desactivado'} exitosamente`)
+        notificacion.success(`Usuario ${result.user.isActive ? 'activado' : 'desactivado'} exitosamente`)
       } else {
-        alert(result.message)
+        notificacion.error(result.message)
       }
     }
 
@@ -872,13 +874,13 @@ export default {
       try {
         const result = authStore.changeUserRole(selectedUser.value.id, newRole.value)
         if (result.success) {
-          alert('Rol cambiado exitosamente')
+          notificacion.success('Rol cambiado exitosamente')
           showChangeRoleModal.value = false
         } else {
-          alert(result.message)
+          notificacion.error(result.message)
         }
       } catch (error) {
-        alert('Error al cambiar el rol')
+        notificacion.error('Error al cambiar el rol')
       } finally {
         changingRole.value = false
       }

@@ -5,6 +5,7 @@
       <router-view />
     </main>
     <Footer v-if="!isLoginPage" />
+    <NotificacionContainer position="top-right" />
   </div>
 </template>
 
@@ -13,12 +14,14 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import Navbar from './components/Navbar.vue'
 import Footer from './components/Footer.vue'
+import NotificacionContainer from './components/NotificacionContainer.vue'
 
 export default {
   name: 'App',
   components: {
     Navbar,
-    Footer
+    Footer,
+    NotificacionContainer
   },
   setup() {
     const route = useRoute()

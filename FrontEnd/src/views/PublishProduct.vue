@@ -285,6 +285,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProductsStore } from '../stores/products'
 import { useAuthStore } from '../stores/auth'
+import { useNotificacion } from '../utils/useNotificacion'
 
 export default {
   name: 'PublishProduct',
@@ -292,6 +293,7 @@ export default {
     const router = useRouter()
     const productsStore = useProductsStore()
     const authStore = useAuthStore()
+    const notificacion = useNotificacion()
 
     const form = reactive({
       title: '',
@@ -403,7 +405,7 @@ export default {
     const deactivateCurrentProduct = () => {
       if (currentProduct.value) {
         currentProduct.value.isActive = false
-        alert('Producto desactivado exitosamente')
+        notificacion.success('Producto desactivado exitosamente')
       }
     }
 
@@ -412,7 +414,7 @@ export default {
 
       // Verificar si ya tiene un producto activo
       if (currentProduct.value) {
-        alert('Ya tienes un producto activo. Debes desactivarlo primero.')
+        notificacion.warning('Ya tienes un producto activo. Debes desactivarlo primero.')
         return
       }
 
@@ -431,10 +433,10 @@ export default {
 
         const newProduct = productsStore.addProduct(productData)
         
-        alert('Producto publicado exitosamente')
+        notificacion.success('Producto publicado exitosamente')
         router.push(`/product/${newProduct.id}`)
       } catch (error) {
-        alert('Error al publicar el producto')
+        notificacion.error('Error al publicar el producto')
       } finally {
         submitting.value = false
       }
