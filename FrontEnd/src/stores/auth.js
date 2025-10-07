@@ -14,8 +14,7 @@ export const useAuthStore = defineStore('auth', {
         role: 'admin',
         name: 'Administrador',
         avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face',
-        isActive: true,
-        nrc: '00000'
+        isActive: true
       },
       {
         id: 2,
@@ -25,8 +24,7 @@ export const useAuthStore = defineStore('auth', {
         role: 'seller',
         name: 'Juan Vendedor',
         avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face',
-        isActive: true,
-        nrc: '11111'
+        isActive: true
       },
       {
         id: 3,
@@ -36,8 +34,7 @@ export const useAuthStore = defineStore('auth', {
         role: 'buyer',
         name: 'María Compradora',
         avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face',
-        isActive: true,
-        nrc: '12345'
+        isActive: true
       },
       {
         id: 4,
@@ -47,8 +44,7 @@ export const useAuthStore = defineStore('auth', {
         role: 'buyer',
         name: 'Carlos Estudiante',
         avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face',
-        isActive: true,
-        nrc: '67890'
+        isActive: true
       },
       {
         id: 5,
@@ -58,8 +54,7 @@ export const useAuthStore = defineStore('auth', {
         role: 'seller',
         name: 'Ana Vendedora',
         avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face',
-        isActive: false,
-        nrc: '54321'
+        isActive: false
       }
     ]
   }),
@@ -162,8 +157,7 @@ export const useAuthStore = defineStore('auth', {
         role: userData.role || 'buyer',
         name: userData.name,
         avatar: userData.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=50&h=50&fit=crop&crop=face',
-        isActive: true,
-        nrc: userData.nrc
+        isActive: true
       }
 
       this.users.push(newUser)
@@ -194,8 +188,8 @@ export const useAuthStore = defineStore('auth', {
     searchUsers(filters = {}) {
       let filteredUsers = [...this.users]
 
-      if (filters.nrc) {
-        filteredUsers = filteredUsers.filter(u => u.nrc.includes(filters.nrc))
+      if (filters.studentId) {
+        filteredUsers = filteredUsers.filter(u => u.studentId.includes(filters.studentId))
       }
 
       if (filters.role && filters.role !== 'all') {

@@ -125,11 +125,11 @@
               <!-- Filtros de búsqueda -->
               <div class="row g-3 mb-4">
                 <div class="col-12 col-md-4">
-                  <label class="form-label fw-semibold">Buscar por NRC</label>
+                  <label class="form-label fw-semibold">Buscar por ID</label>
                   <input
                     type="text"
                     class="form-control"
-                    v-model="userFilters.nrc"
+                    v-model="userFilters.studentId"
                     placeholder="Ej: 12345"
                     @input="applyUserFilters"
                   >
@@ -167,7 +167,7 @@
                   <thead>
                     <tr>
                       <th>Usuario</th>
-                      <th>NRC</th>
+                      <th>ID</th>
                       <th>Rol</th>
                       <th>Estado</th>
                       <th>Acciones</th>
@@ -186,12 +186,11 @@
                           >
                           <div>
                             <div class="fw-semibold">{{ user.name }}</div>
-                            <small class="text-muted">{{ user.studentId }}</small>
                           </div>
                         </div>
                       </td>
                       <td>
-                        <span class="badge bg-info">{{ user.nrc }}</span>
+                        <span class="badge bg-info">{{ user.studentId }}</span>
                       </td>
                       <td>
                         <span class="badge" :class="getRoleBadgeClass(user.role)">
@@ -324,16 +323,16 @@
                       <option value="all">Todos los usuarios</option>
                       <option value="sellers">Solo vendedores</option>
                       <option value="students">Solo estudiantes</option>
-                      <option value="nrc">NRC específico</option>
+                      <option value="studentId">ID específico</option>
                     </select>
                   </div>
                   
-                  <div v-if="notificationForm.recipients === 'nrc'" class="col-12 col-md-4">
-                    <label class="form-label fw-semibold">NRC</label>
+                  <div v-if="notificationForm.recipients === 'studentId'" class="col-12 col-md-4">
+                    <label class="form-label fw-semibold">ID</label>
                     <input
                       type="text"
                       class="form-control"
-                      v-model="notificationForm.nrc"
+                      v-model="notificationForm.studentId"
                       placeholder="Ej: 12345"
                     >
                   </div>
@@ -395,16 +394,6 @@
                       class="form-control"
                       v-model="newUser.studentId"
                       placeholder="Ej: 20210001"
-                      required
-                    >
-                  </div>
-                  <div class="col-12 col-md-6">
-                    <label class="form-label fw-semibold">NRC *</label>
-                    <input
-                      type="text"
-                      class="form-control"
-                      v-model="newUser.nrc"
-                      placeholder="Ej: 12345"
                       required
                     >
                   </div>
@@ -521,14 +510,13 @@ export default {
     const newRole = ref('buyer')
 
     const userFilters = reactive({
-      nrc: '',
+      studentId: '',
       role: 'all',
       status: 'all'
     })
 
     const newUser = reactive({
       studentId: '',
-      nrc: '',
       name: '',
       email: '',
       role: 'buyer',
@@ -540,7 +528,7 @@ export default {
       message: '',
       type: 'info',
       recipients: 'all',
-      nrc: ''
+      studentId: ''
     })
 
     // Estadísticas
@@ -631,7 +619,7 @@ export default {
       notificationForm.message = ''
       notificationForm.type = 'info'
       notificationForm.recipients = 'all'
-      notificationForm.nrc = ''
+      notificationForm.studentId = ''
     }
 
     // Funciones de gestión de usuarios
@@ -659,7 +647,6 @@ export default {
 
     const resetNewUserForm = () => {
       newUser.studentId = ''
-      newUser.nrc = ''
       newUser.name = ''
       newUser.email = ''
       newUser.role = 'buyer'
@@ -699,8 +686,8 @@ export default {
     }
 
     const handleRecipientChange = () => {
-      if (notificationForm.recipients !== 'nrc') {
-        notificationForm.nrc = ''
+      if (notificationForm.recipients !== 'studentId') {
+        notificationForm.studentId = ''
       }
     }
 
