@@ -1,5 +1,5 @@
 const express = require('express');
-const { query } = require('../config/database');
+const { getPool, sql } = require('../config/database');
 const { authenticateToken, requireBuyer, canModifyProduct } = require('../middleware/auth');
 const { validateProduct, validateId, validatePagination } = require('../middleware/validation');
 
@@ -8,12 +8,12 @@ const router = express.Router();
 // GET /api/products - Obtener todos los productos con filtros
 router.get('/', validatePagination, async (req, res) => {
   try {
-    const { 
-      page = 1, 
-      limit = 20, 
-      categoria_id, 
-      precio_min, 
-      precio_max, 
+    const {
+      page = 1,
+      limit = 20,
+      categoria_id,
+      precio_min,
+      precio_max,
       search,
       sort_by = 'created_at',
       sort_order = 'DESC'
@@ -25,8 +25,8 @@ router.get('/', validatePagination, async (req, res) => {
 
     // Filtros
     if (categoria_id) {
-      whereConditions.push('p.categoria_id = ?');
-      queryParams.push(categoria_id);
+      request.input('categoriaId', sql.Int, categoria_id);
+      whereConditions.push('p.categoria_id = @categoriaId');
     }
 
     if (precio_min) {
@@ -48,13 +48,39 @@ router.get('/', validatePagination, async (req, res) => {
     // Ordenamiento válido
     const validSortFields = ['created_at', 'precio', 'rating_promedio', 'titulo'];
     const validSortOrders = ['ASC', 'DESC'];
-    
+
     const sortField = validSortFields.includes(sort_by) ? sort_by : 'created_at';
     const sortOrder = validSortOrders.includes(sort_order.toUpperCase()) ? sort_order.toUpperCase() : 'DESC';
 
+    // Consulta principal
+    const pool = await getPool();
+    const request = pool.request();
+
+    // Agregar parámetros dinámicamente
+    let paramIndex = 0;
+    if (categoria_id) {
+      request.input('categoriaId', sql.Int, parseInt(categoria_id));
+      whereConditions[whereConditions.findIndex(c => c.includes('categoria_id'))] = 'p.categoria_id = @categoriaId';
+    }
+    if (precio_min) {
+      request.input('precioMin', sql.Decimal(10, 2), parseFloat(precio_min));
+      whereConditions[whereConditions.findIndex(c => c.includes('precio >='))] = 'p.precio >= @precioMin';
+    }
+    if (precio_max) {
+      request.input('precioMax', sql.Decimal(10, 2), parseFloat(precio_max));
+      whereConditions[whereConditions.findIndex(c => c.includes('precio <='))] = 'p.precio <= @precioMax';
+    }
+    if (search) {
+      request.input('search', sql.NVarChar(255), `%${search}%`);
+      whereConditions[whereConditions.findIndex(c => c.includes('LIKE'))] = '(p.titulo LIKE @search OR p.descripcion LIKE @search)';
+    }
+
+    whereConditions[0] = 'p.is_active = 1'; // Cambiar TRUE a 1
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    // Consulta principal
+    request.input('offset', sql.Int, parseInt(offset));
+    request.input('limit', sql.Int, parseInt(limit));
+
     const productsQuery = `
       SELECT 
         p.id,
@@ -63,27 +89,32 @@ router.get('/', validatePagination, async (req, res) => {
         p.precio,
         p.rating_promedio,
         p.total_resenas,
-        p.telefono_whatsapp,
         p.created_at,
         c.nombre as categoria_nombre,
         c.icono as categoria_icono,
         u.nombre as vendedor_nombre,
-        u.student_id as vendedor_id,
+        u.id_institucional as vendedor_id_institucional,
+        u.telefono as vendedor_telefono,
         u.avatar_url as vendedor_avatar,
-        (SELECT imagen_url FROM producto_imagenes WHERE producto_id = p.id AND is_principal = TRUE LIMIT 1) as imagen_principal
+        (SELECT TOP 1 imagen_url FROM producto_imagenes WHERE producto_id = p.id AND is_principal = 1) as imagen_principal
       FROM productos p
       JOIN categorias c ON p.categoria_id = c.id
       JOIN usuarios u ON p.vendedor_id = u.id
       ${whereClause}
       ORDER BY p.${sortField} ${sortOrder}
-      LIMIT ? OFFSET ?
+      OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
     `;
 
-    queryParams.push(parseInt(limit), parseInt(offset));
-
-    const products = await query(productsQuery, queryParams);
+    const result = await request.query(productsQuery);
+    const products = result.recordset;
 
     // Contar total de productos
+    const countRequest = pool.request();
+    if (categoria_id) countRequest.input('categoriaId', sql.Int, parseInt(categoria_id));
+    if (precio_min) countRequest.input('precioMin', sql.Decimal(10, 2), parseFloat(precio_min));
+    if (precio_max) countRequest.input('precioMax', sql.Decimal(10, 2), parseFloat(precio_max));
+    if (search) countRequest.input('search', sql.NVarChar(255), `%${search}%`);
+
     const countQuery = `
       SELECT COUNT(*) as total
       FROM productos p
@@ -92,17 +123,15 @@ router.get('/', validatePagination, async (req, res) => {
       ${whereClause}
     `;
 
-    const countParams = queryParams.slice(0, -2); // Remover limit y offset
-    const [countResult] = await query(countQuery, countParams);
-    const total = countResult.total;
+    const countResult = await countRequest.query(countQuery);
+    const total = countResult.recordset[0].total;
 
     // Obtener imágenes para cada producto
     for (let product of products) {
-      const images = await query(
-        'SELECT imagen_url, orden FROM producto_imagenes WHERE producto_id = ? ORDER BY orden',
-        [product.id]
-      );
-      product.imagenes = images.map(img => img.imagen_url);
+      const imgResult = await pool.request()
+        .input('productoId', sql.Int, product.id)
+        .query('SELECT imagen_url, orden FROM producto_imagenes WHERE producto_id = @productoId ORDER BY orden');
+      product.imagenes = imgResult.recordset.map(img => img.imagen_url);
     }
 
     res.json({
@@ -130,13 +159,13 @@ router.get('/', validatePagination, async (req, res) => {
 // GET /api/products/categories - Obtener categorías
 router.get('/categories', async (req, res) => {
   try {
-    const categories = await query(
-      'SELECT id, nombre, descripcion, icono FROM categorias WHERE is_active = TRUE ORDER BY nombre'
-    );
+    const pool = await getPool();
+    const result = await pool.request()
+      .query('SELECT id, nombre, descripcion, icono FROM categorias WHERE is_active = 1 ORDER BY nombre');
 
     res.json({
       success: true,
-      data: { categories }
+      data: { categories: result.recordset }
     });
 
   } catch (error) {
@@ -153,41 +182,45 @@ router.get('/:id', validateId, async (req, res) => {
   try {
     const productId = req.params.id;
 
-    const products = await query(`
-      SELECT 
-        p.id,
-        p.titulo,
-        p.descripcion,
-        p.precio,
-        p.rating_promedio,
-        p.total_resenas,
-        p.telefono_whatsapp,
-        p.created_at,
-        c.nombre as categoria_nombre,
-        c.icono as categoria_icono,
-        u.nombre as vendedor_nombre,
-        u.student_id as vendedor_id,
-        u.avatar_url as vendedor_avatar
-      FROM productos p
-      JOIN categorias c ON p.categoria_id = c.id
-      JOIN usuarios u ON p.vendedor_id = u.id
-      WHERE p.id = ? AND p.is_active = TRUE
-    `, [productId]);
+    const pool = await getPool();
+    const result = await pool.request()
+      .input('productId', sql.Int, productId)
+      .query(`
+        SELECT 
+          p.id,
+          p.titulo,
+          p.descripcion,
+          p.precio,
+          p.rating_promedio,
+          p.total_resenas,
+          p.created_at,
+          c.nombre as categoria_nombre,
+          c.icono as categoria_icono,
+          u.nombre as vendedor_nombre,
+          u.id_institucional as vendedor_id_institucional,
+          u.telefono as vendedor_telefono,
+          u.avatar_url as vendedor_avatar
+        FROM productos p
+        JOIN categorias c ON p.categoria_id = c.id
+        JOIN usuarios u ON p.vendedor_id = u.id
+        WHERE p.id = @productId AND p.is_active = 1
+      `);
 
-    if (products.length === 0) {
+    if (result.recordset.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Producto no encontrado'
       });
     }
 
-    const product = products[0];
+    const product = result.recordset[0];
 
     // Obtener imágenes del producto
-    const images = await query(
-      'SELECT imagen_url, orden, is_principal FROM producto_imagenes WHERE producto_id = ? ORDER BY orden',
-      [productId]
-    );
+    const imgResult = await pool.request()
+      .input('productId', sql.Int, productId)
+      .query('SELECT imagen_url, orden, is_principal FROM producto_imagenes WHERE producto_id = @productId ORDER BY orden');
+
+    const images = imgResult.recordset;
 
     product.imagenes = images.map(img => ({
       url: img.imagen_url,
@@ -212,80 +245,83 @@ router.get('/:id', validateId, async (req, res) => {
 // POST /api/products - Crear nuevo producto
 router.post('/', authenticateToken, requireBuyer, validateProduct, async (req, res) => {
   try {
-    const { titulo, descripcion, precio, categoria_id, telefono_whatsapp, imagenes } = req.body;
+    const { titulo, descripcion, precio, categoria_id, imagenes } = req.body;
     const vendedorId = req.user.id;
 
-    // Verificar si el usuario ya tiene un producto activo
-    const existingProduct = await query(
-      'SELECT id FROM productos WHERE vendedor_id = ? AND is_active = TRUE',
-      [vendedorId]
-    );
+    const pool = await getPool();
 
-    if (existingProduct.length > 0) {
+    const checkProduct = await pool.request()
+      .input('vendedorId', sql.Int, vendedorId)
+      .query('SELECT id FROM productos WHERE vendedor_id = @vendedorId AND is_active = 1');
+
+    if (checkProduct.recordset.length > 0) {
       return res.status(400).json({
         success: false,
         message: 'Ya tienes un producto activo. Debes desactivarlo antes de crear uno nuevo.'
       });
     }
 
-    // Verificar que la categoría existe
-    const category = await query(
-      'SELECT id FROM categorias WHERE id = ? AND is_active = TRUE',
-      [categoria_id]
-    );
+    const checkCategory = await pool.request()
+      .input('categoriaId', sql.Int, categoria_id)
+      .query('SELECT id FROM categorias WHERE id = @categoriaId AND is_active = 1');
 
-    if (category.length === 0) {
+    if (checkCategory.recordset.length === 0) {
       return res.status(400).json({
         success: false,
         message: 'Categoría no encontrada'
       });
     }
 
-    // Insertar producto
-    const result = await query(
-      `INSERT INTO productos (titulo, descripcion, precio, categoria_id, vendedor_id, telefono_whatsapp) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [titulo, descripcion, precio, categoria_id, vendedorId, telefono_whatsapp]
-    );
+    const insertResult = await pool.request()
+      .input('titulo', sql.NVarChar(255), titulo)
+      .input('descripcion', sql.NVarChar(sql.MAX), descripcion)
+      .input('precio', sql.Decimal(10, 2), precio)
+      .input('categoriaId', sql.Int, categoria_id)
+      .input('vendedorId', sql.Int, vendedorId)
+      .query(`INSERT INTO productos (titulo, descripcion, precio, categoria_id, vendedor_id) 
+              OUTPUT INSERTED.id
+              VALUES (@titulo, @descripcion, @precio, @categoriaId, @vendedorId)`);
 
-    const productId = result.insertId;
+    const productId = insertResult.recordset[0].id;
 
-    // Insertar imágenes si se proporcionan
     if (imagenes && imagenes.length > 0) {
       for (let i = 0; i < imagenes.length; i++) {
-        await query(
-          'INSERT INTO producto_imagenes (producto_id, imagen_url, orden, is_principal) VALUES (?, ?, ?, ?)',
-          [productId, imagenes[i], i + 1, i === 0]
-        );
+        await pool.request()
+          .input('productoId', sql.Int, productId)
+          .input('imagenUrl', sql.NVarChar(500), imagenes[i])
+          .input('orden', sql.Int, i + 1)
+          .input('isPrincipal', sql.Bit, i === 0 ? 1 : 0)
+          .query('INSERT INTO producto_imagenes (producto_id, imagen_url, orden, is_principal) VALUES (@productoId, @imagenUrl, @orden, @isPrincipal)');
       }
     }
 
-    // Obtener producto creado
-    const newProduct = await query(`
-      SELECT 
-        p.id,
-        p.titulo,
-        p.descripcion,
-        p.precio,
-        p.rating_promedio,
-        p.total_resenas,
-        p.telefono_whatsapp,
-        p.created_at,
-        c.nombre as categoria_nombre,
-        c.icono as categoria_icono,
-        u.nombre as vendedor_nombre,
-        u.student_id as vendedor_id,
-        u.avatar_url as vendedor_avatar
-      FROM productos p
-      JOIN categorias c ON p.categoria_id = c.id
-      JOIN usuarios u ON p.vendedor_id = u.id
-      WHERE p.id = ?
-    `, [productId]);
+    const newProductResult = await pool.request()
+      .input('productId', sql.Int, productId)
+      .query(`
+        SELECT 
+          p.id,
+          p.titulo,
+          p.descripcion,
+          p.precio,
+          p.rating_promedio,
+          p.total_resenas,
+          p.created_at,
+          c.nombre as categoria_nombre,
+          c.icono as categoria_icono,
+          u.nombre as vendedor_nombre,
+          u.id_institucional as vendedor_id_institucional,
+          u.telefono as vendedor_telefono,
+          u.avatar_url as vendedor_avatar
+        FROM productos p
+        JOIN categorias c ON p.categoria_id = c.id
+        JOIN usuarios u ON p.vendedor_id = u.id
+        WHERE p.id = @productId
+      `);
 
     res.status(201).json({
       success: true,
       message: 'Producto creado exitosamente',
-      data: { product: newProduct[0] }
+      data: { product: newProductResult.recordset[0] }
     });
 
   } catch (error) {
@@ -301,16 +337,17 @@ router.post('/', authenticateToken, requireBuyer, validateProduct, async (req, r
 router.put('/:id', authenticateToken, canModifyProduct, validateProduct, async (req, res) => {
   try {
     const productId = req.params.id;
-    const { titulo, descripcion, precio, categoria_id, telefono_whatsapp, imagenes } = req.body;
+    const { titulo, descripcion, precio, categoria_id, imagenes } = req.body;
+
+    const pool = await getPool();
 
     // Verificar que la categoría existe
     if (categoria_id) {
-      const category = await query(
-        'SELECT id FROM categorias WHERE id = ? AND is_active = TRUE',
-        [categoria_id]
-      );
+      const checkCategory = await pool.request()
+        .input('categoriaId', sql.Int, categoria_id)
+        .query('SELECT id FROM categorias WHERE id = @categoriaId AND is_active = 1');
 
-      if (category.length === 0) {
+      if (checkCategory.recordset.length === 0) {
         return res.status(400).json({
           success: false,
           message: 'Categoría no encontrada'
@@ -342,37 +379,37 @@ router.put('/:id', authenticateToken, canModifyProduct, validateProduct, async (
       updateValues.push(categoria_id);
     }
 
-    if (telefono_whatsapp !== undefined) {
-      updateFields.push('telefono_whatsapp = ?');
-      updateValues.push(telefono_whatsapp);
-    }
-
-    if (updateFields.length === 0) {
+    if (updateFields.length === 0 && (!imagenes || imagenes.length === 0)) {
       return res.status(400).json({
         success: false,
         message: 'No hay campos para actualizar'
       });
     }
 
-    updateFields.push('updated_at = CURRENT_TIMESTAMP');
-    updateValues.push(productId);
+    if (updateFields.length > 0) {
+      const request = pool.request().input('productId', sql.Int, productId);
 
-    await query(
-      `UPDATE productos SET ${updateFields.join(', ')} WHERE id = ?`,
-      updateValues
-    );
+      if (titulo) request.input('titulo', sql.NVarChar(255), titulo);
+      if (descripcion) request.input('descripcion', sql.NVarChar(sql.MAX), descripcion);
+      if (precio !== undefined) request.input('precio', sql.Decimal(10, 2), precio);
+      if (categoria_id) request.input('categoriaId', sql.Int, categoria_id);
+
+      await request.query(`UPDATE productos SET ${updateFields.join(', ')}, updated_at = GETDATE() WHERE id = @productId`);
+    }
 
     // Actualizar imágenes si se proporcionan
     if (imagenes && imagenes.length > 0) {
-      // Eliminar imágenes existentes
-      await query('DELETE FROM producto_imagenes WHERE producto_id = ?', [productId]);
+      await pool.request()
+        .input('productId', sql.Int, productId)
+        .query('DELETE FROM producto_imagenes WHERE producto_id = @productId');
 
-      // Insertar nuevas imágenes
       for (let i = 0; i < imagenes.length; i++) {
-        await query(
-          'INSERT INTO producto_imagenes (producto_id, imagen_url, orden, is_principal) VALUES (?, ?, ?, ?)',
-          [productId, imagenes[i], i + 1, i === 0]
-        );
+        await pool.request()
+          .input('productId', sql.Int, productId)
+          .input('imagenUrl', sql.NVarChar(500), imagenes[i])
+          .input('orden', sql.Int, i + 1)
+          .input('isPrincipal', sql.Bit, i === 0 ? 1 : 0)
+          .query('INSERT INTO producto_imagenes (producto_id, imagen_url, orden, is_principal) VALUES (@productId, @imagenUrl, @orden, @isPrincipal)');
       }
     }
 
@@ -396,10 +433,10 @@ router.delete('/:id', authenticateToken, canModifyProduct, async (req, res) => {
     const productId = req.params.id;
 
     // Desactivar producto en lugar de eliminarlo
-    await query(
-      'UPDATE productos SET is_active = FALSE WHERE id = ?',
-      [productId]
-    );
+    const pool = await getPool();
+    await pool.request()
+      .input('productId', sql.Int, productId)
+      .query('UPDATE productos SET is_active = 0 WHERE id = @productId');
 
     res.json({
       success: true,
@@ -420,29 +457,31 @@ router.get('/user/:userId', validateId, async (req, res) => {
   try {
     const userId = req.params.userId;
 
-    const products = await query(`
-      SELECT 
-        p.id,
-        p.titulo,
-        p.descripcion,
-        p.precio,
-        p.rating_promedio,
-        p.total_resenas,
-        p.telefono_whatsapp,
-        p.is_active,
-        p.created_at,
-        c.nombre as categoria_nombre,
-        c.icono as categoria_icono,
-        (SELECT imagen_url FROM producto_imagenes WHERE producto_id = p.id AND is_principal = TRUE LIMIT 1) as imagen_principal
-      FROM productos p
-      JOIN categorias c ON p.categoria_id = c.id
-      WHERE p.vendedor_id = ?
-      ORDER BY p.created_at DESC
-    `, [userId]);
+    const pool = await getPool();
+    const result = await pool.request()
+      .input('userId', sql.Int, userId)
+      .query(`
+        SELECT 
+          p.id,
+          p.titulo,
+          p.descripcion,
+          p.precio,
+          p.rating_promedio,
+          p.total_resenas,
+          p.is_active,
+          p.created_at,
+          c.nombre as categoria_nombre,
+          c.icono as categoria_icono,
+          (SELECT TOP 1 imagen_url FROM producto_imagenes WHERE producto_id = p.id AND is_principal = 1) as imagen_principal
+        FROM productos p
+        JOIN categorias c ON p.categoria_id = c.id
+        WHERE p.vendedor_id = @userId
+        ORDER BY p.created_at DESC
+      `);
 
     res.json({
       success: true,
-      data: { products }
+      data: { products: result.recordset }
     });
 
   } catch (error) {

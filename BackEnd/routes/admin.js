@@ -1,6 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const { query } = require('../config/database');
+const { getPool, sql } = require('../config/database');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { validateUser, validateId, validatePagination } = require('../middleware/validation');
 
@@ -9,45 +9,49 @@ const router = express.Router();
 // GET /api/admin/stats - Obtener estadísticas generales
 router.get('/stats', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    // Obtener estadísticas usando la vista
-    const stats = await query('SELECT * FROM vista_estadisticas');
+    const pool = await getPool();
 
-    // Obtener estadísticas adicionales
-    const recentProducts = await query(`
-      SELECT 
-        p.id,
-        p.titulo,
-        p.precio,
-        p.created_at,
-        u.nombre as vendedor_nombre,
-        c.nombre as categoria_nombre
-      FROM productos p
-      JOIN usuarios u ON p.vendedor_id = u.id
-      JOIN categorias c ON p.categoria_id = c.id
-      WHERE p.is_active = TRUE
-      ORDER BY p.created_at DESC
-      LIMIT 5
-    `);
+    // Usar stored procedure para estadísticas generales
+    const statsResult = await executeProcedure('sp_estadisticas_generales', {});
+    const stats = statsResult.recordset[0];
 
-    const topCategories = await query(`
-      SELECT 
-        c.nombre,
-        COUNT(p.id) as total_productos
-      FROM categorias c
-      LEFT JOIN productos p ON c.id = p.categoria_id AND p.is_active = TRUE
-      GROUP BY c.id, c.nombre
-      ORDER BY total_productos DESC
-    `);
+    // Productos recientes
+    const recentResult = await pool.request()
+      .query(`
+        SELECT TOP 5
+          p.id,
+          p.titulo,
+          p.precio,
+          p.created_at,
+          u.nombre as vendedor_nombre,
+          c.nombre as categoria_nombre
+        FROM productos p
+        JOIN usuarios u ON p.vendedor_id = u.id
+        JOIN categorias c ON p.categoria_id = c.id
+        WHERE p.is_active = 1
+        ORDER BY p.created_at DESC
+      `);
+
+    // Top categorías
+    const topCategoriesResult = await pool.request()
+      .query(`
+        SELECT 
+          c.nombre,
+          COUNT(p.id) as total_productos
+        FROM categorias c
+        LEFT JOIN productos p ON c.id = p.categoria_id AND p.is_active = 1
+        GROUP BY c.id, c.nombre
+        ORDER BY total_productos DESC
+      `);
 
     res.json({
       success: true,
       data: {
-        ...stats[0],
-        recent_products: recentProducts,
-        top_categories: topCategories
+        ...stats,
+        recent_products: recentResult.recordset,
+        top_categories: topCategoriesResult.recordset
       }
     });
-
   } catch (error) {
     console.error('Error al obtener estadísticas:', error);
     res.status(500).json({
@@ -59,72 +63,72 @@ router.get('/stats', authenticateToken, requireAdmin, async (req, res) => {
 
 // GET /api/admin/users - Obtener usuarios con filtros
 router.get('/users', authenticateToken, requireAdmin, validatePagination, async (req, res) => {
+
   try {
-    const { 
-      page = 1, 
-      limit = 20, 
-      nrc, 
-      rol, 
+    const {
+      page = 1,
+      limit = 20,
+      rol,
       status,
-      search 
+      search
     } = req.query;
     const offset = (page - 1) * limit;
 
-    let whereConditions = [];
-    let queryParams = [];
+    const pool = await getPool();
+    const request = pool.request();
 
-    // Filtros
-    if (nrc) {
-      whereConditions.push('nrc LIKE ?');
-      queryParams.push(`%${nrc}%`);
-    }
+    let whereConditions = [];
 
     if (rol && rol !== 'all') {
-      whereConditions.push('rol = ?');
-      queryParams.push(rol);
+      whereConditions.push('rol = @rol');
+      request.input('rol', sql.NVarChar(20), rol);
     }
 
     if (status && status !== 'all') {
-      const isActive = status === 'active';
-      whereConditions.push('is_active = ?');
-      queryParams.push(isActive);
+      const isActive = status === 'active' ? 1 : 0;
+      whereConditions.push('is_active = @isActive');
+      request.input('isActive', sql.Bit, isActive);
     }
 
     if (search) {
-      whereConditions.push('(nombre LIKE ? OR student_id LIKE ? OR email LIKE ?)');
-      const searchTerm = `%${search}%`;
-      queryParams.push(searchTerm, searchTerm, searchTerm);
+      whereConditions.push('(nombre LIKE @search OR id_institucional LIKE @search OR email LIKE @search)');
+      request.input('search', sql.NVarChar(255), `%${search}%`);
     }
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    // Obtener usuarios
-    const users = await query(`
+    request.input('offset', sql.Int, parseInt(offset));
+    request.input('limit', sql.Int, parseInt(limit));
+
+    const result = await request.query(`
       SELECT 
         id,
-        student_id,
+        id_institucional,
         email,
         nombre,
         rol,
-        nrc,
         is_active,
         created_at,
         updated_at
       FROM usuarios
       ${whereClause}
       ORDER BY created_at DESC
-      LIMIT ? OFFSET ?
-    `, [...queryParams, parseInt(limit), parseInt(offset)]);
+      OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
+    `);
 
-    // Contar total de usuarios
-    const countQuery = `SELECT COUNT(*) as total FROM usuarios ${whereClause}`;
-    const [countResult] = await query(countQuery, queryParams);
-    const total = countResult.total;
+    // Count query
+    const countRequest = pool.request();
+    if (rol && rol !== 'all') countRequest.input('rol', sql.NVarChar(20), rol);
+    if (status && status !== 'all') countRequest.input('isActive', sql.Bit, status === 'active' ? 1 : 0);
+    if (search) countRequest.input('search', sql.NVarChar(255), `%${search}%`);
+
+    const countResult = await countRequest.query(`SELECT COUNT(*) as total FROM usuarios ${whereClause}`);
+    const total = countResult.recordset[0].total;
 
     res.json({
       success: true,
       data: {
-        users,
+        users: result.recordset,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -133,7 +137,6 @@ router.get('/users', authenticateToken, requireAdmin, validatePagination, async 
         }
       }
     });
-
   } catch (error) {
     console.error('Error al obtener usuarios:', error);
     res.status(500).json({
@@ -146,57 +149,57 @@ router.get('/users', authenticateToken, requireAdmin, validatePagination, async 
 // POST /api/admin/users - Crear nuevo usuario
 router.post('/users', authenticateToken, requireAdmin, validateUser, async (req, res) => {
   try {
-    const { student_id, email, password, nombre, rol, nrc } = req.body;
+    const { id_institucional, email, password, nombre, rol } = req.body;
 
-    // Verificar si el student_id ya existe
-    const existingStudentId = await query(
-      'SELECT id FROM usuarios WHERE student_id = ?',
-      [student_id]
-    );
+    const pool = await getPool();
 
-    if (existingStudentId.length > 0) {
+    const checkId = await pool.request()
+      .input('idInstitucional', sql.Char(9), id_institucional)
+      .query('SELECT id FROM usuarios WHERE id_institucional = @idInstitucional');
+
+    if (checkId.recordset.length > 0) {
       return res.status(400).json({
         success: false,
-        message: 'ID estudiantil ya registrado'
+        message: 'ID institucional ya registrado'
       });
     }
 
-    // Verificar si el email ya existe
-    const existingEmail = await query(
-      'SELECT id FROM usuarios WHERE email = ?',
-      [email]
-    );
+    const checkEmail = await pool.request()
+      .input('email', sql.NVarChar(255), email)
+      .query('SELECT id FROM usuarios WHERE email = @email');
 
-    if (existingEmail.length > 0) {
+    if (checkEmail.recordset.length > 0) {
       return res.status(400).json({
         success: false,
         message: 'Email ya registrado'
       });
     }
 
-    // Hash de la contraseña
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    // Insertar nuevo usuario
-    const result = await query(
-      `INSERT INTO usuarios (student_id, email, password_hash, nombre, rol, nrc, is_active) 
-       VALUES (?, ?, ?, ?, ?, ?, TRUE)`,
-      [student_id, email, passwordHash, nombre, rol, nrc]
-    );
+    const insertResult = await pool.request()
+      .input('idInstitucional', sql.Char(9), id_institucional)
+      .input('email', sql.NVarChar(255), email)
+      .input('passwordHash', sql.NVarChar(255), passwordHash)
+      .input('nombre', sql.NVarChar(255), nombre)
+      .input('rol', sql.NVarChar(20), rol)
+      .query(`
+        INSERT INTO usuarios (id_institucional, email, password_hash, nombre, rol, is_active) 
+        OUTPUT INSERTED.id
+        VALUES (@idInstitucional, @email, @passwordHash, @nombre, @rol, 1)
+      `);
 
-    const newUserId = result.insertId;
+    const newUserId = insertResult.recordset[0].id;
 
-    // Obtener usuario creado
-    const newUser = await query(
-      'SELECT id, student_id, email, nombre, rol, nrc, is_active, created_at FROM usuarios WHERE id = ?',
-      [newUserId]
-    );
+    const newUserResult = await pool.request()
+      .input('userId', sql.Int, newUserId)
+      .query('SELECT id, id_institucional, email, nombre, rol, is_active, created_at FROM usuarios WHERE id = @userId');
 
     res.status(201).json({
       success: true,
       message: 'Usuario creado exitosamente',
-      data: { user: newUser[0] }
+      data: { user: newUserResult.recordset[0] }
     });
 
   } catch (error) {
@@ -212,27 +215,26 @@ router.post('/users', authenticateToken, requireAdmin, validateUser, async (req,
 router.put('/users/:id/toggle-status', authenticateToken, requireAdmin, validateId, async (req, res) => {
   try {
     const userId = req.params.id;
+    const pool = await getPool();
 
-    // Verificar que el usuario existe
-    const user = await query(
-      'SELECT id, is_active, nombre FROM usuarios WHERE id = ?',
-      [userId]
-    );
+    const userResult = await pool.request()
+      .input('userId', sql.Int, userId)
+      .query('SELECT id, is_active, nombre FROM usuarios WHERE id = @userId');
 
-    if (user.length === 0) {
+    if (userResult.recordset.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Usuario no encontrado'
       });
     }
 
-    // No permitir desactivar al último admin
-    if (user[0].is_active && req.user.id === parseInt(userId)) {
-      const adminCount = await query(
-        'SELECT COUNT(*) as count FROM usuarios WHERE rol = "admin" AND is_active = TRUE'
-      );
+    const user = userResult.recordset[0];
 
-      if (adminCount[0].count <= 1) {
+    if (user.is_active && req.user.id === parseInt(userId)) {
+      const adminCountResult = await pool.request()
+        .query("SELECT COUNT(*) as count FROM usuarios WHERE rol = 'admin' AND is_active = 1");
+
+      if (adminCountResult.recordset[0].count <= 1) {
         return res.status(400).json({
           success: false,
           message: 'No puedes desactivar el último administrador'
@@ -240,12 +242,11 @@ router.put('/users/:id/toggle-status', authenticateToken, requireAdmin, validate
       }
     }
 
-    // Cambiar estado
-    const newStatus = !user[0].is_active;
-    await query(
-      'UPDATE usuarios SET is_active = ? WHERE id = ?',
-      [newStatus, userId]
-    );
+    const newStatus = user.is_active ? 0 : 1;
+    await pool.request()
+      .input('userId', sql.Int, userId)
+      .input('newStatus', sql.Bit, newStatus)
+      .query('UPDATE usuarios SET is_active = @newStatus WHERE id = @userId');
 
     res.json({
       success: true,
@@ -275,25 +276,26 @@ router.put('/users/:id/role', authenticateToken, requireAdmin, validateId, async
     }
 
     // Verificar que el usuario existe
-    const user = await query(
-      'SELECT id, rol, nombre FROM usuarios WHERE id = ?',
-      [userId]
-    );
+    const pool = await getPool();
 
-    if (user.length === 0) {
+    const userResult = await pool.request()
+      .input('userId', sql.Int, userId)
+      .query('SELECT id, rol, nombre FROM usuarios WHERE id = @userId');
+
+    if (userResult.recordset.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Usuario no encontrado'
       });
     }
 
-    // No permitir cambiar el rol del último admin
-    if (user[0].rol === 'admin' && rol !== 'admin') {
-      const adminCount = await query(
-        'SELECT COUNT(*) as count FROM usuarios WHERE rol = "admin" AND is_active = TRUE'
-      );
+    const user = userResult.recordset[0];
 
-      if (adminCount[0].count <= 1) {
+    if (user.rol === 'admin' && rol !== 'admin') {
+      const adminCountResult = await pool.request()
+        .query("SELECT COUNT(*) as count FROM usuarios WHERE rol = 'admin' AND is_active = 1");
+
+      if (adminCountResult.recordset[0].count <= 1) {
         return res.status(400).json({
           success: false,
           message: 'No puedes cambiar el rol del último administrador'
@@ -301,11 +303,10 @@ router.put('/users/:id/role', authenticateToken, requireAdmin, validateId, async
       }
     }
 
-    // Cambiar rol
-    await query(
-      'UPDATE usuarios SET rol = ? WHERE id = ?',
-      [rol, userId]
-    );
+    await pool.request()
+      .input('userId', sql.Int, userId)
+      .input('rol', sql.NVarChar(20), rol)
+      .query('UPDATE usuarios SET rol = @rol WHERE id = @userId');
 
     res.json({
       success: true,
@@ -327,19 +328,23 @@ router.get('/products', authenticateToken, requireAdmin, validatePagination, asy
     const { page = 1, limit = 20, status = 'all' } = req.query;
     const offset = (page - 1) * limit;
 
+    const pool = await getPool();
+    const request = pool.request();
+
     let whereConditions = [];
-    let queryParams = [];
 
     if (status !== 'all') {
-      const isActive = status === 'active';
-      whereConditions.push('p.is_active = ?');
-      queryParams.push(isActive);
+      const isActive = status === 'active' ? 1 : 0;
+      whereConditions.push('p.is_active = @isActive');
+      request.input('isActive', sql.Bit, isActive);
     }
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    // Obtener productos
-    const products = await query(`
+    request.input('offset', sql.Int, parseInt(offset));
+    request.input('limit', sql.Int, parseInt(limit));
+
+    const result = await request.query(`
       SELECT 
         p.id,
         p.titulo,
@@ -351,24 +356,25 @@ router.get('/products', authenticateToken, requireAdmin, validatePagination, asy
         p.created_at,
         c.nombre as categoria_nombre,
         u.nombre as vendedor_nombre,
-        u.student_id as vendedor_id
+        u.id_institucional as vendedor_id_institucional
       FROM productos p
       JOIN categorias c ON p.categoria_id = c.id
       JOIN usuarios u ON p.vendedor_id = u.id
       ${whereClause}
       ORDER BY p.created_at DESC
-      LIMIT ? OFFSET ?
-    `, [...queryParams, parseInt(limit), parseInt(offset)]);
+      OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
+    `);
 
-    // Contar total de productos
-    const countQuery = `SELECT COUNT(*) as total FROM productos p ${whereClause}`;
-    const [countResult] = await query(countQuery, queryParams);
-    const total = countResult.total;
+    const countRequest = pool.request();
+    if (status !== 'all') countRequest.input('isActive', sql.Bit, status === 'active' ? 1 : 0);
+
+    const countResult = await countRequest.query(`SELECT COUNT(*) as total FROM productos p ${whereClause}`);
+    const total = countResult.recordset[0].total;
 
     res.json({
       success: true,
       data: {
-        products,
+        products: result.recordset,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -393,24 +399,26 @@ router.put('/products/:id/toggle-status', authenticateToken, requireAdmin, valid
     const productId = req.params.id;
 
     // Verificar que el producto existe
-    const product = await query(
-      'SELECT id, is_active, titulo FROM productos WHERE id = ?',
-      [productId]
-    );
+    const pool = await getPool();
 
-    if (product.length === 0) {
+    const productResult = await pool.request()
+      .input('productId', sql.Int, productId)
+      .query('SELECT id, is_active, titulo FROM productos WHERE id = @productId');
+
+    if (productResult.recordset.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Producto no encontrado'
       });
     }
 
-    // Cambiar estado
-    const newStatus = !product[0].is_active;
-    await query(
-      'UPDATE productos SET is_active = ? WHERE id = ?',
-      [newStatus, productId]
-    );
+    const product = productResult.recordset[0];
+    const newStatus = product.is_active ? 0 : 1;
+
+    await pool.request()
+      .input('productId', sql.Int, productId)
+      .input('newStatus', sql.Bit, newStatus)
+      .query('UPDATE productos SET is_active = @newStatus WHERE id = @productId');
 
     res.json({
       success: true,
@@ -429,13 +437,13 @@ router.put('/products/:id/toggle-status', authenticateToken, requireAdmin, valid
 // GET /api/admin/categories - Obtener categorías
 router.get('/categories', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const categories = await query(
-      'SELECT id, nombre, descripcion, icono, is_active, created_at FROM categorias ORDER BY nombre'
-    );
+    const pool = await getPool();
+    const result = await pool.request()
+      .query('SELECT id, nombre, descripcion, icono, is_active, created_at FROM categorias ORDER BY nombre');
 
     res.json({
       success: true,
-      data: { categories }
+      data: { categories: result.recordset }
     });
 
   } catch (error) {
@@ -460,25 +468,30 @@ router.post('/categories', authenticateToken, requireAdmin, async (req, res) => 
     }
 
     // Verificar si la categoría ya existe
-    const existingCategory = await query(
-      'SELECT id FROM categorias WHERE nombre = ?',
-      [nombre]
-    );
+    const pool = await getPool();
 
-    if (existingCategory.length > 0) {
+    const checkCategory = await pool.request()
+      .input('nombre', sql.NVarChar(100), nombre)
+      .query('SELECT id FROM categorias WHERE nombre = @nombre');
+
+    if (checkCategory.recordset.length > 0) {
       return res.status(400).json({
         success: false,
         message: 'Categoría ya existe'
       });
     }
 
-    // Crear categoría
-    const result = await query(
-      'INSERT INTO categorias (nombre, descripcion, icono) VALUES (?, ?, ?)',
-      [nombre, descripcion, icono]
-    );
+    const insertResult = await pool.request()
+      .input('nombre', sql.NVarChar(100), nombre)
+      .input('descripcion', sql.NVarChar(500), descripcion)
+      .input('icono', sql.NVarChar(50), icono)
+      .query(`
+        INSERT INTO categorias (nombre, descripcion, icono) 
+        OUTPUT INSERTED.id
+        VALUES (@nombre, @descripcion, @icono)
+      `);
 
-    const categoryId = result.insertId;
+    const categoryId = insertResult.recordset[0].id;
 
     res.status(201).json({
       success: true,

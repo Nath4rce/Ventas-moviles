@@ -187,7 +187,7 @@ Ventas-moviles-main/
 ### Backend
 - **Node.js**: Runtime de JavaScript
 - **Express.js**: Framework web con middleware de seguridad
-- **MySQL**: Base de datos con triggers y procedimientos almacenados
+- **SQL Sever**: Base de datos con triggers y procedimientos almacenados
 - **JWT**: Autenticación segura con expiración
 - **Bcrypt**: Hash seguro de contraseñas
 - **Express-validator**: Validación y sanitización de datos
@@ -243,6 +243,7 @@ Ventas-moviles-main/
 - `POST /categories` - Crear categoría
 
 ## Base de Datos
+https://www.microsoft.com/es-es/sql-server/sql-server-downloads
 
 ### Tablas Principales
 

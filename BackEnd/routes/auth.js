@@ -1,6 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const { query } = require('../config/database');
+const { getPool, sql } = require('../config/database');
 const { generateToken, authenticateToken } = require('../middleware/auth');
 const { validateLogin, validateRegister } = require('../middleware/validation');
 
@@ -9,13 +9,14 @@ const router = express.Router();
 // POST /api/auth/login - Iniciar sesión
 router.post('/login', validateLogin, async (req, res) => {
   try {
-    const { studentId, password } = req.body;
+    const { idInstitucional, password } = req.body;
 
-    // Buscar usuario por student_id
-    const users = await query(
-      'SELECT id, student_id, email, password_hash, nombre, rol, is_active, nrc FROM usuarios WHERE student_id = ?',
-      [studentId]
-    );
+    // Buscar usuario por id_institucional
+    const pool = await getPool();
+    const result = await pool.request()
+      .input('idInstitucional', sql.Char(9), idInstitucional)
+      .query('SELECT id, id_institucional, email, password_hash, nombre, rol, is_active FROM usuarios WHERE id_institucional = @idInstitucional'
+      );
 
     if (users.length === 0) {
       return res.status(401).json({
@@ -24,7 +25,7 @@ router.post('/login', validateLogin, async (req, res) => {
       });
     }
 
-    const user = users[0];
+    const users = result.recordset;
 
     // Verificar si el usuario está activo
     if (!user.is_active) {
@@ -54,11 +55,10 @@ router.post('/login', validateLogin, async (req, res) => {
         token,
         user: {
           id: user.id,
-          studentId: user.student_id,
+          idInstitucional: user.id_institucional,
           email: user.email,
           nombre: user.nombre,
           rol: user.rol,
-          nrc: user.nrc,
           isActive: user.is_active
         }
       }
@@ -76,13 +76,14 @@ router.post('/login', validateLogin, async (req, res) => {
 // POST /api/auth/register - Registro de usuario
 router.post('/register', validateRegister, async (req, res) => {
   try {
-    const { studentId, email, password, nombre, nrc } = req.body;
+    const { idInstitucional, email, password, nombre } = req.body;
 
     // Verificar si el student_id ya existe
-    const existingStudentId = await query(
-      'SELECT id FROM usuarios WHERE student_id = ?',
-      [studentId]
-    );
+    const pool = await getPool();
+    const checkId = await pool.request()
+      .input('idInstitucional', sql.Char(9), idInstitucional)
+      .query('SELECT id FROM usuarios WHERE id_institucional = @idInstitucional');
+
 
     if (existingStudentId.length > 0) {
       return res.status(400).json({
@@ -92,12 +93,11 @@ router.post('/register', validateRegister, async (req, res) => {
     }
 
     // Verificar si el email ya existe
-    const existingEmail = await query(
-      'SELECT id FROM usuarios WHERE email = ?',
-      [email]
-    );
+    const checkEmail = await pool.request()
+      .input('email', sql.NVarChar(255), email)
+      .query('SELECT id FROM usuarios WHERE email = @email');
 
-    if (existingEmail.length > 0) {
+    if (checkEmail.recordset.length > 0) {
       return res.status(400).json({
         success: false,
         message: 'Email ya registrado'
@@ -109,13 +109,16 @@ router.post('/register', validateRegister, async (req, res) => {
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
     // Insertar nuevo usuario
-    const result = await query(
-      `INSERT INTO usuarios (student_id, email, password_hash, nombre, rol, nrc, is_active) 
-       VALUES (?, ?, ?, ?, 'buyer', ?, TRUE)`,
-      [studentId, email, passwordHash, nombre, nrc]
-    );
+    const insertResult = await pool.request()
+      .input('idInstitucional', sql.Char(9), idInstitucional)
+      .input('email', sql.NVarChar(255), email)
+      .input('passwordHash', sql.NVarChar(255), passwordHash)
+      .input('nombre', sql.NVarChar(255), nombre)
+      .query(`INSERT INTO usuarios (id_institucional, email, password_hash, nombre, rol, is_active) 
+          OUTPUT INSERTED.id
+          VALUES (@idInstitucional, @email, @passwordHash, @nombre, 'buyer', 1)`);
 
-    const newUserId = result.insertId;
+    const newUserId = insertResult.recordset[0].id;
 
     // Generar token JWT
     const token = generateToken(newUserId);
@@ -128,11 +131,10 @@ router.post('/register', validateRegister, async (req, res) => {
         token,
         user: {
           id: newUserId,
-          studentId,
+          idInstitucional,
           email,
           nombre,
           rol: 'buyer',
-          nrc,
           isActive: true
         }
       }
@@ -186,17 +188,18 @@ router.post('/logout', authenticateToken, async (req, res) => {
 // PUT /api/auth/profile - Actualizar perfil del usuario
 router.put('/profile', authenticateToken, async (req, res) => {
   try {
-    const { nombre, email, nrc } = req.body;
+    const { nombre, email } = req.body;
     const userId = req.user.id;
 
     // Verificar si el email ya existe en otro usuario
     if (email) {
-      const existingEmail = await query(
-        'SELECT id FROM usuarios WHERE email = ? AND id != ?',
-        [email, userId]
-      );
+      const pool = await getPool();
+      const checkEmail = await pool.request()
+        .input('email', sql.NVarChar(255), email)
+        .input('userId', sql.Int, userId)
+        .query('SELECT id FROM usuarios WHERE email = @email AND id != @userId');
 
-      if (existingEmail.length > 0) {
+      if (checkEmail.recordset.length > 0) {
         return res.status(400).json({
           success: false,
           message: 'Email ya registrado por otro usuario'
@@ -218,11 +221,6 @@ router.put('/profile', authenticateToken, async (req, res) => {
       updateValues.push(email);
     }
 
-    if (nrc) {
-      updateFields.push('nrc = ?');
-      updateValues.push(nrc);
-    }
-
     if (updateFields.length === 0) {
       return res.status(400).json({
         success: false,
@@ -232,16 +230,18 @@ router.put('/profile', authenticateToken, async (req, res) => {
 
     updateValues.push(userId);
 
-    await query(
-      `UPDATE usuarios SET ${updateFields.join(', ')} WHERE id = ?`,
-      updateValues
-    );
+    const request = pool.request().input('userId', sql.Int, userId);
+    updateValues.forEach((val, idx) => {
+      const fieldName = updateFields[idx].split(' = ')[0];
+      request.input(fieldName, sql.NVarChar(255), val);
+    });
+    await request.query(`UPDATE usuarios SET ${updateFields.join(', ')} WHERE id = @userId`);
+
 
     // Obtener usuario actualizado
-    const updatedUser = await query(
-      'SELECT id, student_id, email, nombre, rol, nrc, is_active FROM usuarios WHERE id = ?',
-      [userId]
-    );
+    const userResult = await pool.request()
+      .input('userId', sql.Int, userId)
+      .query('SELECT id, id_institucional, email, nombre, rol, is_active FROM usuarios WHERE id = @userId');
 
     res.json({
       success: true,

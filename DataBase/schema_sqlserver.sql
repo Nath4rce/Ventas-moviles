@@ -163,8 +163,6 @@ CREATE TABLE notificaciones (
     destinatario_tipo NVARCHAR(20) NOT NULL CHECK (destinatario_tipo IN ('all', 'sellers', 'buyers', 'id_institucional_especifico')) DEFAULT 'all',
     id_institucional_especifico CHAR(9), -- ID institucional para notificaciones dirigidas
     is_site_wide BIT NOT NULL DEFAULT 0, -- Notificación global del sitio
-    prioridad INT NOT NULL DEFAULT 1 CHECK (prioridad BETWEEN 1 AND 5), -- 1=Baja, 5=Crítica
-    es_permanente BIT NOT NULL DEFAULT 0, -- Si es permanente o temporal
     created_by INT, -- Admin que creó la notificación
     created_at DATETIME2 NOT NULL DEFAULT GETDATE(),
     
@@ -182,8 +180,6 @@ CREATE TABLE notificaciones (
     INDEX idx_notificaciones_tipo (destinatario_tipo),
     INDEX idx_notificaciones_id_institucional (id_institucional_especifico),
     INDEX idx_notificaciones_created (created_at DESC),
-    INDEX idx_notificaciones_prioridad (prioridad DESC),
-    INDEX idx_notificaciones_permanente (es_permanente) WHERE es_permanente = 1
 );
 GO
 
@@ -368,7 +364,7 @@ BEGIN
         )
         AND (@solo_no_leidas = 0 OR nl.id IS NULL)
     ORDER BY 
-        n.prioridad DESC,
+
         n.created_at DESC;
 END;
 GO
@@ -414,16 +410,11 @@ GO
 -- DATOS INICIALES
 -- =============================================
 
--- Insertar categorías iniciales
+-- Insertar categorías iniciales (solo las permitidas)
 INSERT INTO categorias (nombre, descripcion, icono) VALUES
-('Electrónica', 'Dispositivos electrónicos, celulares, laptops, tablets', 'fa-laptop'),
-('Libros', 'Libros académicos y literatura', 'fa-book'),
-('Ropa', 'Ropa y accesorios', 'fa-tshirt'),
-('Deportes', 'Artículos deportivos y fitness', 'fa-futbol'),
-('Hogar', 'Artículos para el hogar', 'fa-home'),
-('Música', 'Instrumentos musicales y equipos de audio', 'fa-music'),
-('Arte', 'Materiales de arte y manualidades', 'fa-palette'),
-('Otros', 'Otros productos', 'fa-box');
+('Comida', 'Alimentos, bebidas y productos comestibles', 'fa-utensils'),
+('Papelería', 'Material de oficina, libros y útiles escolares', 'fa-pencil-alt'),
+('Accesorios', 'Complementos y artículos diversos', 'fa-glasses');
 GO
 
 -- Insertar usuarios de prueba

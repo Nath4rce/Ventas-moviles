@@ -1,5 +1,5 @@
 const express = require('express');
-const { query } = require('../config/database');
+const { getPool, sql } = require('../config/database');
 const { authenticateToken, requireBuyer } = require('../middleware/auth');
 const { validateReview, validateId } = require('../middleware/validation');
 
@@ -9,14 +9,14 @@ const router = express.Router();
 router.get('/product/:productId', validateId, async (req, res) => {
   try {
     const productId = req.params.productId;
+    const pool = await getPool();
 
     // Verificar que el producto existe
-    const product = await query(
-      'SELECT id, titulo FROM productos WHERE id = ? AND is_active = TRUE',
-      [productId]
-    );
+    const productResult = await pool.request()
+      .input('productId', sql.Int, productId)
+      .query('SELECT id, titulo FROM productos WHERE id = @productId AND is_active = 1');
 
-    if (product.length === 0) {
+    if (productResult.recordset.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Producto no encontrado'
@@ -24,26 +24,28 @@ router.get('/product/:productId', validateId, async (req, res) => {
     }
 
     // Obtener reseñas del producto
-    const reviews = await query(`
-      SELECT 
-        r.id,
-        r.rating,
-        r.comentario,
-        r.created_at,
-        u.nombre as usuario_nombre,
-        u.student_id as usuario_id,
-        u.avatar_url as usuario_avatar
-      FROM resenas r
-      JOIN usuarios u ON r.usuario_id = u.id
-      WHERE r.producto_id = ?
-      ORDER BY r.created_at DESC
-    `, [productId]);
+    const reviewsResult = await pool.request()
+      .input('productId', sql.Int, productId)
+      .query(`
+        SELECT 
+          r.id,
+          r.rating,
+          r.comentario,
+          r.created_at,
+          u.nombre as usuario_nombre,
+          u.id_institucional as usuario_id_institucional,
+          u.avatar_url as usuario_avatar
+        FROM resenas r
+        JOIN usuarios u ON r.usuario_id = u.id
+        WHERE r.producto_id = @productId
+        ORDER BY r.created_at DESC
+      `);
 
     res.json({
       success: true,
-      data: { 
-        reviews,
-        product: product[0]
+      data: {
+        reviews: reviewsResult.recordset,
+        product: productResult.recordset[0]
       }
     });
 
@@ -61,14 +63,14 @@ router.post('/', authenticateToken, requireBuyer, validateReview, async (req, re
   try {
     const { producto_id, rating, comentario } = req.body;
     const usuarioId = req.user.id;
+    const pool = await getPool();
 
     // Verificar que el producto existe
-    const product = await query(
-      'SELECT id, titulo, vendedor_id FROM productos WHERE id = ? AND is_active = TRUE',
-      [producto_id]
-    );
+    const productResult = await pool.request()
+      .input('productoId', sql.Int, producto_id)
+      .query('SELECT id, titulo, vendedor_id FROM productos WHERE id = @productoId AND is_active = 1');
 
-    if (product.length === 0) {
+    if (productResult.recordset.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Producto no encontrado'
@@ -76,7 +78,7 @@ router.post('/', authenticateToken, requireBuyer, validateReview, async (req, re
     }
 
     // Verificar que el usuario no es el vendedor
-    if (product[0].vendedor_id === usuarioId) {
+    if (productResult.recordset[0].vendedor_id === usuarioId) {
       return res.status(400).json({
         success: false,
         message: 'No puedes reseñar tu propio producto'
@@ -84,12 +86,12 @@ router.post('/', authenticateToken, requireBuyer, validateReview, async (req, re
     }
 
     // Verificar si ya existe una reseña del usuario para este producto
-    const existingReview = await query(
-      'SELECT id FROM resenas WHERE producto_id = ? AND usuario_id = ?',
-      [producto_id, usuarioId]
-    );
+    const existingResult = await pool.request()
+      .input('productoId', sql.Int, producto_id)
+      .input('usuarioId', sql.Int, usuarioId)
+      .query('SELECT id FROM resenas WHERE producto_id = @productoId AND usuario_id = @usuarioId');
 
-    if (existingReview.length > 0) {
+    if (existingResult.recordset.length > 0) {
       return res.status(400).json({
         success: false,
         message: 'Ya has dejado una reseña para este producto'
@@ -97,10 +99,12 @@ router.post('/', authenticateToken, requireBuyer, validateReview, async (req, re
     }
 
     // Insertar nueva reseña
-    await query(
-      'INSERT INTO resenas (producto_id, usuario_id, rating, comentario) VALUES (?, ?, ?, ?)',
-      [producto_id, usuarioId, rating, comentario]
-    );
+    await pool.request()
+      .input('productoId', sql.Int, producto_id)
+      .input('usuarioId', sql.Int, usuarioId)
+      .input('rating', sql.Int, rating)
+      .input('comentario', sql.NVarChar(1000), comentario)
+      .query('INSERT INTO resenas (producto_id, usuario_id, rating, comentario) VALUES (@productoId, @usuarioId, @rating, @comentario)');
 
     // El trigger se encarga de actualizar el rating del producto automáticamente
 
@@ -126,12 +130,13 @@ router.put('/:id', authenticateToken, validateReview, async (req, res) => {
     const usuarioId = req.user.id;
 
     // Verificar que la reseña existe y pertenece al usuario
-    const review = await query(
-      'SELECT id, producto_id FROM resenas WHERE id = ? AND usuario_id = ?',
-      [reviewId, usuarioId]
-    );
+    const pool = await getPool();
+    const reviewResult = await pool.request()
+      .input('reviewId', sql.Int, reviewId)
+      .input('usuarioId', sql.Int, usuarioId)
+      .query('SELECT id, producto_id FROM resenas WHERE id = @reviewId AND usuario_id = @usuarioId');
 
-    if (review.length === 0) {
+    if (reviewResult.recordset.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Reseña no encontrada o no tienes permisos para modificarla'
@@ -139,10 +144,11 @@ router.put('/:id', authenticateToken, validateReview, async (req, res) => {
     }
 
     // Actualizar reseña
-    await query(
-      'UPDATE resenas SET rating = ?, comentario = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [rating, comentario, reviewId]
-    );
+    await pool.request()
+      .input('reviewId', sql.Int, reviewId)
+      .input('rating', sql.Int, rating)
+      .input('comentario', sql.NVarChar(1000), comentario)
+      .query('UPDATE resenas SET rating = @rating, comentario = @comentario, updated_at = GETDATE() WHERE id = @reviewId');
 
     // El trigger se encarga de actualizar el rating del producto automáticamente
 
@@ -167,12 +173,14 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     const usuarioId = req.user.id;
 
     // Verificar que la reseña existe y pertenece al usuario
-    const review = await query(
-      'SELECT id, producto_id FROM resenas WHERE id = ? AND usuario_id = ?',
-      [reviewId, usuarioId]
-    );
+    const pool = await getPool();
+    const reviewResult = await pool.request()
+      .input('reviewId', sql.Int, reviewId)
+      .input('usuarioId', sql.Int, usuarioId)
+      .query('SELECT id, producto_id FROM resenas WHERE id = @reviewId AND usuario_id = @usuarioId');
 
-    if (review.length === 0) {
+
+    if (reviewResult.recordset.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Reseña no encontrada o no tienes permisos para eliminarla'
@@ -180,7 +188,9 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     }
 
     // Eliminar reseña
-    await query('DELETE FROM resenas WHERE id = ?', [reviewId]);
+    await pool.request()
+      .input('reviewId', sql.Int, reviewId)
+      .query('DELETE FROM resenas WHERE id = @reviewId');
 
     // El trigger se encarga de actualizar el rating del producto automáticamente
 
@@ -203,25 +213,28 @@ router.get('/user/:userId', validateId, async (req, res) => {
   try {
     const userId = req.params.userId;
 
-    const reviews = await query(`
-      SELECT 
-        r.id,
-        r.rating,
-        r.comentario,
-        r.created_at,
-        p.id as producto_id,
-        p.titulo as producto_titulo,
-        p.precio as producto_precio,
-        (SELECT imagen_url FROM producto_imagenes WHERE producto_id = p.id AND is_principal = TRUE LIMIT 1) as producto_imagen
-      FROM resenas r
-      JOIN productos p ON r.producto_id = p.id
-      WHERE r.usuario_id = ?
-      ORDER BY r.created_at DESC
-    `, [userId]);
+    const pool = await getPool();
+    const result = await pool.request()
+      .input('userId', sql.Int, userId)
+      .query(`
+        SELECT 
+          r.id,
+          r.rating,
+          r.comentario,
+          r.created_at,
+          p.id as producto_id,
+          p.titulo as producto_titulo,
+          p.precio as producto_precio,
+          (SELECT TOP 1 imagen_url FROM producto_imagenes WHERE producto_id = p.id AND is_principal = 1) as producto_imagen
+        FROM resenas r
+        JOIN productos p ON r.producto_id = p.id
+        WHERE r.usuario_id = @userId
+        ORDER BY r.created_at DESC
+      `);
 
     res.json({
       success: true,
-      data: { reviews }
+      data: { reviews: result.recordset }
     });
 
   } catch (error) {
@@ -239,37 +252,38 @@ router.get('/stats/:productId', validateId, async (req, res) => {
     const productId = req.params.productId;
 
     // Verificar que el producto existe
-    const product = await query(
-      'SELECT id, titulo FROM productos WHERE id = ? AND is_active = TRUE',
-      [productId]
-    );
+    const pool = await getPool();
+    const productResult = await pool.request()
+      .input('productId', sql.Int, productId)
+      .query('SELECT id, titulo FROM productos WHERE id = @productId AND is_active = 1');
 
-    if (product.length === 0) {
+    if (productResult.recordset.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Producto no encontrado'
       });
     }
-
     // Obtener estadísticas
-    const stats = await query(`
-      SELECT 
-        COUNT(*) as total_resenas,
-        AVG(rating) as rating_promedio,
-        COUNT(CASE WHEN rating = 5 THEN 1 END) as cinco_estrellas,
-        COUNT(CASE WHEN rating = 4 THEN 1 END) as cuatro_estrellas,
-        COUNT(CASE WHEN rating = 3 THEN 1 END) as tres_estrellas,
-        COUNT(CASE WHEN rating = 2 THEN 1 END) as dos_estrellas,
-        COUNT(CASE WHEN rating = 1 THEN 1 END) as una_estrella
-      FROM resenas 
-      WHERE producto_id = ?
-    `, [productId]);
+    const statsResult = await pool.request()
+      .input('productId', sql.Int, productId)
+      .query(`
+        SELECT 
+          COUNT(*) as total_resenas,
+          AVG(CAST(rating AS DECIMAL(3,2))) as rating_promedio,
+          COUNT(CASE WHEN rating = 5 THEN 1 END) as cinco_estrellas,
+          COUNT(CASE WHEN rating = 4 THEN 1 END) as cuatro_estrellas,
+          COUNT(CASE WHEN rating = 3 THEN 1 END) as tres_estrellas,
+          COUNT(CASE WHEN rating = 2 THEN 1 END) as dos_estrellas,
+          COUNT(CASE WHEN rating = 1 THEN 1 END) as una_estrella
+        FROM resenas 
+        WHERE producto_id = @productId
+      `);
 
     res.json({
       success: true,
-      data: { 
-        stats: stats[0],
-        product: product[0]
+      data: {
+        stats: statsResult.recordset[0],
+        product: productResult.recordset[0]
       }
     });
 

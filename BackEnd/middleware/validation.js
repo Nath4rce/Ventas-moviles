@@ -15,11 +15,11 @@ const handleValidationErrors = (req, res, next) => {
 
 // Validaciones para autenticación
 const validateLogin = [
-  body('studentId')
+  body('idInstitucional')
     .notEmpty()
-    .withMessage('ID estudiantil es requerido')
-    .isLength({ min: 8, max: 20 })
-    .withMessage('ID estudiantil debe tener entre 8 y 20 caracteres'),
+    .withMessage('ID institucional es requerido')
+    .matches(/^\d{9}$/)
+    .withMessage('ID institucional debe tener exactamente 9 dígitos'),
   body('password')
     .notEmpty()
     .withMessage('Contraseña es requerida')
@@ -29,11 +29,11 @@ const validateLogin = [
 ];
 
 const validateRegister = [
-  body('studentId')
+  body('idInstitucional')
     .notEmpty()
-    .withMessage('ID estudiantil es requerido')
-    .isLength({ min: 8, max: 20 })
-    .withMessage('ID estudiantil debe tener entre 8 y 20 caracteres'),
+    .withMessage('ID institucional es requerido')
+    .matches(/^\d{9}$/)
+    .withMessage('ID institucional debe tener exactamente 9 dígitos'),
   body('email')
     .isEmail()
     .withMessage('Email debe ser válido')
@@ -46,11 +46,6 @@ const validateRegister = [
     .withMessage('Nombre es requerido')
     .isLength({ min: 2, max: 100 })
     .withMessage('Nombre debe tener entre 2 y 100 caracteres'),
-  body('nrc')
-    .notEmpty()
-    .withMessage('NRC es requerido')
-    .isLength({ min: 5, max: 20 })
-    .withMessage('NRC debe tener entre 5 y 20 caracteres'),
   handleValidationErrors
 ];
 
@@ -72,10 +67,6 @@ const validateProduct = [
   body('categoria_id')
     .isInt({ min: 1 })
     .withMessage('Categoría es requerida'),
-  body('telefono_whatsapp')
-    .optional()
-    .isLength({ min: 10, max: 20 })
-    .withMessage('Teléfono debe tener entre 10 y 20 caracteres'),
   handleValidationErrors
 ];
 
@@ -107,22 +98,22 @@ const validateNotification = [
     .isIn(['info', 'success', 'warning', 'danger'])
     .withMessage('Tipo de notificación inválido'),
   body('destinatario_tipo')
-    .isIn(['all', 'sellers', 'students', 'nrc'])
+    .isIn(['all', 'sellers', 'buyers', 'id_institucional_especifico'])
     .withMessage('Tipo de destinatario inválido'),
-  body('nrc_especifico')
+  body('id_institucional_especifico')
     .optional()
-    .isLength({ min: 5, max: 20 })
-    .withMessage('NRC específico debe tener entre 5 y 20 caracteres'),
+    .matches(/^\d{9}$/)
+    .withMessage('ID institucional debe tener 9 dígitos'),
   handleValidationErrors
 ];
 
 // Validaciones para usuarios (admin)
 const validateUser = [
-  body('student_id')
+  body('id_institucional')
     .notEmpty()
-    .withMessage('ID estudiantil es requerido')
-    .isLength({ min: 8, max: 20 })
-    .withMessage('ID estudiantil debe tener entre 8 y 20 caracteres'),
+    .withMessage('ID institucional es requerido')
+    .matches(/^\d{9}$/)
+    .withMessage('ID institucional debe tener exactamente 9 dígitos'),
   body('email')
     .isEmail()
     .withMessage('Email debe ser válido')
@@ -138,11 +129,6 @@ const validateUser = [
   body('rol')
     .isIn(['admin', 'seller', 'buyer'])
     .withMessage('Rol inválido'),
-  body('nrc')
-    .notEmpty()
-    .withMessage('NRC es requerido')
-    .isLength({ min: 5, max: 20 })
-    .withMessage('NRC debe tener entre 5 y 20 caracteres'),
   handleValidationErrors
 ];
 

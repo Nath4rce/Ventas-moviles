@@ -7,13 +7,6 @@ require('dotenv').config();
 // Importar configuración de base de datos
 const { testConnection } = require('./config/database');
 
-// Importar rutas
-const authRoutes = require('./routes/auth');
-const productRoutes = require('./routes/products');
-const reviewRoutes = require('./routes/reviews');
-const notificationRoutes = require('./routes/notifications');
-const adminRoutes = require('./routes/admin');
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -22,14 +15,27 @@ app.use(helmet());
 
 // Configuración de CORS
 app.use(cors({
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    credentials: true
+}));
+//OLD
+/*app.use(cors({
   origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
-}));
+}));*/
 
 // Rate limiting
 const limiter = rateLimit({
+    windowMs: (process.env.RATE_LIMIT_WINDOW || 15) * 60 * 1000,
+    max: process.env.RATE_LIMIT_MAX_REQUESTS || 100,
+    message: 'Demasiadas peticiones desde esta IP, intenta de nuevo más tarde.'
+});
+app.use('/api/', limiter);
+
+//OLD
+/*const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutos
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // límite de 100 requests por ventana
   message: {
@@ -38,7 +44,7 @@ const limiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-});
+});*/
 
 app.use(limiter);
 
@@ -52,14 +58,15 @@ app.use((req, res, next) => {
   next();
 });
 
-// Ruta de salud del servidor
-app.get('/health', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Servidor funcionando correctamente',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
-  });
+// Health check
+app.get('/health', async (req, res) => {
+    const dbConnected = await testConnection();
+    res.json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        database: dbConnected ? 'connected' : 'disconnected',
+        environment: process.env.NODE_ENV || 'development'
+    });
 });
 
 // Ruta raíz
@@ -78,6 +85,13 @@ app.get('/', (req, res) => {
   });
 });
 
+// Importar rutas
+const authRoutes = require('./routes/auth');
+const productRoutes = require('./routes/products');
+const reviewRoutes = require('./routes/reviews');
+const notificationRoutes = require('./routes/notifications');
+const adminRoutes = require('./routes/admin');
+
 // Rutas de la API
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
@@ -85,15 +99,23 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Middleware para manejar rutas no encontradas
-app.use('*', (req, res) => {
+// Middleware para manejar rutas no encontradas 404
+app.use((req, res) => {
+    res.status(404).json({
+        success: false,
+        message: 'Ruta no encontrada'
+    });
+});
+
+//OLD
+/*app.use('*', (req, res) => {
   res.status(404).json({
     success: false,
     message: 'Endpoint no encontrado',
     path: req.originalUrl,
     method: req.method
   });
-});
+});*/
 
 // Middleware global de manejo de errores
 app.use((error, req, res, next) => {
@@ -125,11 +147,11 @@ app.use((error, req, res, next) => {
   }
 
   // Error genérico
-  res.status(500).json({
-    success: false,
-    message: 'Error interno del servidor',
-    ...(process.env.NODE_ENV === 'development' && { error: error.message })
-  });
+  res.status(err.status || 500).json({
+        success: false,
+        message: err.message || 'Error interno del servidor',
+        ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    });
 });
 
 // Función para iniciar el servidor
@@ -144,13 +166,15 @@ const startServer = async () => {
     }
 
     // Iniciar servidor
-    app.listen(PORT, () => {
-      console.log('🚀 Servidor iniciado exitosamente');
+    app.listen(PORT, async () => {
+      console.log(`\n🚀 Servidor iniciado en puerto ${PORT}`);
       console.log(`📍 Puerto: ${PORT}`);
       console.log(`🌍 Entorno: ${process.env.NODE_ENV || 'development'}`);
-      console.log(`🔗 URL: http://localhost:${PORT}`);
+      console.log(`🔗 API: http://localhost:${PORT}/api`);
       console.log(`📊 Health Check: http://localhost:${PORT}/health`);
-      console.log('📚 Documentación de API disponible en la ruta raíz');
+
+      // Probar conexión a BD
+      await testConnection();
     });
 
   } catch (error) {

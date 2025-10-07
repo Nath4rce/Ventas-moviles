@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { query } = require('../config/database');
+const { getPool, sql } = require('../config/database');
 
 // Middleware para verificar el token JWT
 const authenticateToken = async (req, res, next) => {
@@ -7,34 +7,43 @@ const authenticateToken = async (req, res, next) => {
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
   if (!token) {
-    return res.status(401).json({ 
-      success: false, 
-      message: 'Token de acceso requerido' 
+    return res.status(401).json({
+      success: false,
+      message: 'Token de acceso requerido'
     });
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
-    
+
     // Verificar que el usuario existe y está activo
-    const user = await query(
-      'SELECT id, student_id, email, nombre, rol, is_active FROM usuarios WHERE id = ? AND is_active = TRUE',
-      [decoded.userId]
-    );
+    const pool = await getPool();
+    const result = await pool.request()
+      .input('userId', sql.Int, decoded.userId)
+      .query('SELECT id, id_institucional, email, nombre, rol, is_active FROM usuarios WHERE id = @userId AND is_active = 1');
+
+    if (result.recordset.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: 'Usuario no encontrado o inactivo'
+      });
+    }
+
+    req.user = result.recordset[0];
 
     if (user.length === 0) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Usuario no encontrado o inactivo' 
+      return res.status(401).json({
+        success: false,
+        message: 'Usuario no encontrado o inactivo'
       });
     }
 
     req.user = user[0];
     next();
   } catch (error) {
-    return res.status(403).json({ 
-      success: false, 
-      message: 'Token inválido o expirado' 
+    return res.status(403).json({
+      success: false,
+      message: 'Token inválido o expirado'
     });
   }
 };
@@ -43,9 +52,9 @@ const authenticateToken = async (req, res, next) => {
 const requireRole = (roles) => {
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Autenticación requerida' 
+      return res.status(401).json({
+        success: false,
+        message: 'Autenticación requerida'
       });
     }
 
@@ -53,9 +62,9 @@ const requireRole = (roles) => {
     const allowedRoles = Array.isArray(roles) ? roles : [roles];
 
     if (!allowedRoles.includes(userRole)) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Permisos insuficientes para esta acción' 
+      return res.status(403).json({
+        success: false,
+        message: 'Permisos insuficientes para esta acción'
       });
     }
 
@@ -94,30 +103,30 @@ const canModifyProduct = async (req, res, next) => {
     }
 
     // Verificar si el usuario es el vendedor del producto
-    const product = await query(
-      'SELECT vendedor_id FROM productos WHERE id = ?',
-      [productId]
-    );
+    const pool = await getPool();
+    const result = await pool.request()
+      .input('productId', sql.Int, productId)
+      .query('SELECT vendedor_id FROM productos WHERE id = @productId');
 
-    if (product.length === 0) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Producto no encontrado' 
+    if (result.recordset.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Producto no encontrado'
       });
     }
 
-    if (product[0].vendedor_id !== userId) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'No tienes permisos para modificar este producto' 
+    if (result.recordset[0].vendedor_id !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permisos para modificar este producto'
       });
     }
 
     next();
   } catch (error) {
-    return res.status(500).json({ 
-      success: false, 
-      message: 'Error interno del servidor' 
+    return res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
     });
   }
 };

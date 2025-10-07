@@ -33,21 +33,11 @@ Backend para el marketplace universitario Ventas Moviles UPB desarrollado con No
 
 3. **Configurar variables de entorno**
    ```bash
-   cp .env.example .env
+   cp .env
    ```
    
    Editar el archivo `.env` con tu configuración:
-   ```env
-   DB_HOST=localhost
-   DB_USER=root
-   DB_PASSWORD=tu_password
-   DB_NAME=ventasmoviles_upb
-   DB_PORT=3306
-   PORT=3000
-   NODE_ENV=development
-   JWT_SECRET=tu_super_secret_jwt_key
-   CORS_ORIGIN=http://localhost:5173
-   ```
+   Usa el `.env.example` para guiarte
 
 4. **Configurar la base de datos**
    - Crear la base de datos MySQL
