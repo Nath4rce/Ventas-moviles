@@ -33,25 +33,19 @@
             <div class="card-body text-center">
               <!-- Avatar -->
               <div class="mb-3">
-                <img 
-                  :src="user?.avatar" 
-                  :alt="user?.name"
-                  class="rounded-circle border border-3 border-primary"
-                  width="120"
-                  height="120"
-                  style="object-fit: cover;"
-                >
+                <img :src="user?.avatar" :alt="user?.name" class="rounded-circle border border-3 border-primary"
+                  width="120" height="120" style="object-fit: cover;">
               </div>
 
               <!-- Información básica -->
               <h4 class="fw-bold mb-1">{{ user?.name }}</h4>
-              <p class="text-muted mb-2">{{ user?.studentId }}</p>
+              <p class="text-muted mb-2">{{ user?.idInstitucional }}</p>
               <p class="text-muted mb-3">{{ user?.email }}</p>
 
               <!-- Rol -->
-              <span class="badge fs-6 px-3 py-2" :class="getRoleBadgeClass(user?.role)">
-                <i :class="getRoleIcon(user?.role)" class="me-1"></i>
-                {{ getRoleName(user?.role) }}
+              <span class="badge fs-6 px-3 py-2" :class="getRoleBadgeClass(user?.rol)">
+                <i :class="getRoleIcon(user?.rol)" class="me-1"></i>
+                {{ getRoleName(user?.rol) }}
               </span>
 
               <!-- Estadísticas del usuario -->
@@ -82,28 +76,17 @@
             </div>
             <div class="card-body">
               <div class="d-grid gap-2">
-                <router-link 
-                  v-if="authStore.isSeller" 
-                  to="/publish" 
-                  class="btn btn-primary"
-                >
+                <router-link v-if="authStore.isSeller" to="/publish" class="btn btn-primary">
                   <i class="fas fa-plus me-2"></i>
                   Publicar Producto
                 </router-link>
-                
-                <router-link 
-                  v-if="authStore.isAdmin" 
-                  to="/admin" 
-                  class="btn btn-warning"
-                >
+
+                <router-link v-if="authStore.isAdmin" to="/admin" class="btn btn-warning">
                   <i class="fas fa-cog me-2"></i>
                   Panel de Admin
                 </router-link>
-                
-                <router-link 
-                  to="/notifications" 
-                  class="btn btn-outline-primary"
-                >
+
+                <router-link to="/notifications" class="btn btn-outline-primary">
                   <i class="fas fa-bell me-2"></i>
                   Notificaciones
                   <span v-if="unreadNotifications > 0" class="badge bg-danger ms-2">
@@ -135,19 +118,10 @@
                 </router-link>
               </div>
               <div v-else>
-                <div 
-                  v-for="product in myProducts" 
-                  :key="product.id"
-                  class="product-item d-flex align-items-center mb-3 p-3 border rounded"
-                >
-                  <img 
-                    :src="product.images[0]" 
-                    :alt="product.title"
-                    class="rounded me-3"
-                    width="60"
-                    height="60"
-                    style="object-fit: cover;"
-                  >
+                <div v-for="product in myProducts" :key="product.id"
+                  class="product-item d-flex align-items-center mb-3 p-3 border rounded">
+                  <img :src="product.images[0]" :alt="product.title" class="rounded me-3" width="60" height="60"
+                    style="object-fit: cover;">
                   <div class="flex-grow-1">
                     <h6 class="mb-1 fw-semibold">{{ product.title }}</h6>
                     <p class="text-muted mb-1 small">{{ product.description.substring(0, 80) }}...</p>
@@ -163,10 +137,7 @@
                     </div>
                   </div>
                   <div class="actions">
-                    <router-link 
-                      :to="`/product/${product.id}`" 
-                      class="btn btn-sm btn-outline-primary"
-                    >
+                    <router-link :to="`/product/${product.id}`" class="btn btn-sm btn-outline-primary">
                       <i class="fas fa-eye"></i>
                     </router-link>
                   </div>
@@ -189,21 +160,13 @@
                 <p class="text-muted">No has dejado reseñas aún</p>
               </div>
               <div v-else>
-                <div 
-                  v-for="review in myReviews" 
-                  :key="review.id"
-                  class="review-item border-bottom pb-3 mb-3"
-                >
+                <div v-for="review in myReviews" :key="review.id" class="review-item border-bottom pb-3 mb-3">
                   <div class="d-flex justify-content-between align-items-start mb-2">
                     <div>
                       <h6 class="mb-1 fw-semibold">{{ getProductTitle(review.productId) }}</h6>
                       <div class="stars">
-                        <i 
-                          v-for="star in 5" 
-                          :key="star"
-                          class="fas fa-star"
-                          :class="star <= review.rating ? 'text-warning' : 'text-muted'"
-                        ></i>
+                        <i v-for="star in 5" :key="star" class="fas fa-star"
+                          :class="star <= review.rating ? 'text-warning' : 'text-muted'"></i>
                       </div>
                     </div>
                     <small class="text-muted">{{ formatDate(review.createdAt) }}</small>
@@ -236,7 +199,7 @@
                     </button>
                   </div>
                 </div>
-                
+
                 <div class="col-12">
                   <div class="d-flex justify-content-between align-items-center p-3 border rounded">
                     <div>
@@ -249,17 +212,14 @@
                     </router-link>
                   </div>
                 </div>
-                
+
                 <div class="col-12">
                   <div class="d-flex justify-content-between align-items-center p-3 border rounded">
                     <div>
                       <h6 class="mb-1 text-danger">Cerrar Sesión</h6>
                       <p class="text-muted mb-0 small">Salir de tu cuenta de forma segura</p>
                     </div>
-                    <button 
-                      class="btn btn-outline-danger btn-sm"
-                      @click="logout"
-                    >
+                    <button class="btn btn-outline-danger btn-sm" @click="logout">
                       <i class="fas fa-sign-out-alt me-1"></i>
                       Cerrar Sesión
                     </button>
@@ -292,15 +252,15 @@ export default {
     const user = computed(() => authStore.user)
 
     // Productos del usuario (solo vendedores)
-    const myProducts = computed(() => 
-      productsStore.products.filter(product => 
+    const myProducts = computed(() =>
+      productsStore.products.filter(product =>
         product.sellerId === authStore.user?.id
       )
     )
 
     // Reseñas del usuario
-    const myReviews = computed(() => 
-      productsStore.reviews.filter(review => 
+    const myReviews = computed(() =>
+      productsStore.reviews.filter(review =>
         review.userId === authStore.user?.id
       )
     )
@@ -312,35 +272,35 @@ export default {
     }))
 
     // Notificaciones no leídas
-    const unreadNotifications = computed(() => 
+    const unreadNotifications = computed(() =>
       notificationsStore.unreadCount(authStore.user?.id)
     )
 
-    const getRoleName = (role) => {
+    const getRoleName = (rol) => {
       const names = {
         admin: 'Administrador',
         seller: 'Vendedor',
         buyer: 'Comprador'
       }
-      return names[role] || 'Usuario'
+      return names[rol] || 'Usuario'
     }
 
-    const getRoleIcon = (role) => {
+    const getRoleIcon = (rol) => {
       const icons = {
         admin: 'fas fa-crown',
         seller: 'fas fa-store',
         buyer: 'fas fa-shopping-cart'
       }
-      return icons[role] || 'fas fa-user'
+      return icons[rol] || 'fas fa-user'
     }
 
-    const getRoleBadgeClass = (role) => {
+    const getRoleBadgeClass = (rol) => {
       const classes = {
         admin: 'bg-danger',
         seller: 'bg-warning text-dark',
         buyer: 'bg-primary'
       }
-      return classes[role] || 'bg-secondary'
+      return classes[rol] || 'bg-secondary'
     }
 
     const getProductTitle = (productId) => {
@@ -354,10 +314,10 @@ export default {
 
     const formatDate = (dateString) => {
       const date = new Date(dateString)
-      return date.toLocaleDateString('es-ES', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
+      return date.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
       })
     }
 
@@ -368,9 +328,11 @@ export default {
       }
     }
 
-    onMounted(() => {
-      // Inicializar autenticación si hay datos guardados
+    onMounted(async () => {
       authStore.initAuth()
+      if (authStore.isAuthenticated) {
+        await productsStore.fetchProducts({ vendedor_id: authStore.user.id })
+      }
     })
 
     return {
@@ -454,29 +416,29 @@ export default {
   .profile-page {
     padding: 1rem 0;
   }
-  
+
   .d-flex.gap-2 {
     flex-direction: column;
   }
-  
+
   .btn {
     width: 100%;
   }
-  
+
   .product-item {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .product-item .actions {
     margin-top: 1rem;
   }
-  
+
   .d-flex.justify-content-between {
     flex-direction: column;
     align-items: flex-start !important;
   }
-  
+
   .d-flex.align-items-center.gap-3 {
     flex-direction: column;
     align-items: flex-start !important;
@@ -489,7 +451,7 @@ export default {
   .profile-page {
     padding: 1.5rem 0;
   }
-  
+
   .product-item {
     flex-direction: row;
   }

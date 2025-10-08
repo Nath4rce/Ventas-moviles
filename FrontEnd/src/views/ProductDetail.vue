@@ -32,45 +32,22 @@
         <!-- Galería de imágenes -->
         <div class="col-12 col-lg-6">
           <div class="product-gallery">
-            <div 
-              id="productCarousel" 
-              class="carousel slide" 
-              data-bs-ride="carousel"
-            >
+            <div id="productCarousel" class="carousel slide" data-bs-ride="carousel">
               <div class="carousel-inner">
-                <div 
-                  v-for="(image, index) in product.images" 
-                  :key="index"
-                  class="carousel-item"
-                  :class="{ active: index === 0 }"
-                >
-                  <img 
-                    :src="image" 
-                    :alt="product.title"
-                    class="d-block w-100 main-image"
-                    @error="handleImageError"
-                  >
+                <div v-for="(image, index) in product.images" :key="index" class="carousel-item"
+                  :class="{ active: index === 0 }">
+                  <img :src="image" :alt="product.title" class="d-block w-100 main-image" @error="handleImageError">
                 </div>
               </div>
-              
+
               <!-- Controles del carrusel -->
-              <button 
-                v-if="product.images.length > 1"
-                class="carousel-control-prev" 
-                type="button" 
-                data-bs-target="#productCarousel" 
-                data-bs-slide="prev"
-              >
+              <button v-if="product.images.length > 1" class="carousel-control-prev" type="button"
+                data-bs-target="#productCarousel" data-bs-slide="prev">
                 <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                 <span class="visually-hidden">Anterior</span>
               </button>
-              <button 
-                v-if="product.images.length > 1"
-                class="carousel-control-next" 
-                type="button" 
-                data-bs-target="#productCarousel" 
-                data-bs-slide="next"
-              >
+              <button v-if="product.images.length > 1" class="carousel-control-next" type="button"
+                data-bs-target="#productCarousel" data-bs-slide="next">
                 <span class="carousel-control-next-icon" aria-hidden="true"></span>
                 <span class="visually-hidden">Siguiente</span>
               </button>
@@ -79,19 +56,9 @@
             <!-- Miniaturas -->
             <div v-if="product.images.length > 1" class="thumbnails mt-3">
               <div class="row g-2">
-                <div 
-                  v-for="(image, index) in product.images" 
-                  :key="index"
-                  class="col-3"
-                >
-                  <img 
-                    :src="image" 
-                    :alt="`Imagen ${index + 1}`"
-                    class="img-thumbnail thumbnail"
-                    :class="{ active: index === 0 }"
-                    @click="goToSlide(index)"
-                    @error="handleImageError"
-                  >
+                <div v-for="(image, index) in product.images" :key="index" class="col-3">
+                  <img :src="image" :alt="`Imagen ${index + 1}`" class="img-thumbnail thumbnail"
+                    :class="{ active: index === 0 }" @click="goToSlide(index)" @error="handleImageError">
                 </div>
               </div>
             </div>
@@ -109,12 +76,8 @@
               </span>
               <div class="rating-display">
                 <div class="stars">
-                  <i 
-                    v-for="star in 5" 
-                    :key="star"
-                    class="fas fa-star"
-                    :class="star <= Math.round(product.rating) ? 'text-warning' : 'text-muted'"
-                  ></i>
+                  <i v-for="star in 5" :key="star" class="fas fa-star"
+                    :class="star <= Math.round(product.rating) ? 'text-warning' : 'text-muted'"></i>
                 </div>
                 <span class="ms-2 text-muted">
                   {{ product.rating }} ({{ product.reviewCount }} reseñas)
@@ -132,16 +95,13 @@
                 Vendido por: <strong>{{ product.sellerName }}</strong>
               </p>
               <p v-if="product.sellerPhone" class="text-muted mb-1">
-                <i class="fas fa-phone me-2"></i>
-                WhatsApp: 
-                <a 
-                  :href="whatsappLink" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                >
+                <i class="fab fa-whatsapp me-2"></i>
+                WhatsApp:
+                <a :href="whatsappLink" target="_blank" rel="noopener noreferrer">
                   <strong>{{ product.sellerPhone }}</strong>
                 </a>
               </p>
+
             </div>
 
             <!-- Precio -->
@@ -164,21 +124,12 @@
             <div class="actions-section">
               <div class="d-grid gap-2 d-md-flex">
                 <!-- Botón de WhatsApp reemplazando Comprar ahora -->
-                <a 
-                  v-if="product.sellerPhone"
-                  :href="whatsappLink" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  class="btn btn-success btn-lg flex-fill"
-                >
+                <a v-if="product.sellerPhone" :href="whatsappLink" target="_blank" rel="noopener noreferrer"
+                  class="btn btn-success btn-lg flex-fill">
                   <i class="fab fa-whatsapp me-2"></i>
                   Comprar por WhatsApp
                 </a>
-                <button 
-                  v-else 
-                  class="btn btn-secondary btn-lg flex-fill" 
-                  disabled
-                >
+                <button v-else class="btn btn-secondary btn-lg flex-fill" disabled>
                   <i class="fas fa-ban me-2"></i>
                   WhatsApp no disponible
                 </button>
@@ -212,35 +163,20 @@
                     <div class="mb-3">
                       <label class="form-label fw-semibold">Calificación</label>
                       <div class="rating-input">
-                        <i 
-                          v-for="star in 5" 
-                          :key="star"
-                          class="fas fa-star star-input"
+                        <i v-for="star in 5" :key="star" class="fas fa-star star-input"
                           :class="star <= newReview.rating ? 'text-warning' : 'text-muted'"
-                          @click="newReview.rating = star"
-                          @mouseenter="hoveredStar = star"
-                          @mouseleave="hoveredStar = 0"
-                        ></i>
+                          @click="newReview.rating = star" @mouseenter="hoveredStar = star"
+                          @mouseleave="hoveredStar = 0"></i>
                       </div>
                     </div>
-                    
+
                     <div class="mb-3">
                       <label for="reviewComment" class="form-label fw-semibold">Comentario</label>
-                      <textarea
-                        id="reviewComment"
-                        class="form-control"
-                        v-model="newReview.comment"
-                        rows="4"
-                        placeholder="Comparte tu experiencia con este producto..."
-                        required
-                      ></textarea>
+                      <textarea id="reviewComment" class="form-control" v-model="newReview.comment" rows="4"
+                        placeholder="Comparte tu experiencia con este producto..." required></textarea>
                     </div>
-                    
-                    <button 
-                      type="submit" 
-                      class="btn btn-primary"
-                      :disabled="submittingReview"
-                    >
+
+                    <button type="submit" class="btn btn-primary" :disabled="submittingReview">
                       <i v-if="submittingReview" class="fas fa-spinner fa-spin me-2"></i>
                       <i v-else class="fas fa-paper-plane me-2"></i>
                       {{ submittingReview ? 'Enviando...' : 'Enviar Reseña' }}
@@ -261,21 +197,13 @@
                 </div>
 
                 <div v-else class="reviews-list">
-                  <div 
-                    v-for="review in reviews" 
-                    :key="review.id"
-                    class="review-item border-bottom py-3"
-                  >
+                  <div v-for="review in reviews" :key="review.id" class="review-item border-bottom py-3">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                       <div>
                         <h6 class="fw-bold mb-1">{{ review.userName }}</h6>
                         <div class="stars">
-                          <i 
-                            v-for="star in 5" 
-                            :key="star"
-                            class="fas fa-star"
-                            :class="star <= review.rating ? 'text-warning' : 'text-muted'"
-                          ></i>
+                          <i v-for="star in 5" :key="star" class="fas fa-star"
+                            :class="star <= review.rating ? 'text-warning' : 'text-muted'"></i>
                         </div>
                       </div>
                       <small class="text-muted">{{ formatDate(review.createdAt) }}</small>
@@ -293,6 +221,10 @@
 </template>
 
 <script>
+import axios from 'axios'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+
 import { ref, computed, onMounted, reactive } from 'vue'
 import { useRoute } from 'vue-router'
 import { useProductsStore } from '../stores/products'
@@ -305,16 +237,16 @@ export default {
     const productsStore = useProductsStore()
     const authStore = useAuthStore()
 
-    const product = computed(() => 
+    const product = computed(() =>
       productsStore.getProductById(route.params.id)
     )
 
-    const reviews = computed(() => 
+    const reviews = computed(() =>
       productsStore.getProductReviews(route.params.id)
     )
 
-    const canLeaveReview = computed(() => 
-      authStore.isAuthenticated && 
+    const canLeaveReview = computed(() =>
+      authStore.isAuthenticated &&
       productsStore.canUserReview(route.params.id, authStore.user?.id)
     )
 
@@ -350,10 +282,10 @@ export default {
 
     const formatDate = (dateString) => {
       const date = new Date(dateString)
-      return date.toLocaleDateString('es-ES', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+      return date.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
       })
     }
 
@@ -392,29 +324,30 @@ export default {
       submittingReview.value = true
 
       try {
-        const reviewData = {
-          productId: parseInt(route.params.id),
-          userId: authStore.user.id,
-          userName: authStore.user.name,
+        await axios.post(`${API_URL}/reviews`, {
+          producto_id: parseInt(route.params.id),
           rating: newReview.rating,
-          comment: newReview.comment.trim()
-        }
+          comentario: newReview.comment.trim()
+        })
 
-        await productsStore.addReview(reviewData)
-        
+        // Recargar producto y reviews
+        await productsStore.fetchProducts()
+
         newReview.rating = 0
         newReview.comment = ''
-        
+
         alert('Reseña enviada exitosamente')
       } catch (error) {
-        alert('Error al enviar la reseña')
+        alert(error.response?.data?.message || 'Error al enviar la reseña')
       } finally {
         submittingReview.value = false
       }
     }
 
-    onMounted(() => {
+    onMounted(async () => {
       authStore.initAuth()
+      await productsStore.fetchProducts()
+      await productsStore.fetchProductReviews(route.params.id)
     })
 
     return {
@@ -500,19 +433,19 @@ export default {
   .main-image {
     height: 250px;
   }
-  
+
   .thumbnail {
     height: 50px;
   }
-  
+
   .price-section .display-4 {
     font-size: 2rem;
   }
-  
+
   .product-gallery {
     position: static;
   }
-  
+
   .rating-input .star-input {
     font-size: 1.2rem;
   }
@@ -523,7 +456,7 @@ export default {
   .main-image {
     height: 350px;
   }
-  
+
   .price-section .display-4 {
     font-size: 2.2rem;
   }

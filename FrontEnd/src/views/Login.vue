@@ -15,21 +15,14 @@
               <!-- Formulario de login -->
               <form @submit.prevent="handleLogin">
                 <div class="mb-3">
-                  <label for="studentId" class="form-label fw-semibold">
+                  <label for="idInstitucional" class="form-label fw-semibold">
                     <i class="fas fa-id-card me-2"></i>
-                    ID Estudiantil
+                    ID Institucional
                   </label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="studentId"
-                    v-model="form.studentId"
-                    placeholder="Ej: 20210001"
-                    required
-                    :class="{ 'is-invalid': errors.studentId }"
-                  >
-                  <div v-if="errors.studentId" class="invalid-feedback">
-                    {{ errors.studentId }}
+                  <input type="text" class="form-control" id="idInstitucional" v-model="form.idInstitucional"
+                    placeholder="Ej: 000497849" required :class="{ 'is-invalid': errors.idInstitucional }">
+                  <div v-if="errors.idInstitucional" class="invalid-feedback">
+                    {{ errors.idInstitucional }}
                   </div>
                 </div>
 
@@ -39,21 +32,11 @@
                     Contraseña
                   </label>
                   <div class="input-group">
-                    <input
-                      :type="showPassword ? 'text' : 'password'"
-                      class="form-control"
-                      id="password"
-                      v-model="form.password"
-                      placeholder="Tu contraseña"
-                      required
-                      :class="{ 'is-invalid': errors.password }"
-                    >
-                    <button
-                      class="btn btn-outline-secondary"
-                      type="button"
-                      @click="showPassword = !showPassword"
-                      title="Mostrar/ocultar contraseña"
-                    >
+                    <input :type="showPassword ? 'text' : 'password'" class="form-control" id="password"
+                      v-model="form.password" placeholder="Tu contraseña" required
+                      :class="{ 'is-invalid': errors.password }">
+                    <button class="btn btn-outline-secondary" type="button" @click="showPassword = !showPassword"
+                      title="Mostrar/ocultar contraseña">
                       <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
                     </button>
                   </div>
@@ -63,17 +46,13 @@
                 </div>
 
                 <!-- Mensaje de error general -->
-                <div v-if="errorMessage" class="alert alert-danger" role="alert">
+                <div v-if="errorMessage" class="alert alert-danger" rol="alert">
                   <i class="fas fa-exclamation-triangle me-2"></i>
                   {{ errorMessage }}
                 </div>
 
                 <!-- Botón de login -->
-                <button
-                  type="submit"
-                  class="btn btn-primary w-100 py-2 fw-semibold"
-                  :disabled="loading"
-                >
+                <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold" :disabled="loading">
                   <i v-if="loading" class="fas fa-spinner fa-spin me-2"></i>
                   <i v-else class="fas fa-sign-in-alt me-2"></i>
                   {{ loading ? 'Iniciando sesión...' : 'Iniciar Sesión' }}
@@ -95,9 +74,9 @@
                   Credenciales de prueba:
                 </h6>
                 <div class="small">
-                  <div><strong>Admin:</strong> 20210001 / admin123</div>
-                  <div><strong>Vendedor:</strong> 20210002 / vendedor123</div>
-                  <div><strong>Comprador:</strong> 20210003 / comprador123</div>
+                  <div><strong>Admin:</strong> 000000001 / admin123</div>
+                  <div><strong>Vendedor:</strong> 000497849 / seller123</div>
+                  <div><strong>Comprador:</strong> 000357854 / buyer123</div>
                 </div>
               </div>
             </div>
@@ -120,7 +99,7 @@ export default {
     const authStore = useAuthStore()
 
     const form = reactive({
-      studentId: '',
+      idInstitucional: '',
       password: ''
     })
 
@@ -130,11 +109,11 @@ export default {
     const showPassword = ref(false)
 
     const validateForm = () => {
-      errors.studentId = ''
+      errors.idInstitucional = ''
       errors.password = ''
 
-      if (!form.studentId.trim()) {
-        errors.studentId = 'El ID estudiantil es requerido'
+      if (!form.idInstitucional.trim()) {
+        errors.idInstitucional = 'El ID Institucional es requerido'
         return false
       }
 
@@ -154,7 +133,7 @@ export default {
 
       try {
         const result = await authStore.login(form)
-        
+
         if (result.success) {
           router.push('/landing')
         } else {
@@ -226,11 +205,11 @@ export default {
   .login-container {
     padding: 1rem 0;
   }
-  
+
   .card-body {
     padding: 2rem !important;
   }
-  
+
   .btn-primary {
     font-size: 1rem;
   }

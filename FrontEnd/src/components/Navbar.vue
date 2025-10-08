@@ -6,15 +6,8 @@
         Ventas Moviles UPB
       </router-link>
 
-      <button 
-        class="navbar-toggler" 
-        type="button" 
-        data-bs-toggle="collapse" 
-        data-bs-target="#navbarNav"
-        aria-controls="navbarNav" 
-        aria-expanded="false" 
-        aria-label="Toggle navigation"
-      >
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
 
@@ -26,7 +19,7 @@
               Inicio
             </router-link>
           </li>
-          
+
           <!-- Enlace para vendedores -->
           <li class="nav-item" v-if="authStore.isSeller">
             <router-link class="nav-link" to="/publish">
@@ -34,7 +27,7 @@
               Publicar
             </router-link>
           </li>
-          
+
           <!-- Enlace para administradores -->
           <li class="nav-item" v-if="authStore.isAdmin">
             <router-link class="nav-link" to="/admin">
@@ -47,18 +40,11 @@
         <ul class="navbar-nav">
           <!-- Notificaciones -->
           <li class="nav-item dropdown" v-if="authStore.isAuthenticated">
-            <a 
-              class="nav-link position-relative" 
-              href="#" 
-              id="notificationsDropdown" 
-              role="button" 
-              data-bs-toggle="dropdown"
-            >
+            <a class="nav-link position-relative" href="#" id="notificationsDropdown" role="button"
+              data-bs-toggle="dropdown">
               <i class="fas fa-bell"></i>
-              <span 
-                v-if="unreadCount > 0" 
-                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-              >
+              <span v-if="unreadCount > 0"
+                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
                 {{ unreadCount }}
               </span>
             </a>
@@ -70,11 +56,7 @@
                 <span class="dropdown-item-text text-muted">No hay notificaciones</span>
               </li>
               <li v-for="notification in notifications.slice(0, 5)" :key="notification.id">
-                <a 
-                  class="dropdown-item" 
-                  href="#"
-                  @click="markAsRead(notification.id)"
-                >
+                <a class="dropdown-item" href="#" @click="markAsRead(notification.id)">
                   <div class="d-flex w-100 justify-content-between">
                     <h6 class="mb-1">{{ notification.title }}</h6>
                     <small>{{ formatDate(notification.createdAt) }}</small>
@@ -93,20 +75,9 @@
 
           <!-- Perfil de usuario -->
           <li class="nav-item dropdown" v-if="authStore.isAuthenticated">
-            <a 
-              class="nav-link dropdown-toggle d-flex align-items-center" 
-              href="#" 
-              id="profileDropdown" 
-              role="button" 
-              data-bs-toggle="dropdown"
-            >
-              <img 
-                :src="authStore.user?.avatar" 
-                alt="Avatar" 
-                class="rounded-circle me-2" 
-                width="30" 
-                height="30"
-              >
+            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="profileDropdown" role="button"
+              data-bs-toggle="dropdown">
+              <img :src="authStore.user?.avatar" alt="Avatar" class="rounded-circle me-2" width="30" height="30">
               {{ authStore.user?.name }}
             </a>
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
@@ -146,11 +117,11 @@ export default {
     const authStore = useAuthStore()
     const notificationsStore = useNotificationsStore()
 
-    const notifications = computed(() => 
+    const notifications = computed(() =>
       notificationsStore.userNotifications(authStore.user?.id)
     )
 
-    const unreadCount = computed(() => 
+    const unreadCount = computed(() =>
       notificationsStore.unreadCount(authStore.user?.id)
     )
 
@@ -165,15 +136,17 @@ export default {
 
     const formatDate = (dateString) => {
       const date = new Date(dateString)
-      return date.toLocaleDateString('es-ES', { 
-        day: 'numeric', 
-        month: 'short' 
+      return date.toLocaleDateString('es-ES', {
+        day: 'numeric',
+        month: 'short'
       })
     }
 
-    onMounted(() => {
-      // Inicializar autenticación si hay datos guardados
+    onMounted(async () => {
       authStore.initAuth()
+      if (authStore.isAuthenticated) {
+        await notificationsStore.fetchNotifications()
+      }
     })
 
     return {
@@ -210,7 +183,7 @@ export default {
   .navbar-brand {
     font-size: 1.2rem;
   }
-  
+
   .dropdown-menu {
     min-width: 250px;
   }

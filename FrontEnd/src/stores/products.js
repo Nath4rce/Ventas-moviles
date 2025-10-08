@@ -1,146 +1,20 @@
 import { defineStore } from 'pinia'
+import axios from 'axios'
+
+const API_URL = import.meta.env.VITE_API_URL
+//import API_URL from '../services/api.js'
 
 export const useProductsStore = defineStore('products', {
   state: () => ({
-    products: [
-      // Datos de prueba - en producción vendrían del backend
-      {
-        id: 1,
-        title: 'Stickers para laptop',
-        description: 'Stickers :D.',
-        price: 5000,
-        category: 'accesorios',
-        images: [
-          'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=300&h=200&fit=crop&crop=center',
-          'https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=300&h=200&fit=crop&crop=center',
-          'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=300&h=200&fit=crop&crop=center',
-          'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=300&h=200&fit=crop&crop=center'
-        ],
-        sellerId: 2,
-        sellerName: 'Juan Vendedor',
-        rating: 4.8,
-        reviewCount: 15,
-        isActive: true,
-        createdAt: '2024-01-15'
-      },
-      {
-        id: 2,
-        title: 'Cuadernos',
-        description: 'Cuadernos  de 100 hojas personalizados, rayas. Ideal para tomar apuntes no como yo.',
-        price: 35000,
-        category: 'papeleria',
-        images: [
-          'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=200&fit=crop&crop=center',
-          'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=200&fit=crop&crop=center',
-          'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&h=200&fit=crop&crop=center',
-          'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=200&fit=crop&crop=center'
-        ],
-        sellerId: 2,
-        sellerName: 'Juan Vendedor',
-        sellerPhone: '573160571065',
-        rating: 4.5,
-        reviewCount: 8,
-        isActive: true,
-        createdAt: '2024-01-10'
-      },
-      {
-        id: 3,
-        title: 'Sandwich',
-        description: 'Sandwich de pollo con lechuga, tomate y mayonesa. Fresco y delicioso.',
-        price: 7000,
-        category: 'alimentos',
-        images: [
-          'https://images.unsplash.com/photo-1539252554453-80ab65ce3586?w=300&h=200&fit=crop&crop=center',
-          'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=300&h=200&fit=crop&crop=center',
-          'https://images.unsplash.com/photo-1551782450-a2132b4ba21d?w=300&h=200&fit=crop&crop=center',
-          'https://images.unsplash.com/photo-1539252554453-80ab65ce3586?w=300&h=200&fit=crop&crop=center'
-        ],
-        sellerId: 2,
-        sellerName: 'Juan Vendedor',
-        sellerPhone: '573160571065',
-        rating: 4.2,
-        reviewCount: 12,
-        isActive: true,
-        createdAt: '2024-01-12'
-      },
-      {
-        id: 4,
-        title: 'Calculadora Científica',
-        description: 'Calculadora científica Casio fx-que se yo. Para que no te tires integral como yo.',
-        price: 80000,
-        category: 'accesorios',
-        images: [
-          'https://images.unsplash.com/photo-1587145820266-a5951ee6f2bb?w=300&h=200&fit=crop&crop=center',
-          'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=300&h=200&fit=crop&crop=center',
-          'https://images.unsplash.com/photo-1587145820266-a5951ee6f2bb?w=300&h=200&fit=crop&crop=center',
-          'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=300&h=200&fit=crop&crop=center'
-        ],
-        sellerId: 2,
-        sellerName: 'Juan Vendedor',
-        rating: 4.9,
-        reviewCount: 25,
-        isActive: true,
-        createdAt: '2024-01-08'
-      },
-      {
-        id: 5,
-        title: 'Lápices de Colores',
-        description: 'Set de 24 lápices de colores de alta calidad. Perfectos para arte y dibujo.',
-        price: 25000,
-        category: 'papeleria',
-        images: [
-          'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=300&h=200&fit=crop&crop=center',
-          'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=300&h=200&fit=crop&crop=center'
-        ],
-        sellerId: 2,
-        sellerName: 'Juan Vendedor',
-        rating: 4.3,
-        reviewCount: 7,
-        isActive: false,
-        createdAt: '2024-01-05'
-      },
-      {
-        id: 6,
-        title: 'Café Premium',
-        description: 'Café colombiano premium, molido. Sabor intenso y aroma delicioso.',
-        price: 12000,
-        category: 'alimentos',
-        images: [
-          'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=300&h=200&fit=crop&crop=center',
-          'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=300&h=200&fit=crop&crop=center'
-        ],
-        sellerId: 2,
-        sellerName: 'Juan Vendedor',
-        rating: 4.7,
-        reviewCount: 18,
-        isActive: false,
-        createdAt: '2024-01-03'
-      }
-    ],
-    reviews: [
-      {
-        id: 1,
-        productId: 1,
-        userId: 3,
-        userName: 'María Compradora',
-        rating: 5,
-        comment: 'Excelente laptop, muy rápida y perfecta para programar.',
-        createdAt: '2024-01-16'
-      },
-      {
-        id: 2,
-        productId: 1,
-        userId: 1,
-        userName: 'Administrador',
-        rating: 4,
-        comment: 'Buena calidad, precio justo.',
-        createdAt: '2024-01-17'
-      }
-    ],
+    products: [],
+    reviews: [],
+    categories: [],
+    loading: false,
+    error: null,
     filters: {
       category: 'all',
       priceRange: { min: null, max: null },
-      sortBy: 'rating' // rating, price, date
+      sortBy: 'rating'
     }
   }),
 
@@ -148,19 +22,19 @@ export const useProductsStore = defineStore('products', {
     // Productos filtrados y ordenados
     filteredProducts: (state) => {
       let filtered = state.products.filter(product => product.isActive)
-      
+
       // Filtrar por categoría
       if (state.filters.category !== 'all') {
         filtered = filtered.filter(product => product.category === state.filters.category)
       }
-      
+
       // Filtrar por precio
       filtered = filtered.filter(product => {
         const minPrice = state.filters.priceRange.min || 0
         const maxPrice = state.filters.priceRange.max || Infinity
         return product.price >= minPrice && product.price <= maxPrice
       })
-      
+
       // Ordenar
       switch (state.filters.sortBy) {
         case 'rating':
@@ -186,8 +60,8 @@ export const useProductsStore = defineStore('products', {
 
     // Verificar si el usuario puede dejar reseña
     canUserReview: (state) => (productId, userId) => {
-      const userReviews = state.reviews.filter(review => 
-        review.productId === parseInt(productId) && 
+      const userReviews = state.reviews.filter(review =>
+        review.productId === parseInt(productId) &&
         review.userId === userId
       )
       return userReviews.length === 0
@@ -200,18 +74,97 @@ export const useProductsStore = defineStore('products', {
       this.filters = { ...this.filters, ...newFilters }
     },
 
-    // Agregar producto (solo vendedores)
-    addProduct(productData) {
-      const newProduct = {
-        id: this.products.length + 1,
-        ...productData,
-        rating: 0,
-        reviewCount: 0,
-        isActive: true,
-        createdAt: new Date().toISOString().split('T')[0]
+    async fetchProducts(filters = {}) {
+      this.loading = true
+      this.error = null
+      try {
+        const params = new URLSearchParams()
+        if (filters.categoria_id) params.append('categoria_id', filters.categoria_id)
+        if (filters.precio_min) params.append('precio_min', filters.precio_min)
+        if (filters.precio_max) params.append('precio_max', filters.precio_max)
+        if (filters.search) params.append('search', filters.search)
+
+        const response = await axios.get(`${API_URL}/products?${params}`)
+
+        if (response.data.success) {
+          this.products = response.data.data.products.map(p => ({
+            id: p.id,
+            title: p.titulo,
+            description: p.descripcion,
+            price: p.precio,
+            category: p.categoria_nombre,
+            categoryIcon: p.categoria_icono,
+            images: [p.imagen_principal].filter(Boolean), // Usar imagen principal
+            sellerId: p.vendedor_id,
+            sellerName: p.vendedor_nombre,
+            sellerPhone: p.vendedor_telefono,
+            sellerIdInstitucional: p.vendedor_id_institucional,
+            rating: p.rating_promedio || 0,
+            reviewCount: p.total_resenas || 0,
+            isActive: p.is_active,
+            createdAt: p.created_at
+          }))
+        }
+      } catch (error) {
+        console.error('Error fetching products:', error)
+        this.error = error.message
+      } finally {
+        this.loading = false
       }
-      this.products.push(newProduct)
-      return newProduct
+    },
+
+    async fetchProductReviews(productId) {
+      try {
+        const response = await axios.get(`${API_URL}/reviews/product/${productId}`)
+        if (response.data.success) {
+          this.reviews = response.data.data.reviews.map(r => ({
+            id: r.id,
+            productId: r.producto_id,
+            userId: r.usuario_id,
+            userName: r.usuario_nombre,
+            rating: r.rating,
+            comment: r.comentario,
+            createdAt: r.created_at
+          }))
+        }
+      } catch (error) {
+        console.error('Error fetching reviews:', error)
+      }
+    },
+
+    async fetchCategories() {
+      try {
+        const response = await axios.get(`${API_URL}/products/categories`)
+        if (response.data.success) {
+          this.categories = response.data.data.categories
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error)
+      }
+    },
+
+    // Agregar producto (solo vendedores)
+    async addProduct(productData) {
+      this.loading = true
+      try {
+        const response = await axios.post(`${API_URL}/products`, {
+          titulo: productData.title,
+          descripcion: productData.description,
+          precio: productData.price,
+          categoria_id: productData.categoria_id,
+          imagenes: productData.images
+        })
+
+        if (response.data.success) {
+          await this.fetchProducts()
+          return response.data.data.product
+        }
+      } catch (error) {
+        console.error('Error adding product:', error)
+        throw error
+      } finally {
+        this.loading = false
+      }
     },
 
     // Agregar reseña
@@ -222,10 +175,10 @@ export const useProductsStore = defineStore('products', {
         createdAt: new Date().toISOString().split('T')[0]
       }
       this.reviews.push(newReview)
-      
+
       // Actualizar rating del producto
       this.updateProductRating(reviewData.productId)
-      
+
       return newReview
     },
 

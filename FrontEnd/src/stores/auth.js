@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import axios from 'axios'
 
 // Configurar la URL base de la API
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+const API_URL = import.meta.env.VITE_API_URL
 
 // Configurar axios con interceptor para el token
 axios.interceptors.request.use(
@@ -43,7 +43,7 @@ export const useAuthStore = defineStore('auth', {
 
       try {
         const response = await axios.post(`${API_URL}/auth/login`, {
-          idInstitucional: credentials.studentId,
+          idInstitucional: credentials.idInstitucional,
           password: credentials.password
         })
 
@@ -54,13 +54,11 @@ export const useAuthStore = defineStore('auth', {
           this.token = token
           this.user = {
             id: user.id,
-            studentId: user.idInstitucional,
             id_institucional: user.idInstitucional,
             email: user.email,
             nombre: user.nombre,
             rol: user.rol,
-            role: user.rol, // Mantener compatibilidad
-            name: user.nombre,
+            telefono: user.telefono,
             isActive: user.isActive
           }
           this.isAuthenticated = true
@@ -77,10 +75,10 @@ export const useAuthStore = defineStore('auth', {
       } catch (error) {
         console.error('Error en login:', error)
         this.error = error.response?.data?.message || 'Error al iniciar sesión'
-        
-        return { 
-          success: false, 
-          message: error.response?.data?.message || 'Credenciales incorrectas' 
+
+        return {
+          success: false,
+          message: error.response?.data?.message || 'Credenciales incorrectas'
         }
       } finally {
         this.loading = false
@@ -94,10 +92,10 @@ export const useAuthStore = defineStore('auth', {
 
       try {
         const response = await axios.post(`${API_URL}/auth/register`, {
-          idInstitucional: userData.studentId,
+          idInstitucional: userData.idInstitucional,
           email: userData.email,
           password: userData.password,
-          nombre: userData.name
+          nombre: userData.nombre
         })
 
         if (response.data.success) {
@@ -106,13 +104,11 @@ export const useAuthStore = defineStore('auth', {
           this.token = token
           this.user = {
             id: user.id,
-            studentId: user.idInstitucional,
             id_institucional: user.idInstitucional,
             email: user.email,
             nombre: user.nombre,
             rol: user.rol,
-            role: user.rol,
-            name: user.nombre,
+            telefono: user.telefono,
             isActive: user.isActive
           }
           this.isAuthenticated = true
@@ -128,10 +124,10 @@ export const useAuthStore = defineStore('auth', {
       } catch (error) {
         console.error('Error en registro:', error)
         this.error = error.response?.data?.message || 'Error al registrar'
-        
-        return { 
-          success: false, 
-          message: error.response?.data?.message || 'Error al registrar usuario' 
+
+        return {
+          success: false,
+          message: error.response?.data?.message || 'Error al registrar usuario'
         }
       } finally {
         this.loading = false
@@ -150,13 +146,11 @@ export const useAuthStore = defineStore('auth', {
 
           this.user = {
             id: user.id,
-            studentId: user.id_institucional,
             id_institucional: user.id_institucional,
             email: user.email,
             nombre: user.nombre,
             rol: user.rol,
-            role: user.rol,
-            name: user.nombre,
+            telefono: user.telefono,
             isActive: user.is_active
           }
           this.isAuthenticated = true
@@ -195,7 +189,6 @@ export const useAuthStore = defineStore('auth', {
             ...this.user,
             email: user.email,
             nombre: user.nombre,
-            name: user.nombre
           }
 
           localStorage.setItem('user', JSON.stringify(this.user))
@@ -208,10 +201,10 @@ export const useAuthStore = defineStore('auth', {
       } catch (error) {
         console.error('Error al actualizar perfil:', error)
         this.error = error.response?.data?.message || 'Error al actualizar perfil'
-        
-        return { 
-          success: false, 
-          message: error.response?.data?.message || 'Error al actualizar perfil' 
+
+        return {
+          success: false,
+          message: error.response?.data?.message || 'Error al actualizar perfil'
         }
       } finally {
         this.loading = false
@@ -254,8 +247,12 @@ export const useAuthStore = defineStore('auth', {
         this.user = JSON.parse(savedUser)
         this.isAuthenticated = true
 
-        // Verificar que el token siga válido
-        this.fetchCurrentUser()
+        // Verificar token de forma silenciosa
+        this.fetchCurrentUser().catch(() => {
+          // Si falla, hacer logout silencioso
+          console.log('Token expirado, cerrando sesión...')
+          this.logout()
+        })
       }
     },
 
@@ -266,10 +263,10 @@ export const useAuthStore = defineStore('auth', {
 
       try {
         const response = await axios.post(`${API_URL}/admin/users`, {
-          id_institucional: userData.studentId,
+          id_institucional: userData.idInstitucional,
           email: userData.email,
           password: userData.password,
-          nombre: userData.name,
+          nombre: userData.nombre,
           rol: userData.role
         })
 
@@ -282,10 +279,10 @@ export const useAuthStore = defineStore('auth', {
       } catch (error) {
         console.error('Error al crear usuario:', error)
         this.error = error.response?.data?.message || 'Error al crear usuario'
-        
-        return { 
-          success: false, 
-          message: error.response?.data?.message || 'Error al crear usuario' 
+
+        return {
+          success: false,
+          message: error.response?.data?.message || 'Error al crear usuario'
         }
       } finally {
         this.loading = false
@@ -307,9 +304,9 @@ export const useAuthStore = defineStore('auth', {
 
       } catch (error) {
         console.error('Error al cambiar estado:', error)
-        return { 
-          success: false, 
-          message: error.response?.data?.message || 'Error al cambiar estado' 
+        return {
+          success: false,
+          message: error.response?.data?.message || 'Error al cambiar estado'
         }
       } finally {
         this.loading = false
@@ -333,9 +330,9 @@ export const useAuthStore = defineStore('auth', {
 
       } catch (error) {
         console.error('Error al cambiar rol:', error)
-        return { 
-          success: false, 
-          message: error.response?.data?.message || 'Error al cambiar rol' 
+        return {
+          success: false,
+          message: error.response?.data?.message || 'Error al cambiar rol'
         }
       } finally {
         this.loading = false
@@ -357,8 +354,8 @@ export const useAuthStore = defineStore('auth', {
         const response = await axios.get(`${API_URL}/admin/users?${params.toString()}`)
 
         if (response.data.success) {
-          return { 
-            success: true, 
+          return {
+            success: true,
             users: response.data.data.users,
             pagination: response.data.data.pagination
           }

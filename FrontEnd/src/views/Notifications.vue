@@ -13,11 +13,7 @@
               <p class="text-muted mb-0">Mantente al día con las últimas novedades</p>
             </div>
             <div class="d-flex gap-2">
-              <button 
-                class="btn btn-outline-primary btn-sm"
-                @click="markAllAsRead"
-                :disabled="unreadCount === 0"
-              >
+              <button class="btn btn-outline-primary btn-sm" @click="markAllAsRead" :disabled="unreadCount === 0">
                 <i class="fas fa-check-double me-1"></i>
                 Marcar Todas como Leídas
               </button>
@@ -38,11 +34,7 @@
               <div class="row g-3">
                 <div class="col-12 col-md-6 col-lg-4">
                   <label class="form-label fw-semibold">Filtrar por tipo</label>
-                  <select 
-                    class="form-select" 
-                    v-model="filterType"
-                    @change="applyFilters"
-                  >
+                  <select class="form-select" v-model="filterType" @change="applyFilters">
                     <option value="all">Todos los tipos</option>
                     <option value="info">Información</option>
                     <option value="success">Éxito</option>
@@ -52,11 +44,7 @@
                 </div>
                 <div class="col-12 col-md-6 col-lg-4">
                   <label class="form-label fw-semibold">Estado</label>
-                  <select 
-                    class="form-select" 
-                    v-model="filterStatus"
-                    @change="applyFilters"
-                  >
+                  <select class="form-select" v-model="filterStatus" @change="applyFilters">
                     <option value="all">Todas</option>
                     <option value="unread">No leídas</option>
                     <option value="read">Leídas</option>
@@ -64,11 +52,7 @@
                 </div>
                 <div class="col-12 col-md-6 col-lg-4">
                   <label class="form-label fw-semibold">Ordenar por</label>
-                  <select 
-                    class="form-select" 
-                    v-model="sortBy"
-                    @change="applyFilters"
-                  >
+                  <select class="form-select" v-model="sortBy" @change="applyFilters">
                     <option value="newest">Más recientes</option>
                     <option value="oldest">Más antiguas</option>
                   </select>
@@ -106,26 +90,17 @@
           </div>
 
           <div v-else class="notifications-list">
-            <div 
-              v-for="notification in filteredNotifications" 
-              :key="notification.id"
-              class="notification-item"
-              :class="{ 
-                'unread': !notification.isRead,
-                'read': notification.isRead 
-              }"
-              @click="markAsRead(notification.id)"
-            >
+            <div v-for="notification in filteredNotifications" :key="notification.id" class="notification-item" :class="{
+              'unread': !notification.isRead,
+              'read': notification.isRead
+            }" @click="markAsRead(notification.id)">
               <div class="card mb-3">
                 <div class="card-body">
                   <div class="d-flex align-items-start">
                     <!-- Icono de tipo -->
                     <div class="notification-icon me-3">
-                      <i 
-                        class="fas fa-2x"
-                        :class="getNotificationIcon(notification.type)"
-                        :style="{ color: getNotificationColor(notification.type) }"
-                      ></i>
+                      <i class="fas fa-2x" :class="getNotificationIcon(notification.type)"
+                        :style="{ color: getNotificationColor(notification.type) }"></i>
                     </div>
 
                     <!-- Contenido -->
@@ -136,10 +111,7 @@
                         </h6>
                         <div class="d-flex align-items-center gap-2">
                           <!-- Badge de estado -->
-                          <span 
-                            v-if="!notification.isRead" 
-                            class="badge bg-primary"
-                          >
+                          <span v-if="!notification.isRead" class="badge bg-primary">
                             Nuevo
                           </span>
                           <!-- Fecha -->
@@ -148,7 +120,7 @@
                           </small>
                         </div>
                       </div>
-                      
+
                       <p class="notification-message text-muted mb-0">
                         {{ notification.message }}
                       </p>
@@ -211,7 +183,7 @@ export default {
     })
 
     // Contador de no leídas
-    const unreadCount = computed(() => 
+    const unreadCount = computed(() =>
       notificationsStore.unreadCount(authStore.user?.id)
     )
 
@@ -246,29 +218,31 @@ export default {
       } else if (diffDays < 7) {
         return `Hace ${diffDays} días`
       } else {
-        return date.toLocaleDateString('es-ES', { 
-          year: 'numeric', 
-          month: 'short', 
-          day: 'numeric' 
+        return date.toLocaleDateString('es-ES', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
         })
       }
     }
 
-    const markAsRead = (notificationId) => {
-      notificationsStore.markAsRead(notificationId)
+    const markAsRead = async (notificationId) => {
+      await notificationsStore.markAsRead(notificationId)
     }
 
-    const markAllAsRead = () => {
-      notificationsStore.markAllAsRead(authStore.user?.id)
+    const markAllAsRead = async () => {
+      await notificationsStore.markAllAsRead()
     }
 
     const applyFilters = () => {
       // Los filtros se aplican automáticamente por computed
     }
 
-    onMounted(() => {
-      // Inicializar autenticación si hay datos guardados
+    onMounted(async () => {
       authStore.initAuth()
+      if (authStore.isAuthenticated) {
+        await notificationsStore.fetchNotifications()
+      }
     })
 
     return {
@@ -341,13 +315,15 @@ export default {
   font-size: 0.7rem;
 }
 
-.form-control, .form-select {
+.form-control,
+.form-select {
   border-radius: 8px;
   border: 2px solid #e9ecef;
   transition: all 0.3s ease;
 }
 
-.form-control:focus, .form-select:focus {
+.form-control:focus,
+.form-select:focus {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.25);
 }
@@ -357,28 +333,28 @@ export default {
   .notifications-page {
     padding: 1rem 0;
   }
-  
+
   .d-flex.gap-2 {
     flex-direction: column;
   }
-  
+
   .btn {
     width: 100%;
   }
-  
+
   .notification-item .card-body {
     padding: 1rem;
   }
-  
+
   .notification-icon i {
     font-size: 1.5rem !important;
   }
-  
+
   .d-flex.justify-content-between {
     flex-direction: column;
     align-items: flex-start !important;
   }
-  
+
   .d-flex.align-items-center.gap-2 {
     margin-top: 0.5rem;
   }
@@ -389,7 +365,7 @@ export default {
   .notifications-page {
     padding: 1.5rem 0;
   }
-  
+
   .notification-item .card-body {
     padding: 1.25rem;
   }

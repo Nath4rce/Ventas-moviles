@@ -13,11 +13,7 @@
               <p class="text-muted mb-0">Gestiona el marketplace de Ventas Moviles UPB</p>
             </div>
             <div class="d-flex gap-2">
-              <button 
-                class="btn btn-warning"
-                @click="toggleSiteStatus"
-                :disabled="loading"
-              >
+              <button class="btn btn-warning" @click="toggleSiteStatus" :disabled="loading">
                 <i v-if="loading" class="fas fa-spinner fa-spin me-2"></i>
                 <i v-else :class="isSiteDisabled ? 'fas fa-play' : 'fas fa-pause'"></i>
                 {{ isSiteDisabled ? 'Habilitar Sitio' : 'Deshabilitar Sitio' }}
@@ -36,7 +32,7 @@
         <div class="col-12">
           <div class="alert" :class="isSiteDisabled ? 'alert-danger' : 'alert-success'">
             <i :class="isSiteDisabled ? 'fas fa-exclamation-triangle' : 'fas fa-check-circle'" class="me-2"></i>
-            <strong>Estado del Sitio:</strong> 
+            <strong>Estado del Sitio:</strong>
             {{ isSiteDisabled ? 'Deshabilitado temporalmente' : 'Operativo' }}
           </div>
         </div>
@@ -126,10 +122,7 @@
                   <i class="fas fa-users me-2"></i>
                   Gestión de Usuarios
                 </h5>
-                <button 
-                  class="btn btn-primary btn-sm"
-                  @click="showCreateUserModal = true"
-                >
+                <button class="btn btn-primary btn-sm" @click="showCreateUserModal = true">
                   <i class="fas fa-user-plus me-1"></i>
                   Nuevo Usuario
                 </button>
@@ -139,22 +132,8 @@
               <!-- Filtros de búsqueda -->
               <div class="row g-3 mb-4">
                 <div class="col-12 col-md-4">
-                  <label class="form-label fw-semibold">Buscar por NRC</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    v-model="userFilters.nrc"
-                    placeholder="Ej: 12345"
-                    @input="applyUserFilters"
-                  >
-                </div>
-                <div class="col-12 col-md-4">
                   <label class="form-label fw-semibold">Tipo de Usuario</label>
-                  <select 
-                    class="form-select" 
-                    v-model="userFilters.role"
-                    @change="applyUserFilters"
-                  >
+                  <select class="form-select" v-model="userFilters.rol" @change="applyUserFilters">
                     <option value="all">Todos los tipos</option>
                     <option value="admin">Administrador</option>
                     <option value="seller">Vendedor</option>
@@ -163,11 +142,7 @@
                 </div>
                 <div class="col-12 col-md-4">
                   <label class="form-label fw-semibold">Estado</label>
-                  <select 
-                    class="form-select" 
-                    v-model="userFilters.status"
-                    @change="applyUserFilters"
-                  >
+                  <select class="form-select" v-model="userFilters.status" @change="applyUserFilters">
                     <option value="all">Todos</option>
                     <option value="active">Activos</option>
                     <option value="inactive">Inactivos</option>
@@ -181,7 +156,7 @@
                   <thead>
                     <tr>
                       <th>Usuario</th>
-                      <th>NRC</th>
+                      <th>ID Institucional</th>
                       <th>Rol</th>
                       <th>Estado</th>
                       <th>Acciones</th>
@@ -191,49 +166,34 @@
                     <tr v-for="user in filteredUsers" :key="user.id">
                       <td>
                         <div class="d-flex align-items-center">
-                          <img 
-                            :src="user.avatar" 
-                            :alt="user.name"
-                            class="rounded-circle me-2"
-                            width="30"
-                            height="30"
-                          >
+                          <img :src="user.avatar" :alt="user.nombre" class="rounded-circle me-2" width="30" height="30">
                           <div>
-                            <div class="fw-semibold">{{ user.name }}</div>
-                            <small class="text-muted">{{ user.studentId }}</small>
+                            <div class="fw-semibold">{{ user.nombre }}</div>
+                            <small class="text-muted">{{ user.idInstitucional }}</small>
                           </div>
                         </div>
                       </td>
                       <td>
-                        <span class="badge bg-info">{{ user.nrc }}</span>
+                        <span class="badge bg-info">{{ user.idInstitucional }}</span>
                       </td>
                       <td>
-                        <span class="badge" :class="getRoleBadgeClass(user.role)">
-                          {{ getRoleName(user.role) }}
+                        <span class="badge" :class="getRoleBadgeClass(user.rol)">
+                          {{ getRoleName(user.rol) }}
                         </span>
                       </td>
                       <td>
-                        <span 
-                          class="badge" 
-                          :class="user.isActive ? 'bg-success' : 'bg-danger'"
-                        >
+                        <span class="badge" :class="user.isActive ? 'bg-success' : 'bg-danger'">
                           {{ user.isActive ? 'Activo' : 'Inactivo' }}
                         </span>
                       </td>
                       <td>
-                        <div class="btn-group btn-group-sm" role="group">
-                          <button 
-                            class="btn btn-outline-warning"
-                            @click="toggleUserStatus(user.id)"
-                            :title="user.isActive ? 'Desactivar' : 'Activar'"
-                          >
+                        <div class="btn-group btn-group-sm" rol="group">
+                          <button class="btn btn-outline-warning" @click="toggleUserStatus(user.id)"
+                            :title="user.isActive ? 'Desactivar' : 'Activar'">
                             <i :class="user.isActive ? 'fas fa-pause' : 'fas fa-play'"></i>
                           </button>
-                          <button 
-                            class="btn btn-outline-primary"
-                            @click="openChangeRoleModal(user)"
-                            title="Cambiar rol"
-                          >
+                          <button class="btn btn-outline-primary" @click="openChangeRoleModal(user)"
+                            title="Cambiar rol">
                             <i class="fas fa-user-edit"></i>
                           </button>
                         </div>
@@ -262,21 +222,12 @@
               <div class="row g-3 mb-4">
                 <div class="col-12 col-md-4">
                   <label class="form-label fw-semibold">Buscar por título</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    v-model="productFilters.title"
-                    placeholder="Ej: Calculadora"
-                    @input="applyProductFilters"
-                  >
+                  <input type="text" class="form-control" v-model="productFilters.title" placeholder="Ej: Calculadora"
+                    @input="applyProductFilters">
                 </div>
                 <div class="col-12 col-md-4">
                   <label class="form-label fw-semibold">Categoría</label>
-                  <select 
-                    class="form-select" 
-                    v-model="productFilters.category"
-                    @change="applyProductFilters"
-                  >
+                  <select class="form-select" v-model="productFilters.category" @change="applyProductFilters">
                     <option value="all">Todas las categorías</option>
                     <option value="alimentos">Alimentos</option>
                     <option value="accesorios">Accesorios</option>
@@ -285,11 +236,7 @@
                 </div>
                 <div class="col-12 col-md-4">
                   <label class="form-label fw-semibold">Estado</label>
-                  <select 
-                    class="form-select" 
-                    v-model="productFilters.status"
-                    @change="applyProductFilters"
-                  >
+                  <select class="form-select" v-model="productFilters.status" @change="applyProductFilters">
                     <option value="all">Todos</option>
                     <option value="active">Activos</option>
                     <option value="inactive">Inactivos</option>
@@ -315,14 +262,8 @@
                     <tr v-for="product in filteredProducts" :key="product.id">
                       <td>
                         <div class="d-flex align-items-center">
-                          <img 
-                            :src="product.images[0]" 
-                            :alt="product.title"
-                            class="rounded me-2"
-                            width="40"
-                            height="40"
-                            style="object-fit: cover;"
-                          >
+                          <img :src="product.images[0]" :alt="product.title" class="rounded me-2" width="40" height="40"
+                            style="object-fit: cover;">
                           <div>
                             <div class="fw-semibold">{{ product.title }}</div>
                             <small class="text-muted">{{ product.description.substring(0, 50) }}...</small>
@@ -346,20 +287,14 @@
                         </div>
                       </td>
                       <td>
-                        <span 
-                          class="badge" 
-                          :class="product.isActive ? 'bg-success' : 'bg-danger'"
-                        >
+                        <span class="badge" :class="product.isActive ? 'bg-success' : 'bg-danger'">
                           {{ product.isActive ? 'Activo' : 'Inactivo' }}
                         </span>
                       </td>
                       <td>
-                        <div class="btn-group btn-group-sm" role="group">
-                          <button 
-                            class="btn btn-outline-warning"
-                            @click="toggleProductStatus(product.id)"
-                            :title="product.isActive ? 'Desactivar' : 'Activar'"
-                          >
+                        <div class="btn-group btn-group-sm" rol="group">
+                          <button class="btn btn-outline-warning" @click="toggleProductStatus(product.id)"
+                            :title="product.isActive ? 'Desactivar' : 'Activar'">
                             <i :class="product.isActive ? 'fas fa-pause' : 'fas fa-play'"></i>
                           </button>
                         </div>
@@ -387,19 +322,10 @@
                 <p class="text-muted mb-0">No hay productos</p>
               </div>
               <div v-else>
-                <div 
-                  v-for="product in recentProducts" 
-                  :key="product.id"
-                  class="d-flex align-items-center mb-3 p-2 border rounded"
-                >
-                  <img 
-                    :src="product.images[0]" 
-                    :alt="product.title"
-                    class="rounded me-3"
-                    width="50"
-                    height="50"
-                    style="object-fit: cover;"
-                  >
+                <div v-for="product in recentProducts" :key="product.id"
+                  class="d-flex align-items-center mb-3 p-2 border rounded">
+                  <img :src="product.images[0]" :alt="product.title" class="rounded me-3" width="50" height="50"
+                    style="object-fit: cover;">
                   <div class="flex-grow-1">
                     <h6 class="mb-1 fw-semibold">{{ product.title }}</h6>
                     <small class="text-muted">
@@ -429,82 +355,49 @@
                 <div class="row g-3">
                   <div class="col-12 col-md-6">
                     <label for="notificationTitle" class="form-label fw-semibold">Título</label>
-                    <input
-                      type="text"
-                      class="form-control"
-                      id="notificationTitle"
-                      v-model="notificationForm.title"
-                      placeholder="Título de la notificación"
-                      required
-                    >
+                    <input type="text" class="form-control" id="notificationTitle" v-model="notificationForm.title"
+                      placeholder="Título de la notificación" required>
                   </div>
                   <div class="col-12 col-md-6">
                     <label for="notificationType" class="form-label fw-semibold">Tipo</label>
-                    <select 
-                      class="form-select" 
-                      id="notificationType"
-                      v-model="notificationForm.type"
-                      required
-                    >
+                    <select class="form-select" id="notificationType" v-model="notificationForm.type" required>
                       <option value="info">Información</option>
                       <option value="success">Éxito</option>
                       <option value="warning">Advertencia</option>
                       <option value="danger">Importante</option>
                     </select>
                   </div>
-                  
+
                   <!-- Filtros de destinatarios -->
                   <div class="col-12 col-md-4">
                     <label class="form-label fw-semibold">Destinatarios</label>
-                    <select 
-                      class="form-select" 
-                      v-model="notificationForm.recipients"
-                      @change="handleRecipientChange"
-                    >
+                    <select class="form-select" v-model="notificationForm.recipients" @change="handleRecipientChange">
                       <option value="all">Todos los usuarios</option>
                       <option value="sellers">Solo vendedores</option>
                       <option value="students">Solo estudiantes</option>
-                      <option value="nrc">NRC específico</option>
+                      <option value="idInstitucional ">ID Institucional específico</option>
                     </select>
                   </div>
-                  
-                  <div v-if="notificationForm.recipients === 'nrc'" class="col-12 col-md-4">
-                    <label class="form-label fw-semibold">NRC</label>
-                    <input
-                      type="text"
-                      class="form-control"
-                      v-model="notificationForm.nrc"
-                      placeholder="Ej: 12345"
-                    >
+
+                  <div v-if="notificationForm.recipients === 'idInstitucional '" class="col-12 col-md-4">
+                    <label class="form-label fw-semibold">ID Institucional </label>
+                    <input type="text" class="form-control" v-model="notificationForm.id_institucional"
+                      placeholder="Ej: 000497849" maxlength="9">
                   </div>
-                  
+
                   <div class="col-12">
                     <label for="notificationMessage" class="form-label fw-semibold">Mensaje</label>
-                    <textarea
-                      class="form-control"
-                      id="notificationMessage"
-                      v-model="notificationForm.message"
-                      rows="3"
-                      placeholder="Escribe tu mensaje aquí..."
-                      required
-                    ></textarea>
+                    <textarea class="form-control" id="notificationMessage" v-model="notificationForm.message" rows="3"
+                      placeholder="Escribe tu mensaje aquí..." required></textarea>
                   </div>
                   <div class="col-12">
                     <div class="d-flex gap-2">
-                      <button 
-                        type="submit" 
-                        class="btn btn-primary"
-                        :disabled="sendingNotification"
-                      >
+                      <button type="submit" class="btn btn-primary" :disabled="sendingNotification">
                         <i v-if="sendingNotification" class="fas fa-spinner fa-spin me-2"></i>
                         <i v-else class="fas fa-paper-plane me-2"></i>
                         {{ sendingNotification ? 'Enviando...' : 'Enviar Notificación' }}
                       </button>
-                      <button 
-                        type="button" 
-                        class="btn btn-outline-secondary"
-                        @click="resetNotificationForm"
-                      >
+                      <button type="button" class="btn btn-outline-secondary" @click="resetNotificationForm">
                         <i class="fas fa-undo me-2"></i>
                         Limpiar
                       </button>
@@ -530,47 +423,22 @@
                 <div class="row g-3">
                   <div class="col-12 col-md-6">
                     <label class="form-label fw-semibold">ID Estudiantil *</label>
-                    <input
-                      type="text"
-                      class="form-control"
-                      v-model="newUser.studentId"
-                      placeholder="Ej: 20210001"
-                      required
-                    >
-                  </div>
-                  <div class="col-12 col-md-6">
-                    <label class="form-label fw-semibold">NRC *</label>
-                    <input
-                      type="text"
-                      class="form-control"
-                      v-model="newUser.nrc"
-                      placeholder="Ej: 12345"
-                      required
-                    >
+                    <input type="text" class="form-control" v-model="newUser.idInstitucional" placeholder="Ej: 20210001"
+                      required>
                   </div>
                   <div class="col-12">
                     <label class="form-label fw-semibold">Nombre Completo *</label>
-                    <input
-                      type="text"
-                      class="form-control"
-                      v-model="newUser.name"
-                      placeholder="Nombre del usuario"
-                      required
-                    >
+                    <input type="text" class="form-control" v-model="newUser.nombre" placeholder="Nombre del usuario"
+                      required>
                   </div>
                   <div class="col-12 col-md-6">
                     <label class="form-label fw-semibold">Email *</label>
-                    <input
-                      type="email"
-                      class="form-control"
-                      v-model="newUser.email"
-                      placeholder="usuario@universidad.edu"
-                      required
-                    >
+                    <input type="email" class="form-control" v-model="newUser.email"
+                      placeholder="usuario@universidad.edu" required>
                   </div>
                   <div class="col-12 col-md-6">
                     <label class="form-label fw-semibold">Rol *</label>
-                    <select class="form-select" v-model="newUser.role" required>
+                    <select class="form-select" v-model="newUser.rol" required>
                       <option value="buyer">Estudiante</option>
                       <option value="seller">Vendedor</option>
                       <option value="admin">Administrador</option>
@@ -578,13 +446,8 @@
                   </div>
                   <div class="col-12">
                     <label class="form-label fw-semibold">Contraseña *</label>
-                    <input
-                      type="password"
-                      class="form-control"
-                      v-model="newUser.password"
-                      placeholder="Contraseña temporal"
-                      required
-                    >
+                    <input type="password" class="form-control" v-model="newUser.password"
+                      placeholder="Contraseña temporal" required>
                   </div>
                 </div>
                 <div class="modal-footer">
@@ -610,7 +473,7 @@
             </div>
             <div class="modal-body">
               <div class="mb-3">
-                <strong>Usuario:</strong> {{ selectedUser?.name }} ({{ selectedUser?.studentId }})
+                <strong>Usuario:</strong> {{ selectedUser?.nombre }} ({{ selectedUser?.idInstitucional }})
               </div>
               <div class="mb-3">
                 <label class="form-label fw-semibold">Nuevo Rol</label>
@@ -645,7 +508,7 @@ import { useProductsStore } from '../stores/products'
 import { useNotificationsStore } from '../stores/notifications'
 
 export default {
-  name: 'AdminDashboard',
+  nombre: 'AdminDashboard',
   setup() {
     const authStore = useAuthStore()
     const productsStore = useProductsStore()
@@ -662,7 +525,7 @@ export default {
 
     const userFilters = reactive({
       nrc: '',
-      role: 'all',
+      rol: 'all',
       status: 'all'
     })
 
@@ -673,11 +536,10 @@ export default {
     })
 
     const newUser = reactive({
-      studentId: '',
-      nrc: '',
-      name: '',
+      idInstitucional: '',
+      nombre: '',
       email: '',
-      role: 'buyer',
+      rol: 'buyer',
       password: ''
     })
 
@@ -686,7 +548,9 @@ export default {
       message: '',
       type: 'info',
       recipients: 'all',
-      nrc: ''
+      id_institucional: '',
+      priority: 1,
+      permanent: false
     })
 
     // Estadísticas
@@ -709,7 +573,7 @@ export default {
 
       // Filtrar por título
       if (productFilters.title) {
-        filtered = filtered.filter(product => 
+        filtered = filtered.filter(product =>
           product.title.toLowerCase().includes(productFilters.title.toLowerCase())
         )
       }
@@ -729,7 +593,7 @@ export default {
     })
 
     // Productos recientes
-    const recentProducts = computed(() => 
+    const recentProducts = computed(() =>
       productsStore.products
         .filter(p => p.isActive)
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -739,22 +603,22 @@ export default {
     // Estado del sitio
     const isSiteDisabled = computed(() => notificationsStore.isSiteDisabled)
 
-    const getRoleName = (role) => {
+    const getRoleName = (rol) => {
       const names = {
         admin: 'Administrador',
         seller: 'Vendedor',
         buyer: 'Comprador'
       }
-      return names[role] || 'Usuario'
+      return names[rol] || 'Usuario'
     }
 
-    const getRoleBadgeClass = (role) => {
+    const getRoleBadgeClass = (rol) => {
       const classes = {
         admin: 'bg-danger',
         seller: 'bg-warning text-dark',
         buyer: 'bg-primary'
       }
-      return classes[role] || 'bg-secondary'
+      return classes[rol] || 'bg-secondary'
     }
 
     const getCategoryName = (category) => {
@@ -844,11 +708,10 @@ export default {
     }
 
     const resetNewUserForm = () => {
-      newUser.studentId = ''
-      newUser.nrc = ''
-      newUser.name = ''
+      newUser.idInstitucional = ''
+      newUser.nombre = ''
       newUser.email = ''
-      newUser.role = 'buyer'
+      newUser.rol = 'buyer'
       newUser.password = ''
     }
 
@@ -863,7 +726,7 @@ export default {
 
     const openChangeRoleModal = (user) => {
       selectedUser.value = user
-      newRole.value = user.role
+      newRole.value = user.rol
       showChangeRoleModal.value = true
     }
 
@@ -968,13 +831,15 @@ export default {
   font-size: 0.75rem;
 }
 
-.form-control, .form-select {
+.form-control,
+.form-select {
   border-radius: 8px;
   border: 2px solid #e9ecef;
   transition: all 0.3s ease;
 }
 
-.form-control:focus, .form-select:focus {
+.form-control:focus,
+.form-select:focus {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.25);
 }
@@ -984,19 +849,19 @@ export default {
   .admin-dashboard {
     padding: 1rem 0;
   }
-  
+
   .d-flex.gap-2 {
     flex-direction: column;
   }
-  
+
   .btn {
     width: 100%;
   }
-  
+
   .table-responsive {
     font-size: 0.875rem;
   }
-  
+
   .card-body {
     padding: 1rem;
   }

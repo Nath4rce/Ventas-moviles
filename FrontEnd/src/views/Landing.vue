@@ -10,7 +10,7 @@
               Bienvenido a ventas moviles UPB
             </h1>
             <p class="lead mb-4">
-              El marketplace interno de la universidad. 
+              El marketplace interno de la universidad.
               Compra y vende productos de manera segura entre estudiantes.
             </p>
             <div class="d-flex flex-wrap gap-2">
@@ -47,13 +47,8 @@
                   <i class="fas fa-search me-2"></i>
                   Buscar Productos
                 </label>
-                <input
-                  type="text"
-                  class="form-control"
-                  v-model="searchQuery"
-                  placeholder="Buscar por título o descripción..."
-                  @input="handleSearch"
-                >
+                <input type="text" class="form-control" v-model="searchQuery"
+                  placeholder="Buscar por título o descripción..." @input="searchProducts">
               </div>
 
               <!-- Filtro por categoría -->
@@ -62,15 +57,11 @@
                   <i class="fas fa-tags me-2"></i>
                   Categoría
                 </label>
-                <select 
-                  class="form-select" 
-                  v-model="filters.category"
-                  @change="applyFilters"
-                >
+                <select class="form-select" v-model="filters.category" @change="applyFilters">
                   <option value="all">Todas las categorías</option>
-                  <option value="alimentos">Alimentos</option>
-                  <option value="accesorios">Accesorios</option>
-                  <option value="papeleria">Papelería</option>
+                  <option v-for="cat in productsStore.categories" :key="cat.id" :value="cat.id">
+                    {{ cat.nombre }}
+                  </option>
                 </select>
               </div>
 
@@ -82,24 +73,12 @@
                 </label>
                 <div class="row g-2">
                   <div class="col-6">
-                    <input
-                      type="number"
-                      class="form-control form-control-sm"
-                      v-model.number="filters.priceRange.min"
-                      placeholder="Mín"
-                      min="0"
-                      @input="applyFilters"
-                    >
+                    <input type="number" class="form-control form-control-sm" v-model.number="filters.priceRange.min"
+                      placeholder="Mín" min="0" @change="applyFilters">
                   </div>
                   <div class="col-6">
-                    <input
-                      type="number"
-                      class="form-control form-control-sm"
-                      v-model.number="filters.priceRange.max"
-                      placeholder="Máx"
-                      min="0"
-                      @input="applyFilters"
-                    >
+                    <input type="number" class="form-control form-control-sm" v-model.number="filters.priceRange.max"
+                      placeholder="Máx" min="0" @change="applyFilters">
                   </div>
                 </div>
                 <small class="text-muted">Deja vacío para sin límite</small>
@@ -111,11 +90,7 @@
                   <i class="fas fa-sort me-2"></i>
                   Ordenar
                 </label>
-                <select 
-                  class="form-select" 
-                  v-model="filters.sortBy"
-                  @change="applyFilters"
-                >
+                <select class="form-select" v-model="filters.sortBy" @change="applyFilters">
                   <option value="rating">Mejor Calificados</option>
                   <option value="price">Menor Precio</option>
                   <option value="date">Más Recientes</option>
@@ -126,10 +101,7 @@
             <!-- Botón de limpiar filtros -->
             <div class="row mt-3">
               <div class="col-12">
-                <button 
-                  class="btn btn-outline-secondary btn-sm"
-                  @click="clearFilters"
-                >
+                <button class="btn btn-outline-secondary btn-sm" @click="clearFilters">
                   <i class="fas fa-times me-1"></i>
                   Limpiar Filtros
                 </button>
@@ -150,25 +122,17 @@
               <h4 class="mb-0">
                 <i class="fas fa-box me-2"></i>
                 Productos Disponibles
-                <span class="badge bg-primary ms-2">{{ filteredProducts.length }}</span>
+                <span class="badge bg-primary ms-2">{{ displayedProducts.length }}</span>
               </h4>
               <div class="d-flex gap-2">
                 <!-- Botón de vista -->
                 <div class="btn-group" role="group">
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary"
-                    :class="{ active: viewMode === 'grid' }"
-                    @click="viewMode = 'grid'"
-                  >
+                  <button type="button" class="btn btn-outline-secondary" :class="{ active: viewMode === 'grid' }"
+                    @click="viewMode = 'grid'">
                     <i class="fas fa-th"></i>
                   </button>
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary"
-                    :class="{ active: viewMode === 'list' }"
-                    @click="viewMode = 'list'"
-                  >
+                  <button type="button" class="btn btn-outline-secondary" :class="{ active: viewMode === 'list' }"
+                    @click="viewMode = 'list'">
                     <i class="fas fa-list"></i>
                   </button>
                 </div>
@@ -177,67 +141,29 @@
           </div>
         </div>
 
-        <!-- Lista de productos -->
-        <div v-if="filteredProducts.length === 0" class="text-center py-5">
-          <i class="fas fa-search text-muted mb-3" style="font-size: 3rem;"></i>
-          <h5 class="text-muted">No se encontraron productos</h5>
-          <p class="text-muted">Intenta ajustar los filtros de búsqueda</p>
-        </div>
-
-        <div v-else class="row g-4">
-          <div 
-            v-for="product in paginatedProducts" 
-            :key="product.id"
-            :class="viewMode === 'grid' ? 'col-12 col-sm-6 col-lg-4' : 'col-12'"
-          >
-            <ProductCard 
-              :product="product" 
-              :view-mode="viewMode"
-              @view-details="viewProductDetails"
-            />
+        <!-- Loading -->
+        <div v-if="productsStore.loading" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
           </div>
         </div>
 
-        <!-- Paginación -->
-        <div v-if="totalPages > 1" class="row mt-4">
-          <div class="col-12">
-            <nav aria-label="Paginación de productos">
-              <ul class="pagination justify-content-center">
-                <li class="page-item" :class="{ disabled: currentPage === 1 }">
-                  <button 
-                    class="page-link" 
-                    @click="changePage(currentPage - 1)"
-                    :disabled="currentPage === 1"
-                  >
-                    <i class="fas fa-chevron-left"></i>
-                  </button>
-                </li>
-                
-                <li 
-                  v-for="page in visiblePages" 
-                  :key="page"
-                  class="page-item"
-                  :class="{ active: page === currentPage }"
-                >
-                  <button 
-                    class="page-link" 
-                    @click="changePage(page)"
-                  >
-                    {{ page }}
-                  </button>
-                </li>
-                
-                <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-                  <button 
-                    class="page-link" 
-                    @click="changePage(currentPage + 1)"
-                    :disabled="currentPage === totalPages"
-                  >
-                    <i class="fas fa-chevron-right"></i>
-                  </button>
-                </li>
-              </ul>
-            </nav>
+        <!-- Sin productos -->
+        <div v-else-if="displayedProducts.length === 0" class="text-center py-5">
+          <i class="fas fa-search text-muted mb-3" style="font-size: 3rem;"></i>
+          <h5 class="text-muted">No se encontraron productos</h5>
+          <p class="text-muted">Intenta ajustar los filtros de búsqueda</p>
+          <button @click="clearFilters" class="btn btn-primary mt-2">
+            <i class="fas fa-times me-1"></i>
+            Limpiar Filtros
+          </button>
+        </div>
+
+        <!-- Lista de productos -->
+        <div v-else class="row g-4">
+          <div v-for="product in displayedProducts" :key="product.id"
+            :class="viewMode === 'grid' ? 'col-12 col-sm-6 col-lg-4' : 'col-12'">
+            <ProductCard :product="product" :view-mode="viewMode" @view-details="viewProductDetails" />
           </div>
         </div>
       </div>
@@ -257,118 +183,99 @@ export default {
     ProductCard
   },
   setup() {
-    const router = useRouter()
-    const productsStore = useProductsStore()
+  const router = useRouter()
+  const productsStore = useProductsStore()
 
-    const searchQuery = ref('')
-    const viewMode = ref('grid')
-    const currentPage = ref(1)
-    const itemsPerPage = 9
+  const searchQuery = ref('')
+  const viewMode = ref('grid')
 
-    const filters = ref({
+  const filters = ref({
+    category: 'all',
+    priceRange: { min: null, max: null },
+    sortBy: 'rating'
+  })
+
+  // Usar productos directamente del store
+  const displayedProducts = computed(() => {
+    let products = productsStore.products || []
+
+    // Filtro local solo para búsqueda en tiempo real
+    if (searchQuery.value.trim()) {
+      const query = searchQuery.value.toLowerCase()
+      products = products.filter(product =>
+        product.title?.toLowerCase().includes(query) ||
+        product.description?.toLowerCase().includes(query)
+      )
+    }
+
+    return products
+  })
+
+  // Aplicar filtros llamando al backend
+  const applyFilters = async () => {
+    const params = {}
+    
+    if (filters.value.category !== 'all') {
+      params.categoria_id = filters.value.category
+    }
+    
+    if (filters.value.priceRange.min) {
+      params.precio_min = filters.value.priceRange.min
+    }
+    
+    if (filters.value.priceRange.max) {
+      params.precio_max = filters.value.priceRange.max
+    }
+
+    if (filters.value.sortBy) {
+      params.sort_by = filters.value.sortBy === 'rating' ? 'rating_promedio' : 
+                       filters.value.sortBy === 'price' ? 'precio' : 'created_at'
+      params.sort_order = 'DESC'
+    }
+
+    await productsStore.fetchProducts(params)
+  }
+
+  // Búsqueda con debounce
+  const searchProducts = async () => {
+    if (searchQuery.value.trim().length > 2) {
+      await productsStore.fetchProducts({ search: searchQuery.value })
+    } else if (searchQuery.value.trim().length === 0) {
+      await productsStore.fetchProducts()
+    }
+  }
+
+  const viewProductDetails = (productId) => {
+    router.push(`/product/${productId}`)
+  }
+
+  const clearFilters = async () => {
+    filters.value = {
       category: 'all',
       priceRange: { min: null, max: null },
       sortBy: 'rating'
-    })
-
-    // Productos filtrados
-    const filteredProducts = computed(() => {
-      let products = productsStore.filteredProducts
-
-      // Aplicar búsqueda por texto
-      if (searchQuery.value.trim()) {
-        const query = searchQuery.value.toLowerCase()
-        products = products.filter(product => 
-          product.title.toLowerCase().includes(query) ||
-          product.description.toLowerCase().includes(query)
-        )
-      }
-
-      return products
-    })
-
-    // Productos paginados
-    const paginatedProducts = computed(() => {
-      const start = (currentPage.value - 1) * itemsPerPage
-      const end = start + itemsPerPage
-      return filteredProducts.value.slice(start, end)
-    })
-
-    // Paginación
-    const totalPages = computed(() => 
-      Math.ceil(filteredProducts.value.length / itemsPerPage)
-    )
-
-    const visiblePages = computed(() => {
-      const pages = []
-      const start = Math.max(1, currentPage.value - 2)
-      const end = Math.min(totalPages.value, currentPage.value + 2)
-      
-      for (let i = start; i <= end; i++) {
-        pages.push(i)
-      }
-      
-      return pages
-    })
-
-    // Métodos
-    const handleSearch = () => {
-      currentPage.value = 1
     }
-
-    const applyFilters = () => {
-      productsStore.updateFilters(filters.value)
-      currentPage.value = 1
-    }
-
-    const clearFilters = () => {
-      searchQuery.value = ''
-      filters.value = {
-        category: 'all',
-        priceRange: { min: null, max: null },
-        sortBy: 'rating'
-      }
-      productsStore.updateFilters(filters.value)
-      currentPage.value = 1
-    }
-
-    const changePage = (page) => {
-      if (page >= 1 && page <= totalPages.value) {
-        currentPage.value = page
-        window.scrollTo({ top: 0, behavior: 'smooth' })
-      }
-    }
-
-    const viewProductDetails = (productId) => {
-      router.push(`/product/${productId}`)
-    }
-
-    // Watchers
-    watch(searchQuery, () => {
-      currentPage.value = 1
-    })
-
-    onMounted(() => {
-      // Aplicar filtros iniciales
-      productsStore.updateFilters(filters.value)
-    })
-
-    return {
-      searchQuery,
-      viewMode,
-      currentPage,
-      filters,
-      filteredProducts,
-      paginatedProducts,
-      totalPages,
-      visiblePages,
-      handleSearch,
-      applyFilters,
-      clearFilters,
-      changePage,
-      viewProductDetails
-    }
+    searchQuery.value = ''
+    await productsStore.fetchProducts()
   }
+
+  onMounted(async () => {
+    await productsStore.fetchCategories()
+    await productsStore.fetchProducts()
+  })
+
+  return {
+    searchQuery,
+    viewMode,
+    filters,
+    displayedProducts,
+    productsStore,
+    applyFilters,
+    searchProducts,
+    viewProductDetails,
+    clearFilters
+  }
+}
 }
 </script>
 
@@ -382,13 +289,15 @@ export default {
   border-radius: 15px;
 }
 
-.form-control, .form-select {
+.form-control,
+.form-select {
   border-radius: 10px;
   border: 2px solid #e9ecef;
   transition: all 0.3s ease;
 }
 
-.form-control:focus, .form-select:focus {
+.form-control:focus,
+.form-select:focus {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.25);
 }
@@ -429,15 +338,15 @@ export default {
   .hero-section h1 {
     font-size: 2rem;
   }
-  
+
   .hero-section .lead {
     font-size: 1rem;
   }
-  
+
   .filters-section .card-body {
     padding: 1rem;
   }
-  
+
   .d-flex.gap-2 {
     flex-direction: column;
     gap: 0.5rem !important;

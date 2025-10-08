@@ -3,44 +3,53 @@ const { getPool, sql } = require('../config/database');
 
 // Middleware para verificar el token JWT
 const authenticateToken = async (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-
-  if (!token) {
-    return res.status(401).json({
-      success: false,
-      message: 'Token de acceso requerido'
-    });
-  }
-
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
 
-    // Verificar que el usuario existe y está activo
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'Token no proporcionado'
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Buscar usuario en la BD
     const pool = await getPool();
     const result = await pool.request()
       .input('userId', sql.Int, decoded.userId)
-      .query('SELECT id, id_institucional, email, nombre, rol, is_active FROM usuarios WHERE id = @userId AND is_active = 1');
+      .query('SELECT id, id_institucional, email, nombre, rol, is_active FROM usuarios WHERE id = @userId');
 
     if (result.recordset.length === 0) {
       return res.status(401).json({
         success: false,
-        message: 'Usuario no encontrado o inactivo'
+        message: 'Usuario no encontrado'
       });
     }
 
-    req.user = result.recordset[0];
+    const user = result.recordset[0];
 
-    if (user.length === 0) {
+    if (!user.is_active) {
       return res.status(401).json({
         success: false,
-        message: 'Usuario no encontrado o inactivo'
+        message: 'Usuario inactivo o deshabilitado'
       });
     }
 
-    req.user = user[0];
+    // Agregar usuario completo a req
+    req.user = {
+      id: user.id,
+      id_institucional: user.id_institucional,
+      email: user.email,
+      nombre: user.nombre,
+      rol: user.rol
+    };
+
     next();
   } catch (error) {
+    console.error('Error en authenticateToken:', error);
     return res.status(403).json({
       success: false,
       message: 'Token inválido o expirado'
@@ -85,8 +94,8 @@ const requireBuyer = requireRole(['buyer', 'seller', 'admin']);
 const generateToken = (userId) => {
   return jwt.sign(
     { userId },
-    process.env.JWT_SECRET || 'fallback_secret',
-    { expiresIn: '24h' }
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN}
   );
 };
 

@@ -25,7 +25,7 @@
         <div class="col-12">
           <div class="alert alert-info">
             <i class="fas fa-info-circle me-2"></i>
-            <strong>Importante:</strong> Como vendedor, solo puedes tener un producto activo a la vez. 
+            <strong>Importante:</strong> Como vendedor, solo puedes tener un producto activo a la vez.
             Si ya tienes un producto publicado, deberás desactivarlo antes de publicar uno nuevo.
           </div>
         </div>
@@ -49,15 +49,8 @@
                     <i class="fas fa-tag me-2"></i>
                     Título del Producto *
                   </label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="title"
-                    v-model="form.title"
-                    placeholder="Ej: Laptop Gaming ASUS"
-                    required
-                    :class="{ 'is-invalid': errors.title }"
-                  >
+                  <input type="text" class="form-control" id="title" v-model="form.title"
+                    placeholder="Ej: Laptop Gaming ASUS" required :class="{ 'is-invalid': errors.title }">
                   <div v-if="errors.title" class="invalid-feedback">
                     {{ errors.title }}
                   </div>
@@ -69,17 +62,12 @@
                     <i class="fas fa-tags me-2"></i>
                     Categoría *
                   </label>
-                  <select 
-                    class="form-select" 
-                    id="category"
-                    v-model="form.category"
-                    required
-                    :class="{ 'is-invalid': errors.category }"
-                  >
+                  <select class="form-select" id="category" v-model="form.category" required
+                    :class="{ 'is-invalid': errors.category }">
                     <option value="">Selecciona una categoría</option>
-                    <option value="alimentos">Alimentos</option>
-                    <option value="accesorios">Accesorios</option>
-                    <option value="papeleria">Papelería</option>
+                    <option v-for="cat in productsStore.categories" :key="cat.id" :value="cat.id">
+                      {{ cat.nombre }}
+                    </option>
                   </select>
                   <div v-if="errors.category" class="invalid-feedback">
                     {{ errors.category }}
@@ -94,17 +82,8 @@
                   </label>
                   <div class="input-group">
                     <span class="input-group-text">$</span>
-                    <input
-                      type="number"
-                      class="form-control"
-                      id="price"
-                      v-model.number="form.price"
-                      placeholder="0"
-                      min="0"
-                      step="0.01"
-                      required
-                      :class="{ 'is-invalid': errors.price }"
-                    >
+                    <input type="number" class="form-control" id="price" v-model.number="form.price" placeholder="0"
+                      min="0" step="0.01" required :class="{ 'is-invalid': errors.price }">
                   </div>
                   <div v-if="errors.price" class="invalid-feedback">
                     {{ errors.price }}
@@ -117,15 +96,9 @@
                     <i class="fas fa-align-left me-2"></i>
                     Descripción *
                   </label>
-                  <textarea
-                    class="form-control"
-                    id="description"
-                    v-model="form.description"
-                    rows="4"
-                    placeholder="Describe tu producto en detalle..."
-                    required
-                    :class="{ 'is-invalid': errors.description }"
-                  ></textarea>
+                  <textarea class="form-control" id="description" v-model="form.description" rows="4"
+                    placeholder="Describe tu producto en detalle..." required
+                    :class="{ 'is-invalid': errors.description }"></textarea>
                   <div v-if="errors.description" class="invalid-feedback">
                     {{ errors.description }}
                   </div>
@@ -142,32 +115,17 @@
                   </label>
                   <div class="image-upload-area">
                     <div class="row g-3">
-                      <div 
-                        v-for="(image, index) in form.images" 
-                        :key="index"
-                        class="col-6 col-md-3"
-                      >
+                      <div v-for="(image, index) in form.images" :key="index" class="col-6 col-md-3">
                         <div class="image-preview">
-                          <img 
-                            :src="image" 
-                            :alt="`Imagen ${index + 1}`"
-                            class="img-thumbnail"
-                            @error="handleImageError"
-                          >
-                          <button 
-                            type="button" 
-                            class="btn btn-sm btn-danger remove-image"
-                            @click="removeImage(index)"
-                          >
+                          <img :src="image" :alt="`Imagen ${index + 1}`" class="img-thumbnail"
+                            @error="handleImageError">
+                          <button type="button" class="btn btn-sm btn-danger remove-image" @click="removeImage(index)">
                             <i class="fas fa-times"></i>
                           </button>
                         </div>
                       </div>
-                      
-                      <div 
-                        v-if="form.images.length < 4" 
-                        class="col-6 col-md-3"
-                      >
+
+                      <div v-if="form.images.length < 4" class="col-6 col-md-3">
                         <div class="image-upload-placeholder" @click="addImage">
                           <i class="fas fa-plus"></i>
                           <span>Agregar Imagen</span>
@@ -185,20 +143,12 @@
 
                 <!-- Botones -->
                 <div class="d-flex gap-2">
-                  <button 
-                    type="submit" 
-                    class="btn btn-primary"
-                    :disabled="submitting"
-                  >
+                  <button type="submit" class="btn btn-primary" :disabled="submitting">
                     <i v-if="submitting" class="fas fa-spinner fa-spin me-2"></i>
                     <i v-else class="fas fa-paper-plane me-2"></i>
                     {{ submitting ? 'Publicando...' : 'Publicar Producto' }}
                   </button>
-                  <button 
-                    type="button" 
-                    class="btn btn-outline-secondary"
-                    @click="resetForm"
-                  >
+                  <button type="button" class="btn btn-outline-secondary" @click="resetForm">
                     <i class="fas fa-undo me-2"></i>
                     Limpiar
                   </button>
@@ -257,17 +207,11 @@
                 Ya tienes un producto activo. Debes desactivarlo para publicar uno nuevo.
               </p>
               <div class="d-flex gap-2">
-                <button 
-                  class="btn btn-warning btn-sm"
-                  @click="deactivateCurrentProduct"
-                >
+                <button class="btn btn-warning btn-sm" @click="deactivateCurrentProduct">
                   <i class="fas fa-eye-slash me-1"></i>
                   Desactivar
                 </button>
-                <router-link 
-                  :to="`/product/${currentProduct.id}`"
-                  class="btn btn-outline-primary btn-sm"
-                >
+                <router-link :to="`/product/${currentProduct.id}`" class="btn btn-outline-primary btn-sm">
                   <i class="fas fa-eye me-1"></i>
                   Ver
                 </router-link>
@@ -283,8 +227,8 @@
 <script>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useProductsStore } from '../stores/products'
 import { useAuthStore } from '../stores/auth'
+import { useProductsStore } from '../stores/products'
 
 export default {
   name: 'PublishProduct',
@@ -306,7 +250,7 @@ export default {
 
     // Verificar si ya tiene un producto activo
     const currentProduct = computed(() => {
-      return productsStore.products.find(product => 
+      return productsStore.products.find(product =>
         product.sellerId === authStore.user?.id && product.isActive
       )
     })
@@ -366,7 +310,7 @@ export default {
           'https://images.unsplash.com/photo-1556742111-a301076d9d18?w=300&h=200&fit=crop&crop=center',
           'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300&h=200&fit=crop&crop=center'
         ]
-        
+
         form.images.push(placeholderImages[form.images.length])
       }
     }
@@ -430,7 +374,7 @@ export default {
         }
 
         const newProduct = productsStore.addProduct(productData)
-        
+
         alert('Producto publicado exitosamente')
         router.push(`/product/${newProduct.id}`)
       } catch (error) {
@@ -440,9 +384,9 @@ export default {
       }
     }
 
-    onMounted(() => {
-      // Inicializar autenticación si hay datos guardados
+    onMounted(async () => {
       authStore.initAuth()
+      await productsStore.fetchCategories()
     })
 
     return {
@@ -528,28 +472,31 @@ export default {
   font-weight: 500;
 }
 
-.form-control, .form-select {
+.form-control,
+.form-select {
   border-radius: 8px;
   border: 2px solid #e9ecef;
   transition: all 0.3s ease;
 }
 
-.form-control:focus, .form-select:focus {
+.form-control:focus,
+.form-select:focus {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.25);
 }
 
 /* Mobile optimizations */
 @media (max-width: 767px) {
+
   .image-preview img,
   .image-upload-placeholder {
     height: 100px;
   }
-  
+
   .d-flex.gap-2 {
     flex-direction: column;
   }
-  
+
   .btn {
     width: 100%;
   }
