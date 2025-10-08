@@ -5,6 +5,16 @@
         <div class="col-12 col-md-6 col-lg-4">
           <div class="card shadow-lg border-0">
             <div class="card-body p-5">
+              
+              <!--botón para regresar a la landing page-->
+              <div class="text-left mb-4">
+                <router-link class="btn btn-link" to="/landing">
+                  <i class="fas fa-arrow-left me-2"></i>
+                  Regresar
+                </router-link>
+              </div>
+
+
               <!-- Logo y título -->
               <div class="text-center mb-4">
                 <i class="fas fa-graduation-cap text-primary mb-3" style="font-size: 3rem;"></i>
@@ -79,6 +89,7 @@
                   {{ loading ? 'Iniciando sesión...' : 'Iniciar Sesión' }}
                 </button>
               </form>
+
 
               <!-- Mensaje informativo -->
               <div class="text-center mt-4">

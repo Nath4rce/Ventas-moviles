@@ -44,6 +44,16 @@
           </li>
         </ul>
 
+        <!-- boton de log in-->
+        <ul class="navbar-nav">
+          <li class="nav-item" v-if="!authStore.isAuthenticated">
+            <router-link class="nav-link" to="/login">
+              <i class="fas fa-sign-in-alt me-1"></i>
+              Iniciar Sesión
+            </router-link>
+          </li>
+        </ul>
+
         <ul class="navbar-nav">
           <!-- Notificaciones -->
           <li class="nav-item dropdown" v-if="authStore.isAuthenticated">
