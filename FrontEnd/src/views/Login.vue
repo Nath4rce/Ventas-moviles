@@ -1,20 +1,20 @@
 <template>
   <div class="login-container">
     <div class="container">
+      <!-- Botón de regresar - Posicionado arriba del card -->
+      <div class="row justify-content-center mb-3">
+        <div class="col-12 col-md-6 col-lg-4">
+          <router-link class="btn btn-link text-white ps-0" to="/landing">
+            <i class="fas fa-arrow-left me-2"></i>
+            Regresar al Inicio
+          </router-link>
+        </div>
+      </div>
+
       <div class="row justify-content-center">
         <div class="col-12 col-md-6 col-lg-4">
           <div class="card shadow-lg border-0">
             <div class="card-body p-5">
-              
-              <!--botón para regresar a la landing page-->
-              <div class="text-left mb-4">
-                <router-link class="btn btn-link" to="/landing">
-                  <i class="fas fa-arrow-left me-2"></i>
-                  Regresar
-                </router-link>
-              </div>
-
-
               <!-- Logo y título -->
               <div class="text-center mb-4">
                 <i class="fas fa-graduation-cap text-primary mb-3" style="font-size: 3rem;"></i>
@@ -89,7 +89,6 @@
                   {{ loading ? 'Iniciando sesión...' : 'Iniciar Sesión' }}
                 </button>
               </form>
-
 
               <!-- Mensaje informativo -->
               <div class="text-center mt-4">
@@ -230,6 +229,18 @@ export default {
 .input-group .btn {
   border-radius: 0 10px 10px 0;
   border-left: none;
+}
+
+.btn-link.text-white {
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  opacity: 0.9;
+}
+
+.btn-link.text-white:hover {
+  opacity: 1;
+  transform: translateX(-3px);
 }
 
 /* Mobile optimizations */
