@@ -112,12 +112,14 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useUIStore } from '../stores/ui'
 
 export default {
   name: 'Login',
   setup() {
     const router = useRouter()
     const authStore = useAuthStore()
+    const ui = useUIStore()
 
     const form = reactive({
       studentId: '',
@@ -149,21 +151,38 @@ export default {
     const handleLogin = async () => {
       if (!validateForm()) return
 
-      loading.value = true
-      errorMessage.value = ''
+      // Mostrar pantalla de carga global
+      ui.showLoading({ message: 'Iniciando sesión...', variant: 'circular' });
+      loading.value = true;
+      errorMessage.value = '';
 
       try {
-        const result = await authStore.login(form)
-        
+        // Simulamos un pequeño retardo (puedes quitarlo si usas backend real)
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        const result = await authStore.login(form);
+
         if (result.success) {
-          router.push('/landing')
+          // Espera un momento antes de redirigir, para ver la pantalla de carga
+          await new Promise(resolve => setTimeout(resolve, 1200));
+          router.push('/landing');
         } else {
-          errorMessage.value = result.message
+          errorMessage.value = result.message || 'Credenciales incorrectas.';
         }
       } catch (error) {
-        errorMessage.value = 'Error al iniciar sesión. Inténtalo de nuevo.'
+        const payload = (error.response && error.response.data)
+          ? error.response.data
+          : { message: error.message || 'Error al iniciar sesión' };
+
+        ui.setError(payload);
+        try { sessionStorage.setItem('backend_error', JSON.stringify(payload)) } catch (e) {}
+        router.push({ name: 'Error', query: { error: JSON.stringify(payload) } });
+        errorMessage.value = 'Error al iniciar sesión. Inténtalo de nuevo.';
       } finally {
-        loading.value = false
+        // Mantenemos la pantalla visible por unos segundos para notar el efecto
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        loading.value = false;
+        ui.hideLoading();
       }
     }
 

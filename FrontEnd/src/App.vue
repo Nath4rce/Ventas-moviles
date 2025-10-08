@@ -5,54 +5,44 @@
       <router-view />
     </main>
     <Footer v-if="!isLoginPage" />
-        <ScreenLoading v-if="loading" message="Cargando página..." />
-    <Error v-else-if="hasError" :error="errorMessage" />
+
+    <!-- Pantalla de carga -->
+    <ScreenLoading v-if="ui.screenLoading"/>
+    
+    <!-- Pantalla de error global -->
+    <Error v-if="hasError" />
   </div>
 </template>
 
-<script>
+<script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import Navbar from './components/Navbar.vue'
 import Footer from './components/Footer.vue'
-import ScreenLoading from "./components/ScreenLoading.vue";
-import Error from "./components/Error.vue";
+import ScreenLoading from './components/ScreenLoading.vue'
+import Error from './components/Error.vue'
+import { useUIStore } from './stores/ui'
 
-export default {
-  name: 'App',
-  components: {
-    Navbar,
-    Footer,
-    ScreenLoading,
-    Error
-  },
-  setup() {
-    const route = useRoute()
-    
-    const isLoginPage = computed(() => {
-      return route.name === 'Login' || route.name === 'Register'
-    })
+const route = useRoute()
+const ui = useUIStore()
 
-    return {
-      isLoginPage
-    }
-  },
-  data() {
-    return {
-      loading: false,
-      hasError: false,
-      errorMessage: null,
-    };
-  },
-  created() {
-    // Exponer el estado global para que el router lo controle
-    window.$app = this;
-  },
-}
+// Detectar si estamos en Login o Register
+const isLoginPage = computed(() => {
+  return route.name === 'Login' || route.name === 'Register'
+})
+
+// Mostrar Error.vue si el store o sessionStorage tiene un error guardado
+const hasError = computed(() => {
+  if (ui.error) return true
+  try {
+    return !!sessionStorage.getItem('backend_error')
+  } catch {
+    return false
+  }
+})
 </script>
 
 <style>
-/* Estilos específicos del componente App.vue */
 .main-content {
   min-height: calc(100vh - 120px);
   padding-top: 20px;

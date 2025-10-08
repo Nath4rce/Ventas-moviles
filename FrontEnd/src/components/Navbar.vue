@@ -138,6 +138,7 @@ import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useNotificationsStore } from '../stores/notifications'
+import { useUIStore } from '../stores/ui'
 
 export default {
   name: 'Navbar',
@@ -145,6 +146,7 @@ export default {
     const router = useRouter()
     const authStore = useAuthStore()
     const notificationsStore = useNotificationsStore()
+    const ui = useUIStore()
 
     const notifications = computed(() => 
       notificationsStore.userNotifications(authStore.user?.id)
@@ -154,9 +156,12 @@ export default {
       notificationsStore.unreadCount(authStore.user?.id)
     )
 
-    const logout = () => {
+    const logout = async () => {
+      ui.showScreenLoading('Cerrando sesión...')
+      await new Promise(resolve => setTimeout(resolve, 1000))
       authStore.logout()
       router.push('/login')
+      ui.hideScreenLoading()
     }
 
     const markAsRead = (notificationId) => {
