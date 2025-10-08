@@ -6,6 +6,26 @@ const { validateUser, validateId, validatePagination } = require('../middleware/
 
 const router = express.Router();
 
+// Helper para ejecutar stored procedures
+async function executeProcedure(procedureName, params = {}) {
+  const pool = await getPool();
+  const request = pool.request();
+  
+  // Agregar parámetros dinámicamente
+  Object.keys(params).forEach(key => {
+    const value = params[key];
+    if (typeof value === 'number') {
+      request.input(key, sql.Int, value);
+    } else if (typeof value === 'string') {
+      request.input(key, sql.NVarChar, value);
+    } else if (typeof value === 'boolean') {
+      request.input(key, sql.Bit, value ? 1 : 0);
+    }
+  });
+  
+  return await request.execute(procedureName);
+}
+
 // GET /api/admin/stats - Obtener estadísticas generales
 router.get('/stats', authenticateToken, requireAdmin, async (req, res) => {
   try {
@@ -63,7 +83,6 @@ router.get('/stats', authenticateToken, requireAdmin, async (req, res) => {
 
 // GET /api/admin/users - Obtener usuarios con filtros
 router.get('/users', authenticateToken, requireAdmin, validatePagination, async (req, res) => {
-
   try {
     const {
       page = 1,
@@ -275,7 +294,6 @@ router.put('/users/:id/role', authenticateToken, requireAdmin, validateId, async
       });
     }
 
-    // Verificar que el usuario existe
     const pool = await getPool();
 
     const userResult = await pool.request()
@@ -397,8 +415,6 @@ router.get('/products', authenticateToken, requireAdmin, validatePagination, asy
 router.put('/products/:id/toggle-status', authenticateToken, requireAdmin, validateId, async (req, res) => {
   try {
     const productId = req.params.id;
-
-    // Verificar que el producto existe
     const pool = await getPool();
 
     const productResult = await pool.request()
@@ -467,7 +483,6 @@ router.post('/categories', authenticateToken, requireAdmin, async (req, res) => 
       });
     }
 
-    // Verificar si la categoría ya existe
     const pool = await getPool();
 
     const checkCategory = await pool.request()

@@ -5,6 +5,29 @@ const { validateNotification, validateId, validatePagination } = require('../mid
 
 const router = express.Router();
 
+// Helper para ejecutar stored procedures
+async function executeProcedure(procedureName, params = {}) {
+  const pool = await getPool();
+  const request = pool.request();
+  
+  Object.keys(params).forEach(key => {
+    const value = params[key];
+    if (typeof value === 'number') {
+      request.input(key, sql.Int, value);
+    } else if (typeof value === 'string') {
+      if (value.length === 9) {
+        request.input(key, sql.Char(9), value);
+      } else {
+        request.input(key, sql.NVarChar, value);
+      }
+    } else if (typeof value === 'boolean') {
+      request.input(key, sql.Bit, value ? 1 : 0);
+    }
+  });
+  
+  return await request.execute(procedureName);
+}
+
 // GET /api/notifications - Obtener notificaciones del usuario actual
 router.get('/', authenticateToken, validatePagination, async (req, res) => {
   try {
@@ -33,16 +56,18 @@ router.get('/', authenticateToken, validatePagination, async (req, res) => {
     // Contar no leídas
     const unreadResult = await pool.request()
       .input('usuario_id', sql.Int, userId)
+      .input('rol', sql.NVarChar(20), rol)
+      .input('idInstitucional', sql.Char(9), idInstitucional)
       .query(`
         SELECT COUNT(*) as unread_count 
-        FROM notificaciones_leidas nl
-        RIGHT JOIN notificaciones n ON nl.notificacion_id = n.id AND nl.usuario_id = @usuario_id
+        FROM notificaciones n
+        LEFT JOIN notificaciones_leidas nl ON n.id = nl.notificacion_id AND nl.usuario_id = @usuario_id
         WHERE nl.id IS NULL
           AND (
             n.destinatario_tipo = 'all'
-            OR (n.destinatario_tipo = 'sellers' AND '${rol}' = 'seller')
-            OR (n.destinatario_tipo = 'buyers' AND '${rol}' = 'buyer')
-            OR (n.destinatario_tipo = 'id_institucional_especifico' AND n.id_institucional_especifico = '${idInstitucional}')
+            OR (n.destinatario_tipo = 'sellers' AND @rol = 'seller')
+            OR (n.destinatario_tipo = 'buyers' AND @rol = 'buyer')
+            OR (n.destinatario_tipo = 'id_institucional_especifico' AND n.id_institucional_especifico = @idInstitucional)
           )
       `);
 
@@ -77,7 +102,6 @@ router.put('/:id/read', authenticateToken, async (req, res) => {
 
     const pool = await getPool();
 
-    // Verificar que la notificación existe
     const checkNotif = await pool.request()
       .input('notificationId', sql.Int, notificationId)
       .query('SELECT id FROM notificaciones WHERE id = @notificationId');
@@ -89,7 +113,6 @@ router.put('/:id/read', authenticateToken, async (req, res) => {
       });
     }
 
-    // Insertar o actualizar en notificaciones_leidas
     await pool.request()
       .input('notificationId', sql.Int, notificationId)
       .input('userId', sql.Int, userId)
@@ -119,12 +142,10 @@ router.put('/:id/read', authenticateToken, async (req, res) => {
 router.put('/read-all', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
-
     const pool = await getPool();
     const idInstitucional = req.user.id_institucional;
     const rol = req.user.rol;
 
-    // Obtener todas las notificaciones aplicables al usuario
     const notificationsResult = await pool.request()
       .input('idInstitucional', sql.Char(9), idInstitucional)
       .input('rol', sql.NVarChar(20), rol)
@@ -137,7 +158,6 @@ router.put('/read-all', authenticateToken, async (req, res) => {
           OR (destinatario_tipo = 'id_institucional_especifico' AND id_institucional_especifico = @idInstitucional)
       `);
 
-    // Marcar cada una como leída
     for (const notif of notificationsResult.recordset) {
       await pool.request()
         .input('notificationId', sql.Int, notif.id)
@@ -168,7 +188,7 @@ router.put('/read-all', authenticateToken, async (req, res) => {
 // POST /api/notifications - Crear nueva notificación (solo admin)
 router.post('/', authenticateToken, requireAdmin, validateNotification, async (req, res) => {
   try {
-    const { titulo, mensaje, tipo, destinatario_tipo, id_institucional_especifico, prioridad = 1, es_permanente = 0 } = req.body;
+    const { titulo, mensaje, tipo, destinatario_tipo, id_institucional_especifico } = req.body;
 
     const pool = await getPool();
     const insertResult = await pool.request()
@@ -177,19 +197,19 @@ router.post('/', authenticateToken, requireAdmin, validateNotification, async (r
       .input('tipo', sql.NVarChar(20), tipo)
       .input('destinatario_tipo', sql.NVarChar(20), destinatario_tipo)
       .input('id_institucional_especifico', sql.Char(9), id_institucional_especifico || null)
-      .input('prioridad', sql.Int, prioridad)
-      .input('es_permanente', sql.Bit, es_permanente ? 1 : 0)
       .input('created_by', sql.Int, req.user.id)
       .query(`
-        INSERT INTO notificaciones (titulo, mensaje, tipo, destinatario_tipo, id_institucional_especifico, prioridad, es_permanente, created_by, is_site_wide)
+        INSERT INTO notificaciones (titulo, mensaje, tipo, destinatario_tipo, id_institucional_especifico, created_by, is_site_wide)
         OUTPUT INSERTED.id
-        VALUES (@titulo, @mensaje, @tipo, @destinatario_tipo, @id_institucional_especifico, @prioridad, @es_permanente, @created_by, 0)
+        VALUES (@titulo, @mensaje, @tipo, @destinatario_tipo, @id_institucional_especifico, @created_by, 0)
       `);
 
     const notificationId = insertResult.recordset[0].id;
 
     // Contar usuarios afectados
     let countQuery = '';
+    const countRequest = pool.request();
+    
     if (destinatario_tipo === 'all') {
       countQuery = 'SELECT COUNT(*) as count FROM usuarios WHERE is_active = 1';
     } else if (destinatario_tipo === 'sellers') {
@@ -197,17 +217,18 @@ router.post('/', authenticateToken, requireAdmin, validateNotification, async (r
     } else if (destinatario_tipo === 'buyers') {
       countQuery = "SELECT COUNT(*) as count FROM usuarios WHERE rol = 'buyer' AND is_active = 1";
     } else if (destinatario_tipo === 'id_institucional_especifico' && id_institucional_especifico) {
-      countQuery = `SELECT COUNT(*) as count FROM usuarios WHERE id_institucional = '${id_institucional_especifico}' AND is_active = 1`;
+      countRequest.input('idInstitucional', sql.Char(9), id_institucional_especifico);
+      countQuery = 'SELECT COUNT(*) as count FROM usuarios WHERE id_institucional = @idInstitucional AND is_active = 1';
     }
 
-    const countResult = await pool.request().query(countQuery);
+    const countResult = await countRequest.query(countQuery);
 
     res.status(201).json({
       success: true,
       message: 'Notificación creada exitosamente',
       data: {
         notification_id: notificationId,
-        recipients_count: targetUsers.length
+        recipients_count: countResult.recordset[0].count
       }
     });
 
@@ -223,6 +244,9 @@ router.post('/', authenticateToken, requireAdmin, validateNotification, async (r
 // GET /api/notifications/admin - Obtener todas las notificaciones (solo admin)
 router.get('/admin', authenticateToken, requireAdmin, validatePagination, async (req, res) => {
   try {
+    const { page = 1, limit = 20 } = req.query;
+    const offset = (page - 1) * limit;
+
     const pool = await getPool();
     const result = await pool.request()
       .input('offset', sql.Int, parseInt(offset))
@@ -235,15 +259,13 @@ router.get('/admin', authenticateToken, requireAdmin, validatePagination, async 
           n.tipo,
           n.destinatario_tipo,
           n.id_institucional_especifico,
-          n.prioridad,
-          n.es_permanente,
           n.is_site_wide,
           n.created_at,
           COUNT(nl.id) as read_count
         FROM notificaciones n
         LEFT JOIN notificaciones_leidas nl ON n.id = nl.notificacion_id
-        GROUP BY n.id, n.titulo, n.mensaje, n.tipo, n.destinatario_tipo, n.id_institucional_especifico, n.prioridad, n.es_permanente, n.is_site_wide, n.created_at
-        ORDER BY n.prioridad DESC, n.created_at DESC
+        GROUP BY n.id, n.titulo, n.mensaje, n.tipo, n.destinatario_tipo, n.id_institucional_especifico, n.is_site_wide, n.created_at
+        ORDER BY n.created_at DESC
         OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
       `);
 
@@ -275,9 +297,8 @@ router.get('/admin', authenticateToken, requireAdmin, validatePagination, async 
 router.delete('/:id', authenticateToken, requireAdmin, validateId, async (req, res) => {
   try {
     const notificationId = req.params.id;
-
-    // Verificar que la notificación existe
     const pool = await getPool();
+
     const checkNotif = await pool.request()
       .input('notificationId', sql.Int, notificationId)
       .query('SELECT id FROM notificaciones WHERE id = @notificationId');
@@ -289,12 +310,10 @@ router.delete('/:id', authenticateToken, requireAdmin, validateId, async (req, r
       });
     }
 
-    // Primero eliminar registros de leídas
     await pool.request()
       .input('notificationId', sql.Int, notificationId)
       .query('DELETE FROM notificaciones_leidas WHERE notificacion_id = @notificationId');
 
-    // Luego eliminar la notificación
     await pool.request()
       .input('notificationId', sql.Int, notificationId)
       .query('DELETE FROM notificaciones WHERE id = @notificationId');
@@ -342,53 +361,34 @@ router.get('/site-status', async (req, res) => {
 router.put('/site-status', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { is_disabled } = req.body;
-
-    // Actualizar o insertar configuración del sitio
     const pool = await getPool();
-await pool.request()
-  .input('valor', sql.NVarChar(sql.MAX), (!is_disabled).toString())
-  .input('userId', sql.Int, req.user.id)
-  .query(`
-    IF EXISTS (SELECT 1 FROM configuracion_sitio WHERE clave = 'sitio_activo')
-    BEGIN
-      UPDATE configuracion_sitio 
-      SET valor = @valor, updated_at = GETDATE(), updated_by = @userId
-      WHERE clave = 'sitio_activo'
-    END
-    ELSE
-    BEGIN
-      INSERT INTO configuracion_sitio (clave, valor, descripcion, updated_by)
-      VALUES ('sitio_activo', @valor, 'Estado del sitio (true/false)', @userId)
-    END
-  `);
 
-    // Si se está deshabilitando el sitio, enviar notificación
+    await pool.request()
+      .input('valor', sql.NVarChar(sql.MAX), (!is_disabled).toString())
+      .input('userId', sql.Int, req.user.id)
+      .query(`
+        IF EXISTS (SELECT 1 FROM configuracion_sitio WHERE clave = 'sitio_activo')
+        BEGIN
+          UPDATE configuracion_sitio 
+          SET valor = @valor, updated_at = GETDATE(), updated_by = @userId
+          WHERE clave = 'sitio_activo'
+        END
+        ELSE
+        BEGIN
+          INSERT INTO configuracion_sitio (clave, valor, descripcion, updated_by)
+          VALUES ('sitio_activo', @valor, 'Estado del sitio (true/false)', @userId)
+        END
+      `);
+
     if (is_disabled) {
-      const maintenanceMessage = await query(
-        'SELECT valor FROM sitio_config WHERE clave = "maintenance_message"'
-      );
-
-      const message = maintenanceMessage.length > 0 ?
-        maintenanceMessage[0].valor :
-        'El sitio está temporalmente fuera de servicio por mantenimiento.';
-
-      // Crear notificación de mantenimiento
-      const result = await query(
-        'INSERT INTO notificaciones (titulo, mensaje, tipo, destinatario_tipo, is_site_wide) VALUES (?, ?, "warning", "all", TRUE)',
-        ['Mantenimiento del sitio', message]
-      );
-
-      const notificationId = result.insertId;
-
-      // Enviar a todos los usuarios activos
-      const users = await query('SELECT id FROM usuarios WHERE is_active = TRUE');
-      if (users.length > 0) {
-        const userNotifications = users.map(user => [notificationId, user.id]);
-        await query(
-          'INSERT INTO usuario_notificaciones (notificacion_id, usuario_id) VALUES ?',
-          [userNotifications]
-        );
-      }
+      await pool.request()
+        .input('titulo', sql.NVarChar(255), 'Mantenimiento del sitio')
+        .input('mensaje', sql.NVarChar(sql.MAX), 'El sitio está temporalmente fuera de servicio por mantenimiento.')
+        .input('userId', sql.Int, req.user.id)
+        .query(`
+          INSERT INTO notificaciones (titulo, mensaje, tipo, destinatario_tipo, is_site_wide, created_by)
+          VALUES (@titulo, @mensaje, 'warning', 'all', 1, @userId)
+        `);
     }
 
     res.json({

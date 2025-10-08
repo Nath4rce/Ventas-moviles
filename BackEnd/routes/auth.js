@@ -11,23 +11,20 @@ router.post('/login', validateLogin, async (req, res) => {
   try {
     const { idInstitucional, password } = req.body;
 
-    // Buscar usuario por id_institucional
     const pool = await getPool();
     const result = await pool.request()
       .input('idInstitucional', sql.Char(9), idInstitucional)
-      .query('SELECT id, id_institucional, email, password_hash, nombre, rol, is_active FROM usuarios WHERE id_institucional = @idInstitucional'
-      );
+      .query('SELECT id, id_institucional, email, password_hash, nombre, rol, is_active FROM usuarios WHERE id_institucional = @idInstitucional');
 
-    if (users.length === 0) {
+    if (result.recordset.length === 0) {
       return res.status(401).json({
         success: false,
         message: 'Credenciales incorrectas'
       });
     }
 
-    const users = result.recordset;
+    const user = result.recordset[0];
 
-    // Verificar si el usuario está activo
     if (!user.is_active) {
       return res.status(401).json({
         success: false,
@@ -35,7 +32,6 @@ router.post('/login', validateLogin, async (req, res) => {
       });
     }
 
-    // Verificar contraseña
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {
       return res.status(401).json({
@@ -44,10 +40,8 @@ router.post('/login', validateLogin, async (req, res) => {
       });
     }
 
-    // Generar token JWT
     const token = generateToken(user.id);
 
-    // Respuesta exitosa
     res.json({
       success: true,
       message: 'Inicio de sesión exitoso',
@@ -78,21 +72,18 @@ router.post('/register', validateRegister, async (req, res) => {
   try {
     const { idInstitucional, email, password, nombre } = req.body;
 
-    // Verificar si el student_id ya existe
     const pool = await getPool();
     const checkId = await pool.request()
       .input('idInstitucional', sql.Char(9), idInstitucional)
       .query('SELECT id FROM usuarios WHERE id_institucional = @idInstitucional');
 
-
-    if (existingStudentId.length > 0) {
+    if (checkId.recordset.length > 0) {
       return res.status(400).json({
         success: false,
         message: 'ID estudiantil ya registrado'
       });
     }
 
-    // Verificar si el email ya existe
     const checkEmail = await pool.request()
       .input('email', sql.NVarChar(255), email)
       .query('SELECT id FROM usuarios WHERE email = @email');
@@ -104,11 +95,9 @@ router.post('/register', validateRegister, async (req, res) => {
       });
     }
 
-    // Hash de la contraseña
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    // Insertar nuevo usuario
     const insertResult = await pool.request()
       .input('idInstitucional', sql.Char(9), idInstitucional)
       .input('email', sql.NVarChar(255), email)
@@ -119,11 +108,8 @@ router.post('/register', validateRegister, async (req, res) => {
           VALUES (@idInstitucional, @email, @passwordHash, @nombre, 'buyer', 1)`);
 
     const newUserId = insertResult.recordset[0].id;
-
-    // Generar token JWT
     const token = generateToken(newUserId);
 
-    // Respuesta exitosa
     res.status(201).json({
       success: true,
       message: 'Usuario registrado exitosamente',
@@ -167,11 +153,9 @@ router.get('/me', authenticateToken, async (req, res) => {
   }
 });
 
-// POST /api/auth/logout - Cerrar sesión (opcional, ya que JWT es stateless)
+// POST /api/auth/logout - Cerrar sesión
 router.post('/logout', authenticateToken, async (req, res) => {
   try {
-    // En un sistema más complejo, aquí podrías invalidar el token
-    // Por ahora, solo confirmamos el logout
     res.json({
       success: true,
       message: 'Sesión cerrada exitosamente'
@@ -191,9 +175,9 @@ router.put('/profile', authenticateToken, async (req, res) => {
     const { nombre, email } = req.body;
     const userId = req.user.id;
 
-    // Verificar si el email ya existe en otro usuario
+    const pool = await getPool();
+
     if (email) {
-      const pool = await getPool();
       const checkEmail = await pool.request()
         .input('email', sql.NVarChar(255), email)
         .input('userId', sql.Int, userId)
@@ -207,19 +191,9 @@ router.put('/profile', authenticateToken, async (req, res) => {
       }
     }
 
-    // Actualizar perfil
     const updateFields = [];
-    const updateValues = [];
-
-    if (nombre) {
-      updateFields.push('nombre = ?');
-      updateValues.push(nombre);
-    }
-
-    if (email) {
-      updateFields.push('email = ?');
-      updateValues.push(email);
-    }
+    if (nombre) updateFields.push('nombre = @nombre');
+    if (email) updateFields.push('email = @email');
 
     if (updateFields.length === 0) {
       return res.status(400).json({
@@ -228,17 +202,12 @@ router.put('/profile', authenticateToken, async (req, res) => {
       });
     }
 
-    updateValues.push(userId);
-
     const request = pool.request().input('userId', sql.Int, userId);
-    updateValues.forEach((val, idx) => {
-      const fieldName = updateFields[idx].split(' = ')[0];
-      request.input(fieldName, sql.NVarChar(255), val);
-    });
-    await request.query(`UPDATE usuarios SET ${updateFields.join(', ')} WHERE id = @userId`);
+    if (nombre) request.input('nombre', sql.NVarChar(255), nombre);
+    if (email) request.input('email', sql.NVarChar(255), email);
 
+    await request.query(`UPDATE usuarios SET ${updateFields.join(', ')}, updated_at = GETDATE() WHERE id = @userId`);
 
-    // Obtener usuario actualizado
     const userResult = await pool.request()
       .input('userId', sql.Int, userId)
       .query('SELECT id, id_institucional, email, nombre, rol, is_active FROM usuarios WHERE id = @userId');
@@ -247,7 +216,7 @@ router.put('/profile', authenticateToken, async (req, res) => {
       success: true,
       message: 'Perfil actualizado exitosamente',
       data: {
-        user: updatedUser[0]
+        user: userResult.recordset[0]
       }
     });
 
