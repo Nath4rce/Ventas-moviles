@@ -280,7 +280,6 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useProductsStore } from '../stores/products'
 import { useNotificationsStore } from '../stores/notifications'
-import { useUIStore } from '../stores/ui'
 
 export default {
   name: 'Profile',
@@ -289,7 +288,6 @@ export default {
     const authStore = useAuthStore()
     const productsStore = useProductsStore()
     const notificationsStore = useNotificationsStore()
-    const ui = useUIStore()
 
     const user = computed(() => authStore.user)
 
@@ -366,11 +364,8 @@ export default {
     // Cierre de sesión con pantalla de carga
     const logout = async () => {
       if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
-        ui.showScreenLoading('Cerrando sesión...')
-        await new Promise(resolve => setTimeout(resolve, 1000))
         authStore.logout()
         router.push('/login')
-        ui.hideScreenLoading()
       }
     }
 
