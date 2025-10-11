@@ -48,6 +48,11 @@ export const useProductsStore = defineStore('products', {
       }
     },
 
+    // Productos del usuario actual
+    userProducts: (state) => (userIdInstitucional) => {
+      return state.products.filter(p => p.sellerId === userIdInstitucional)
+    },
+
     // Obtener producto por ID
     getProductById: (state) => (id) => {
       return state.products.find(product => product.id === parseInt(id))
@@ -79,10 +84,12 @@ export const useProductsStore = defineStore('products', {
       this.error = null
       try {
         const params = new URLSearchParams()
-        if (filters.categoria_id) params.append('categoria_id', filters.categoria_id)
+        if (filters.categoria_id) params.append('categoria_id', filters.categoria_nombre)
         if (filters.precio_min) params.append('precio_min', filters.precio_min)
         if (filters.precio_max) params.append('precio_max', filters.precio_max)
         if (filters.search) params.append('search', filters.search)
+        if (filters.sort_by) params.append('sort_by', filters.sort_by)
+        if (filters.sort_order) params.append('sort_order', filters.sort_order)
 
         const response = await axios.get(`${API_URL}/products?${params}`)
 
@@ -95,13 +102,12 @@ export const useProductsStore = defineStore('products', {
             category: p.categoria_nombre,
             categoryIcon: p.categoria_icono,
             images: [p.imagen_principal].filter(Boolean), // Usar imagen principal
-            sellerId: p.vendedor_id,
+            sellerId: p.vendedor_id_institucional,
             sellerName: p.vendedor_nombre,
             sellerPhone: p.vendedor_telefono,
-            sellerIdInstitucional: p.vendedor_id_institucional,
             rating: p.rating_promedio || 0,
             reviewCount: p.total_resenas || 0,
-            isActive: p.is_active,
+            isActive: Boolean(p.is_active),
             createdAt: p.created_at
           }))
         }
@@ -115,17 +121,25 @@ export const useProductsStore = defineStore('products', {
 
     async fetchProductReviews(productId) {
       try {
-        const response = await axios.get(`${API_URL}/reviews/product/${productId}`)
+        //console.log('Fetching reviews for product:', productId)
+        const id = parseInt(productId, 10)
+        if (isNaN(id)) {
+          console.error('Invalid product ID')
+          return
+        }
+        const response = await axios.get(`${API_URL}/reviews/product/${id}`)
+        //console.log('Reviews response:', response.data)
         if (response.data.success) {
           this.reviews = response.data.data.reviews.map(r => ({
             id: r.id,
-            productId: r.producto_id,
-            userId: r.usuario_id,
             userName: r.usuario_nombre,
+            userInstitutionalId: r.usuario_id_institucional,
+            userAvatar: r.usuario_avatar,
             rating: r.rating,
             comment: r.comentario,
             createdAt: r.created_at
           }))
+          //console.log('Mapped reviews:', this.reviews)
         }
       } catch (error) {
         console.error('Error fetching reviews:', error)
