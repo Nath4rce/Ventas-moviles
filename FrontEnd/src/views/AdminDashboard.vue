@@ -271,7 +271,7 @@
                         </div>
                       </td>
                       <td>
-                        <span class="badge bg-info">{{ getCategoryName(product.category) }}</span>
+                        <span class="badge bg-info">{{ product.category }}</span>
                       </td>
                       <td>
                         <div class="fw-semibold">{{ product.sellerName }}</div>
@@ -333,7 +333,7 @@
                     </small>
                   </div>
                   <div class="text-end">
-                    <span class="badge bg-primary">{{ getCategoryName(product.category) }}</span>
+                    <span class="badge bg-primary">{{ product.category }}</span>
                   </div>
                 </div>
               </div>
@@ -524,7 +524,7 @@ export default {
     const newRole = ref('buyer')
 
     const userFilters = reactive({
-      nrc: '',
+      idInstitucional: '',
       rol: 'all',
       status: 'all'
     })
@@ -555,21 +555,41 @@ export default {
 
     // Estadísticas
     const stats = computed(() => ({
-      totalUsers: authStore.users.length,
-      totalProducts: productsStore.products.filter(p => p.isActive).length,
-      totalProductsInactive: productsStore.products.filter(p => !p.isActive).length,
-      totalReviews: productsStore.reviews.length,
-      totalNotifications: notificationsStore.notifications.length
+      totalUsers: authStore.users?.length || 0,
+      totalProducts: productsStore.products?.filter(p => p.isActive).length || 0,
+      totalProductsInactive: productsStore.products?.filter(p => !p.isActive).length || 0,
+      totalReviews: productsStore.reviews?.length || 0,
+      totalNotifications: notificationsStore.notifications?.length || 0
     }))
 
     // Usuarios filtrados
+    /*const filteredUsers = computed(() => {
+      //return authStore.searchUsers(userFilters)
+      return []
+    })*/
+
+    const users = ref([])
+
     const filteredUsers = computed(() => {
-      return authStore.searchUsers(userFilters)
+      let filtered = users.value
+
+      // Filtrar por rol
+      if (userFilters.role !== 'all') {
+        filtered = filtered.filter(u => u.rol === userFilters.role)
+      }
+
+      // Filtrar por estado
+      if (userFilters.status !== 'all') {
+        const isActive = userFilters.status === 'active'
+        filtered = filtered.filter(u => u.isActive === isActive)
+      }
+
+      return filtered
     })
 
     // Productos filtrados
     const filteredProducts = computed(() => {
-      let filtered = productsStore.products
+      let filtered = productsStore.products || []
 
       // Filtrar por título
       if (productFilters.title) {
@@ -594,7 +614,7 @@ export default {
 
     // Productos recientes
     const recentProducts = computed(() =>
-      productsStore.products
+      (productsStore.products || [])
         .filter(p => p.isActive)
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
         .slice(0, 5)
@@ -619,15 +639,6 @@ export default {
         buyer: 'bg-primary'
       }
       return classes[rol] || 'bg-secondary'
-    }
-
-    const getCategoryName = (category) => {
-      const names = {
-        alimentos: 'Alimentos',
-        accesorios: 'Accesorios',
-        papeleria: 'Papelería'
-      }
-      return names[category] || 'Otros'
     }
 
     const formatPrice = (price) => {
@@ -753,9 +764,27 @@ export default {
       }
     }
 
-    onMounted(() => {
+    onMounted(async () => {
       // Inicializar autenticación si hay datos guardados
       authStore.initAuth()
+
+      // Cargar usuarios
+      const result = await authStore.searchUsers({})
+      if (result.success) {
+        users.value = result.users.map(u => ({
+          id: u.id,
+          idInstitucional: u.id_institucional,
+          name: u.nombre,
+          email: u.email,
+          rol: u.rol,
+          isActive: u.is_active
+        }))
+      }
+
+      // Cargar productos
+      await productsStore.fetchProducts()
+      // Cargar notificaciones
+      await notificationsStore.fetchNotifications()
     })
 
     return {
@@ -778,7 +807,6 @@ export default {
       isSiteDisabled,
       getRoleName,
       getRoleBadgeClass,
-      getCategoryName,
       formatPrice,
       toggleSiteStatus,
       sendNotification,
