@@ -109,7 +109,7 @@
               </h5>
             </div>
             <div class="card-body">
-              <div v-if="myProducts.length === 0" class="text-center py-4">
+              <div v-if="userProducts.length === 0" class="text-center py-4">
                 <i class="fas fa-box text-muted mb-3" style="font-size: 2rem;"></i>
                 <p class="text-muted mb-3">No tienes productos publicados</p>
                 <router-link to="/publish" class="btn btn-primary">
@@ -118,7 +118,7 @@
                 </router-link>
               </div>
               <div v-else>
-                <div v-for="product in myProducts" :key="product.id"
+                <div v-for="product in userProducts" :key="product.id"
                   class="product-item d-flex align-items-center mb-3 p-3 border rounded">
                   <img :src="product.images[0]" :alt="product.title" class="rounded me-3" width="60" height="60"
                     style="object-fit: cover;">
@@ -252,11 +252,9 @@ export default {
     const user = computed(() => authStore.user)
 
     // Productos del usuario (solo vendedores)
-    const myProducts = computed(() =>
-      productsStore.products.filter(product =>
-        product.sellerId === authStore.user?.id
-      )
-    )
+    const userProducts = computed(() => {
+      return productsStore.userProducts(authStore.user?.id_institucional) || []
+    })
 
     // Reseñas del usuario
     const myReviews = computed(() =>
@@ -267,7 +265,7 @@ export default {
 
     // Estadísticas del usuario
     const userStats = computed(() => ({
-      productsCount: myProducts.value.length,
+      productsCount: userProducts.value.length,
       reviewsCount: myReviews.value.length
     }))
 
@@ -275,6 +273,7 @@ export default {
     const unreadNotifications = computed(() =>
       notificationsStore.unreadCount(authStore.user?.id)
     )
+
 
     const getRoleName = (rol) => {
       const names = {
@@ -330,14 +329,18 @@ export default {
 
     onMounted(async () => {
       authStore.initAuth()
+      //console.log('👤 Usuario actual:', authStore.user)
+      //console.log('🔑 Usuario ID:', authStore.user?.id)
       if (authStore.isAuthenticated) {
-        await productsStore.fetchProducts({ vendedor_id: authStore.user.id })
+        await productsStore.fetchProducts()
+        //console.log('📦 Productos en store:', productsStore.products)
+        //console.log('🛒 Productos del usuario:', userProducts.value)
       }
     })
 
     return {
       user,
-      myProducts,
+      userProducts,
       myReviews,
       userStats,
       unreadNotifications,

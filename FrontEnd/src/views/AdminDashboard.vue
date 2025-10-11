@@ -45,7 +45,7 @@
             <div class="card-body">
               <div class="d-flex justify-content-between">
                 <div>
-                  <h4 class="fw-bold">{{ stats.totalUsers }}</h4>
+                  <h4 class="fw-bold">{{ stats.total_usuarios_activos }}</h4>
                   <p class="mb-0">Usuarios Registrados</p>
                 </div>
                 <i class="fas fa-users fa-2x opacity-75"></i>
@@ -59,7 +59,7 @@
             <div class="card-body">
               <div class="d-flex justify-content-between">
                 <div>
-                  <h4 class="fw-bold">{{ stats.totalProducts }}</h4>
+                  <h4 class="fw-bold">{{ stats.total_productos_activos }}</h4>
                   <p class="mb-0">Productos Activos</p>
                 </div>
                 <i class="fas fa-box fa-2x opacity-75"></i>
@@ -73,24 +73,10 @@
             <div class="card-body">
               <div class="d-flex justify-content-between">
                 <div>
-                  <h4 class="fw-bold">{{ stats.totalReviews }}</h4>
+                  <h4 class="fw-bold">{{ stats.total_resenas }}</h4>
                   <p class="mb-0">Reseñas Totales</p>
                 </div>
                 <i class="fas fa-star fa-2x opacity-75"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12 col-sm-6 col-lg-3">
-          <div class="card bg-warning text-dark">
-            <div class="card-body">
-              <div class="d-flex justify-content-between">
-                <div>
-                  <h4 class="fw-bold">{{ stats.totalNotifications }}</h4>
-                  <p class="mb-0">Notificaciones</p>
-                </div>
-                <i class="fas fa-bell fa-2x opacity-75"></i>
               </div>
             </div>
           </div>
@@ -101,7 +87,7 @@
             <div class="card-body">
               <div class="d-flex justify-content-between">
                 <div>
-                  <h4 class="fw-bold">{{ stats.totalProductsInactive }}</h4>
+                  <h4 class="fw-bold">{{ stats.total_productos_inactivos }}</h4>
                   <p class="mb-0">Productos Inactivos</p>
                 </div>
                 <i class="fas fa-ban fa-2x opacity-75"></i>
@@ -166,15 +152,16 @@
                     <tr v-for="user in filteredUsers" :key="user.id">
                       <td>
                         <div class="d-flex align-items-center">
-                          <img :src="user.avatar" :alt="user.nombre" class="rounded-circle me-2" width="30" height="30">
+                          <img :src="user.avatar_url || '/default-avatar.png'" :alt="user.nombre"
+                            class="rounded-circle me-2" width="30" height="30">
                           <div>
                             <div class="fw-semibold">{{ user.nombre }}</div>
-                            <small class="text-muted">{{ user.idInstitucional }}</small>
+                            <small class="text-muted">{{ user.email }}</small> <!-- ← CAMBIAR -->
                           </div>
                         </div>
                       </td>
                       <td>
-                        <span class="badge bg-info">{{ user.idInstitucional }}</span>
+                        <span class="badge bg-info">{{ user.id_institucional }}</span> <!-- ← CAMBIAR -->
                       </td>
                       <td>
                         <span class="badge" :class="getRoleBadgeClass(user.rol)">
@@ -182,8 +169,8 @@
                         </span>
                       </td>
                       <td>
-                        <span class="badge" :class="user.isActive ? 'bg-success' : 'bg-danger'">
-                          {{ user.isActive ? 'Activo' : 'Inactivo' }}
+                        <span class="badge" :class="user.is_active ? 'bg-success' : 'bg-danger'"> <!-- ← CAMBIAR -->
+                          {{ user.is_active ? 'Activo' : 'Inactivo' }}
                         </span>
                       </td>
                       <td>
@@ -507,12 +494,49 @@ import { useAuthStore } from '../stores/auth'
 import { useProductsStore } from '../stores/products'
 import { useNotificationsStore } from '../stores/notifications'
 
+import axios from 'axios'
+const API_URL = import.meta.env.VITE_API_URL
+
 export default {
   nombre: 'AdminDashboard',
   setup() {
     const authStore = useAuthStore()
     const productsStore = useProductsStore()
     const notificationsStore = useNotificationsStore()
+
+    const users = ref([])
+
+    // Funciones para fetch
+    const fetchStats = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/admin/stats`)
+        if (response.data.success) {
+          stats.value = response.data.data
+        }
+      } catch (error) {
+        console.error('Error fetching stats:', error)
+      }
+    }
+
+    const fetchUsers = async () => {
+      try {
+        const params = new URLSearchParams()
+        if (userFilters.value.rol !== 'all') params.append('rol', userFilters.value.rol)
+        if (userFilters.value.status !== 'all') params.append('status', userFilters.value.status)
+        if (userFilters.value.search) params.append('search', userFilters.value.search)
+
+        console.log('🔍 Fetching users with params:', params.toString()) // ← AGREGAR
+        const response = await axios.get(`${API_URL}/admin/users?${params}`)
+        console.log('📥 Users response:', response.data) // ← AGREGAR
+
+        if (response.data.success) {
+          users.value = response.data.data.users
+          console.log('👥 Users array:', users.value) // ← AGREGAR
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error)
+      }
+    }
 
     const loading = ref(false)
     const sendingNotification = ref(false)
@@ -523,10 +547,10 @@ export default {
     const selectedUser = ref(null)
     const newRole = ref('buyer')
 
-    const userFilters = reactive({
-      idInstitucional: '',
+    const userFilters = ref({
       rol: 'all',
-      status: 'all'
+      status: 'all',
+      search: ''
     })
 
     const productFilters = reactive({
@@ -554,37 +578,38 @@ export default {
     })
 
     // Estadísticas
-    const stats = computed(() => ({
-      totalUsers: authStore.users?.length || 0,
-      totalProducts: productsStore.products?.filter(p => p.isActive).length || 0,
-      totalProductsInactive: productsStore.products?.filter(p => !p.isActive).length || 0,
-      totalReviews: productsStore.reviews?.length || 0,
-      totalNotifications: notificationsStore.notifications?.length || 0
-    }))
-
-    // Usuarios filtrados
-    /*const filteredUsers = computed(() => {
-      //return authStore.searchUsers(userFilters)
-      return []
-    })*/
-
-    const users = ref([])
+    const stats = ref({
+      total_usuarios_activos: 0,
+      total_vendedores: 0,
+      total_compradores: 0,
+      total_productos_activos: 0,
+      total_resenas: 0,
+      total_categorias: 0,
+      total_productos_inactivos: 0,
+    })
 
     const filteredUsers = computed(() => {
-      let filtered = users.value
+      console.log('🔄 Filtering users. Total:', users.value.length) // ← AGREGAR
+      console.log('🔄 Filters:', userFilters.value) // ← AGREGAR
+      /*let filtered = users.value
+
 
       // Filtrar por rol
-      if (userFilters.role !== 'all') {
+      if (userFilters.rol !== 'all') {
         filtered = filtered.filter(u => u.rol === userFilters.role)
       }
 
       // Filtrar por estado
-      if (userFilters.status !== 'all') {
-        const isActive = userFilters.status === 'active'
-        filtered = filtered.filter(u => u.isActive === isActive)
+      if (userFilters.value.status !== 'all') {
+        if (userFilters.value.status === 'active') {
+          filtered = filtered.filter(u => u.is_active === 1 || u.is_active === true)
+        } else {
+          filtered = filtered.filter(u => u.is_active === 0 || u.is_active === false)
+        }
       }
-
-      return filtered
+      console.log('✅ Filtered result:', filtered.length)
+      return filtered*/
+      return users.value 
     })
 
     // Productos filtrados
@@ -769,7 +794,7 @@ export default {
       authStore.initAuth()
 
       // Cargar usuarios
-      const result = await authStore.searchUsers({})
+      /*const result = await authStore.searchUsers({})
       if (result.success) {
         users.value = result.users.map(u => ({
           id: u.id,
@@ -779,15 +804,19 @@ export default {
           rol: u.rol,
           isActive: u.is_active
         }))
-      }
+      }*/
 
-      // Cargar productos
       await productsStore.fetchProducts()
-      // Cargar notificaciones
       await notificationsStore.fetchNotifications()
+      await fetchStats()
+      await fetchUsers()
     })
 
     return {
+      stats,
+      users,
+      fetchStats,
+      fetchUsers,
       loading,
       sendingNotification,
       creatingUser,

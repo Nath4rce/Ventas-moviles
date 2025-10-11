@@ -89,6 +89,7 @@ router.get('/', validatePagination, async (req, res) => {
         p.precio,
         p.rating_promedio,
         p.total_resenas,
+        p.is_active,   
         p.created_at,
         c.nombre as categoria_nombre,
         c.icono as categoria_icono,

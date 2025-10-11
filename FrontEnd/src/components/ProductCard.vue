@@ -3,74 +3,40 @@
     <div class="card h-100 shadow-sm border-0">
       <!-- Imágenes del producto -->
       <div class="product-images position-relative">
-        <div 
-          id="carousel-{{ product.id }}" 
-          class="carousel slide" 
-          data-bs-ride="carousel"
-        >
+        <div id="carousel-{{ product.id }}" class="carousel slide" data-bs-ride="carousel">
           <div class="carousel-inner">
-            <div 
-              v-for="(image, index) in product.images" 
-              :key="index"
-              class="carousel-item"
-              :class="{ active: index === 0 }"
-            >
-              <ImageWithFallback 
-                :src="image" 
-                :alt="product.title"
-                img-class="d-block w-100 product-image"
-                :width="300"
-                :height="200"
-                fallback-text="Imagen no disponible"
-              />
+            <div v-for="(image, index) in product.images" :key="index" class="carousel-item"
+              :class="{ active: index === 0 }">
+              <ImageWithFallback :src="image" :alt="product.title" img-class="d-block w-100 product-image" :width="300"
+                :height="200" fallback-text="Imagen no disponible" />
             </div>
           </div>
-          
+
           <!-- Controles del carrusel -->
-          <button 
-            v-if="product.images.length > 1"
-            class="carousel-control-prev" 
-            type="button" 
-            :data-bs-target="`#carousel-${product.id}`" 
-            data-bs-slide="prev"
-          >
+          <button v-if="product.images.length > 1" class="carousel-control-prev" type="button"
+            :data-bs-target="`#carousel-${product.id}`" data-bs-slide="prev">
             <span class="carousel-control-prev-icon" aria-hidden="true"></span>
             <span class="visually-hidden">Anterior</span>
           </button>
-          <button 
-            v-if="product.images.length > 1"
-            class="carousel-control-next" 
-            type="button" 
-            :data-bs-target="`#carousel-${product.id}`" 
-            data-bs-slide="next"
-          >
+          <button v-if="product.images.length > 1" class="carousel-control-next" type="button"
+            :data-bs-target="`#carousel-${product.id}`" data-bs-slide="next">
             <span class="carousel-control-next-icon" aria-hidden="true"></span>
             <span class="visually-hidden">Siguiente</span>
           </button>
         </div>
 
         <!-- Indicadores de imágenes -->
-        <div 
-          v-if="product.images.length > 1" 
-          class="carousel-indicators"
-        >
-          <button 
-            v-for="(image, index) in product.images" 
-            :key="index"
-            type="button" 
-            :data-bs-target="`#carousel-${product.id}`" 
-            :data-bs-slide-to="index"
-            :class="{ active: index === 0 }"
-            aria-current="true"
-            :aria-label="`Imagen ${index + 1}`"
-          ></button>
+        <div v-if="product.images.length > 1" class="carousel-indicators">
+          <button v-for="(image, index) in product.images" :key="index" type="button"
+            :data-bs-target="`#carousel-${product.id}`" :data-bs-slide-to="index" :class="{ active: index === 0 }"
+            aria-current="true" :aria-label="`Imagen ${index + 1}`"></button>
         </div>
 
         <!-- Badge de categoría -->
         <div class="position-absolute top-0 start-0 m-2">
           <span class="badge bg-primary">
-            <i :class="getCategoryIcon(product.category)" class="me-1"></i>
-            {{ getCategoryName(product.category) }}
+            <i :class="['fas', product.categoryIcon]" class="me-1"></i>
+            {{ product.category }}
           </span>
         </div>
 
@@ -105,12 +71,8 @@
         <div class="rating-section mb-3">
           <div class="d-flex align-items-center mb-1">
             <div class="stars me-2">
-              <i 
-                v-for="star in 5" 
-                :key="star"
-                class="fas fa-star"
-                :class="star <= Math.round(product.rating) ? 'text-warning' : 'text-muted'"
-              ></i>
+              <i v-for="star in 5" :key="star" class="fas fa-star"
+                :class="star <= Math.round(product.rating) ? 'text-warning' : 'text-muted'"></i>
             </div>
             <span class="text-muted small">
               ({{ product.reviewCount }} reseña{{ product.reviewCount !== 1 ? 's' : '' }})
@@ -125,12 +87,9 @@
               ${{ formatPrice(product.price) }}
             </span>
           </div>
-          
+
           <div class="actions">
-            <button 
-              class="btn btn-primary btn-sm"
-              @click="viewDetails"
-            >
+            <button class="btn btn-primary btn-sm" @click="viewDetails">
               <i class="fas fa-eye me-1"></i>
               Ver Detalles
             </button>
@@ -166,27 +125,10 @@ export default {
   setup(props, { emit }) {
     const router = useRouter()
     const authStore = useAuthStore()
-    const getCategoryIcon = (category) => {
-      const icons = {
-        alimentos: 'fas fa-utensils',
-        accesorios: 'fas fa-laptop',
-        papeleria: 'fas fa-pen'
-      }
-      return icons[category] || 'fas fa-box'
-    }
-
-    const getCategoryName = (category) => {
-      const names = {
-        alimentos: 'Alimentos',
-        accesorios: 'Accesorios',
-        papeleria: 'Papelería'
-      }
-      return names[category] || 'Otros'
-    }
 
     const truncateDescription = (description) => {
       const maxLength = props.viewMode === 'list' ? 100 : 80
-      return description.length > maxLength 
+      return description.length > maxLength
         ? description.substring(0, maxLength) + '...'
         : description
     }
@@ -205,8 +147,6 @@ export default {
 
 
     return {
-      getCategoryIcon,
-      getCategoryName,
       truncateDescription,
       formatPrice,
       viewDetails
@@ -313,28 +253,28 @@ export default {
   .product-images {
     height: 180px;
   }
-  
+
   .product-image {
     height: 180px;
   }
-  
+
   .product-card.list-view .product-images {
     width: 120px;
     height: 120px;
   }
-  
+
   .product-card.list-view .product-image {
     height: 120px;
   }
-  
+
   .product-card.list-view .card-body {
     padding: 1rem;
   }
-  
+
   .price-section .h4 {
     font-size: 1.25rem;
   }
-  
+
   .btn-sm {
     padding: 0.375rem 0.75rem;
     font-size: 0.8rem;
@@ -346,7 +286,7 @@ export default {
   .product-images {
     height: 220px;
   }
-  
+
   .product-image {
     height: 220px;
   }

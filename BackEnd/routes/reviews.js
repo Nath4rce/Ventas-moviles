@@ -1,14 +1,21 @@
 const express = require('express');
 const { getPool, sql } = require('../config/database');
 const { authenticateToken, requireBuyer } = require('../middleware/auth');
-const { validateReview, validateId } = require('../middleware/validation');
+const { validateReview, validateId, validateIdParam  } = require('../middleware/validation');
 
 const router = express.Router();
 
 // GET /api/reviews/product/:productId - Obtener reseñas de un producto
-router.get('/product/:productId', validateId, async (req, res) => {
+router.get('/product/:productId', validateIdParam('productId'), async (req, res) => {
   try {
-    const productId = req.params.productId;
+    const productId = parseInt(req.params.productId, 10);
+
+    if (isNaN(productId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de producto inválido'
+      });
+    }
     const pool = await getPool();
 
     // Verificar que el producto existe

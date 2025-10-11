@@ -71,8 +71,8 @@
             <!-- Categoría y rating -->
             <div class="d-flex justify-content-between align-items-start mb-3">
               <span class="badge bg-primary fs-6 px-3 py-2">
-                <i :class="getCategoryIcon(product.category)" class="me-1"></i>
-                {{ getCategoryName(product.category) }}
+                <i :class="`fas ${product.categoryIcon}`" class="me-1"></i>
+                {{ product.category }}
               </span>
               <div class="rating-display">
                 <div class="stars">
@@ -241,9 +241,7 @@ export default {
       productsStore.getProductById(route.params.id)
     )
 
-    const reviews = computed(() =>
-      productsStore.getProductReviews(route.params.id)
-    )
+    const reviews = computed(() => productsStore.reviews)
 
     const canLeaveReview = computed(() =>
       authStore.isAuthenticated &&
@@ -257,24 +255,6 @@ export default {
 
     const hoveredStar = ref(0)
     const submittingReview = ref(false)
-
-    const getCategoryIcon = (category) => {
-      const icons = {
-        alimentos: 'fas fa-utensils',
-        accesorios: 'fas fa-laptop',
-        papeleria: 'fas fa-pen'
-      }
-      return icons[category] || 'fas fa-box'
-    }
-
-    const getCategoryName = (category) => {
-      const names = {
-        alimentos: 'Alimentos',
-        accesorios: 'Accesorios',
-        papeleria: 'Papelería'
-      }
-      return names[category] || 'Otros'
-    }
 
     const formatPrice = (price) => {
       return new Intl.NumberFormat('es-MX').format(price)
@@ -346,6 +326,7 @@ export default {
 
     onMounted(async () => {
       authStore.initAuth()
+      //await productsStore.fetchCategories()
       await productsStore.fetchProducts()
       await productsStore.fetchProductReviews(route.params.id)
     })
@@ -358,8 +339,6 @@ export default {
       hoveredStar,
       submittingReview,
       authStore,
-      getCategoryIcon,
-      getCategoryName,
       formatPrice,
       formatDate,
       goToSlide,

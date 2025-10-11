@@ -159,7 +159,7 @@ CREATE TABLE notificaciones (
     id INT IDENTITY(1,1) PRIMARY KEY,
     titulo NVARCHAR(255) NOT NULL,
     mensaje NVARCHAR(MAX) NOT NULL,
-    tipo NVARCHAR(20) NOT NULL CHECK (tipo IN ('info', 'success', 'warning', 'danger')) DEFAULT 'info',
+    tipo NVARCHAR(30) NOT NULL CHECK (tipo IN ('info', 'success', 'warning', 'danger')) DEFAULT 'info',
     destinatario_tipo NVARCHAR(20) NOT NULL CHECK (destinatario_tipo IN ('all', 'sellers', 'buyers', 'id_institucional_especifico')) DEFAULT 'all',
     id_institucional_especifico CHAR(9), -- ID institucional para notificaciones dirigidas
     is_site_wide BIT NOT NULL DEFAULT 0, -- Notificación global del sitio

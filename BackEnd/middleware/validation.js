@@ -136,7 +136,16 @@ const validateUser = [
 const validateId = [
   param('id')
     .isInt({ min: 1 })
-    .withMessage('ID debe ser un número entero positivo'),
+    .withMessage('ID debe ser un número entero positivo')
+    .toInt(), 
+  handleValidationErrors
+];
+
+const validateIdParam = (paramName = 'id') => [
+  param(paramName)
+    .isInt({ min: 1 })
+    .withMessage(`El parámetro '${paramName}' debe ser un número entero positivo`)
+    .toInt(),
   handleValidationErrors
 ];
 
@@ -162,5 +171,6 @@ module.exports = {
   validateNotification,
   validateUser,
   validateId,
+  validateIdParam,
   validatePagination
 };

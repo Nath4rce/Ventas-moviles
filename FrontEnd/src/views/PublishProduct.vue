@@ -394,6 +394,7 @@ export default {
       errors,
       submitting,
       currentProduct,
+      productsStore,
       addImage,
       removeImage,
       handleImageError,

@@ -91,6 +91,7 @@ export const useProductsStore = defineStore('products', {
         if (filters.sort_by) params.append('sort_by', filters.sort_by)
         if (filters.sort_order) params.append('sort_order', filters.sort_order)
 
+
         const response = await axios.get(`${API_URL}/products?${params}`)
 
         if (response.data.success) {

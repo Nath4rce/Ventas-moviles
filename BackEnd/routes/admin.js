@@ -10,7 +10,7 @@ const router = express.Router();
 async function executeProcedure(procedureName, params = {}) {
   const pool = await getPool();
   const request = pool.request();
-  
+
   // Agregar parámetros dinámicamente
   Object.keys(params).forEach(key => {
     const value = params[key];
@@ -22,7 +22,7 @@ async function executeProcedure(procedureName, params = {}) {
       request.input(key, sql.Bit, value ? 1 : 0);
     }
   });
-  
+
   return await request.execute(procedureName);
 }
 
@@ -34,6 +34,10 @@ router.get('/stats', authenticateToken, requireAdmin, async (req, res) => {
     // Usar stored procedure para estadísticas generales
     const statsResult = await executeProcedure('sp_estadisticas_generales', {});
     const stats = statsResult.recordset[0];
+
+    const inactiveProductsResult = await pool.request()
+      .query('SELECT COUNT(*) as total_productos_inactivos FROM productos WHERE is_active = 0');
+    stats.total_productos_inactivos = inactiveProductsResult.recordset[0].total_productos_inactivos;
 
     // Productos recientes
     const recentResult = await pool.request()
