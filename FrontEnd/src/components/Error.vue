@@ -1,37 +1,55 @@
 <template> 
   <div class="flex items-center justify-center min-h-screen bg-gray-50">
-    <div class="bg-white shadow-lg rounded-2xl p-8 w-full max-w-lg text-center">
-      <div class="text-6xl mb-4 text-red-600">⚠️</div>
-      <h1 class="text-2xl font-bold text-red-600 mb-2">¡Oops! Algo salió mal</h1>
+
+   <div class="bg-white shadow-2xl rounded-2xl p-16 w-full max-w-5xl text-center border border-gray-200 min-h-[80vh] ">
+
+      <!-- Ícono de alerta -->
+      <div class="text-8xl mb-4 text-red-500 drop-shadow-sm">
+        <i class="fas fa-triangle-exclamation fa-6x"></i>
+      </div>
+
+      <!-- Título -->
+      <h1 class="text-3xl font-bold text-red-600 mb-3">¡Oops! Algo salió mal</h1>
 
       <!-- Mensaje real del backend -->
-      <p v-if="realMessage" class="text-red-500 font-semibold mb-2">
+      <p v-if="realMessage" class="text-red-500 font-semibold mb-3">
         {{ realMessage }}
       </p>
 
-      <p class="text-gray-600 mb-4">{{ friendlyMessage }}</p>
+      <!-- Mensaje amigable -->
+      <p class="text-gray-600 mb-5 leading-relaxed">
+        {{ friendlyMessage }}
+      </p>
 
-      <!-- Detalles en modo dev -->
-      <div v-if="isDev && rawError" class="bg-red-50 text-left text-red-700 p-3 rounded-lg mb-4">
-        <h3 class="font-semibold mb-1">Detalles del error:</h3>
-        <pre class="text-xs whitespace-pre-wrap">{{ rawErrorDisplay }}</pre>
+      <!-- Detalles técnicos (solo en dev) -->
+      <div 
+        v-if="isDev && rawError" 
+        class="bg-red-50 text-left text-red-700 p-3 rounded-xl mb-5 border border-red-200 overflow-x-auto"
+      >
+        <h3 class="font-semibold mb-2 text-sm">Detalles del error:</h3>
+        <pre class="text-xs font-mono whitespace-pre-wrap">{{ rawErrorDisplay }}</pre>
       </div>
 
-      <p class="text-gray-500 mb-6">
+      <!-- Texto de ayuda -->
+      <p class="text-gray-500 mb-5 text-sm">
         No te preocupes, nuestro equipo ha sido notificado.<br />
         Puedes intentar las siguientes acciones:
       </p>
 
+      <!-- Botón (sin cambiar estilo original) -->
       <div class="d-flex gap-2 justify-content-center">
-        <button class="btn btn-outline-secondary" @click="goHome">Ir al inicio</button>
+        <button class="btn btn-outline-secondary btn-lg px-5 py-2" @click="goHome">Ir al inicio</button>
       </div>
-      <p class="text-xs text-gray-400">
+
+      <!-- Footer -->
+      <p class="text-xs text-gray-400 mt-5">
         Si el problema persiste, contacta al administrador del sistema.<br />
         Sistema de Registro de Limpieza - UPB v1.0.0
       </p>
     </div>
   </div>
 </template>
+
 
 <script setup>
 import { computed } from 'vue'
@@ -54,7 +72,6 @@ const rawError = computed(() => {
   return null
 })
 
-// ✅ Mensaje que se mostrará justo debajo del "Oops"
 const realMessage = computed(() => {
   if (!rawError.value) return ''
   if (typeof rawError.value === 'object') {
@@ -63,7 +80,6 @@ const realMessage = computed(() => {
   return String(rawError.value)
 })
 
-// Map de códigos (si el backend envía `code`) a mensajes amigables
 const ERROR_MAP = {
   'ER_DUP_ENTRY': 'Recurso duplicado (entrada ya existe).',
   'AUTH_REQUIRED': 'Autenticación requerida.',
@@ -91,6 +107,5 @@ const rawErrorDisplay = computed(() => {
 })
 
 const isDev = computed(() => import.meta.env.MODE === 'development')
-
 function goHome() { router.push('/') }
 </script>
