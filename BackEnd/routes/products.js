@@ -1,6 +1,6 @@
 const express = require('express');
 const { getPool, sql } = require('../config/database');
-const { authenticateToken, requireBuyer, canModifyProduct } = require('../middleware/auth');
+const { authenticateToken, requireBuyer, requireSeller, canModifyProduct } = require('../middleware/auth');
 const { validateProduct, validateId, validatePagination } = require('../middleware/validation');
 
 const router = express.Router();
@@ -244,7 +244,7 @@ router.get('/:id', validateId, async (req, res) => {
 });
 
 // POST /api/products - Crear nuevo producto
-router.post('/', authenticateToken, requireBuyer, validateProduct, async (req, res) => {
+router.post('/', authenticateToken, requireSeller, validateProduct, async (req, res) => {
   try {
     const { titulo, descripcion, precio, categoria_id, imagenes } = req.body;
     const vendedorId = req.user.id;
