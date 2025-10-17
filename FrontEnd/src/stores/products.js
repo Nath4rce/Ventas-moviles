@@ -22,7 +22,6 @@ export const useProductsStore = defineStore('products', {
     // Productos filtrados y ordenados
     filteredProducts: (state) => {
       let filtered = state.products.filter(product => product.isActive)
-
       // Filtrar por categoría
       if (state.filters.category !== 'all') {
         filtered = filtered.filter(product => product.category === state.filters.category)

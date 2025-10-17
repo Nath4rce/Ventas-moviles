@@ -199,7 +199,6 @@
                     </button>
                   </div>
                 </div>
-
                 <div class="col-12">
                   <div class="d-flex justify-content-between align-items-center p-3 border rounded">
                     <div>
@@ -212,7 +211,6 @@
                     </router-link>
                   </div>
                 </div>
-
                 <div class="col-12">
                   <div class="d-flex justify-content-between align-items-center p-3 border rounded">
                     <div>
@@ -442,7 +440,6 @@ export default {
     flex-direction: column;
     align-items: flex-start !important;
   }
-
   .d-flex.align-items-center.gap-3 {
     flex-direction: column;
     align-items: flex-start !important;
@@ -455,7 +452,6 @@ export default {
   .profile-page {
     padding: 1.5rem 0;
   }
-
   .product-item {
     flex-direction: row;
   }

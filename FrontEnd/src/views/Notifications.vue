@@ -120,7 +120,6 @@
                           </small>
                         </div>
                       </div>
-
                       <p class="notification-message text-muted mb-0">
                         {{ notification.message }}
                       </p>
@@ -354,7 +353,6 @@ export default {
     flex-direction: column;
     align-items: flex-start !important;
   }
-
   .d-flex.align-items-center.gap-2 {
     margin-top: 0.5rem;
   }
@@ -365,7 +363,6 @@ export default {
   .notifications-page {
     padding: 1.5rem 0;
   }
-
   .notification-item .card-body {
     padding: 1.25rem;
   }

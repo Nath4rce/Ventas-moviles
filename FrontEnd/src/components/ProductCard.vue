@@ -48,27 +48,10 @@
           </span>
         </div>
       </div>
-
       <!-- Contenido del producto -->
       <div class="card-body d-flex flex-column">
         <!-- Título y vendedor -->
         <div class="mb-2">
-          <h5 class="card-title fw-bold text-truncate" :title="product.title">
-            {{ product.title }}
-          </h5>
-          <p class="text-muted small mb-0">
-            <i class="fas fa-user me-1"></i>
-            {{ product.sellerName }}
-          </p>
-        </div>
-
-        <!-- Descripción -->
-        <p class="card-text text-muted small flex-grow-1">
-          {{ truncateDescription(product.description) }}
-        </p>
-
-        <!-- Rating y reseñas -->
-        <div class="rating-section mb-3">
           <div class="d-flex align-items-center mb-1">
             <div class="stars me-2">
               <i v-for="star in 5" :key="star" class="fas fa-star"
@@ -286,7 +269,6 @@ export default {
   .product-images {
     height: 220px;
   }
-
   .product-image {
     height: 220px;
   }

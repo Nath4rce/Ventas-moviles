@@ -128,7 +128,6 @@ export const useNotificationsStore = defineStore('notifications', {
     // Deshabilitar/habilitar sitio
     toggleSiteStatus() {
       this.isSiteDisabled = !this.isSiteDisabled
-
       if (this.isSiteDisabled) {
         this.broadcastNotification(
           'Sitio temporalmente deshabilitado',

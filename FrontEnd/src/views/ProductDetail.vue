@@ -435,7 +435,6 @@ export default {
   .main-image {
     height: 350px;
   }
-
   .price-section .display-4 {
     font-size: 2.2rem;
   }

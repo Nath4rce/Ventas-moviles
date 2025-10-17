@@ -310,7 +310,6 @@ export default {
           'https://images.unsplash.com/photo-1556742111-a301076d9d18?w=300&h=200&fit=crop&crop=center',
           'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300&h=200&fit=crop&crop=center'
         ]
-
         form.images.push(placeholderImages[form.images.length])
       }
     }
@@ -374,7 +373,6 @@ export default {
         }
 
         const newProduct = productsStore.addProduct(productData)
-
         alert('Producto publicado exitosamente')
         router.push(`/product/${newProduct.id}`)
       } catch (error) {
@@ -488,7 +486,6 @@ export default {
 
 /* Mobile optimizations */
 @media (max-width: 767px) {
-
   .image-preview img,
   .image-upload-placeholder {
     height: 100px;

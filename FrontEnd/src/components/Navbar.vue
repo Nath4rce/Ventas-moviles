@@ -19,7 +19,6 @@
               Inicio
             </router-link>
           </li>
-
           <!-- Enlace para vendedores -->
           <li class="nav-item" v-if="authStore.isSeller">
             <router-link class="nav-link" to="/publish">
@@ -27,7 +26,6 @@
               Publicar
             </router-link>
           </li>
-
           <!-- Enlace para administradores -->
           <li class="nav-item" v-if="authStore.isAdmin">
             <router-link class="nav-link" to="/admin">
@@ -37,14 +35,31 @@
           </li>
         </ul>
 
+        <!-- boton de log in-->
+        <ul class="navbar-nav">
+          <li class="nav-item" v-if="!authStore.isAuthenticated">
+            <router-link class="nav-link" to="/login">
+              <i class="fas fa-sign-in-alt me-1"></i>
+              Iniciar Sesión
+            </router-link>
+          </li>
+        </ul>
+
         <ul class="navbar-nav">
           <!-- Notificaciones -->
           <li class="nav-item dropdown" v-if="authStore.isAuthenticated">
-            <a class="nav-link position-relative" href="#" id="notificationsDropdown" role="button"
-              data-bs-toggle="dropdown">
+            <a 
+              class="nav-link position-relative" 
+              href="#" 
+              id="notificationsDropdown" 
+              role="button" 
+              data-bs-toggle="dropdown"
+            >
               <i class="fas fa-bell"></i>
-              <span v-if="unreadCount > 0"
-                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+              <span 
+                v-if="unreadCount > 0" 
+                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+              >
                 {{ unreadCount }}
               </span>
             </a>
@@ -183,7 +198,6 @@ export default {
   .navbar-brand {
     font-size: 1.2rem;
   }
-
   .dropdown-menu {
     min-width: 250px;
   }
