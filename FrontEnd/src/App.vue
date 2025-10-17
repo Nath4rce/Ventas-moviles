@@ -65,8 +65,8 @@ export default {
       return route.name === 'Login' || route.name === 'Register'
     })
 
-// Mostrar u ocultar Navbar y Footer
-const isLoginPage = computed(() => route.name === 'Login' || route.name === 'Register')
+
+
 
 // Estado del overlay
 const isLoading = ref(true) //Empieza cargando (pantalla inicial)
