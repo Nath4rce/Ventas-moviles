@@ -229,6 +229,7 @@ import { ref, computed, onMounted, reactive } from 'vue'
 import { useRoute } from 'vue-router'
 import { useProductsStore } from '../stores/products'
 import { useAuthStore } from '../stores/auth'
+import { useNotificacion } from '../utils/useNotificacion'
 
 export default {
   name: 'ProductDetail',
@@ -236,6 +237,7 @@ export default {
     const route = useRoute()
     const productsStore = useProductsStore()
     const authStore = useAuthStore()
+    const notificacion = useNotificacion()
 
     const product = computed(() =>
       productsStore.getProductById(route.params.id)
@@ -315,10 +317,10 @@ export default {
 
         newReview.rating = 0
         newReview.comment = ''
-
-        alert('Reseña enviada exitosamente')
+        
+        notificacion.success('Reseña enviada exitosamente')
       } catch (error) {
-        alert(error.response?.data?.message || 'Error al enviar la reseña')
+        notificacion.error('Error al enviar la reseña')
       } finally {
         submittingReview.value = false
       }

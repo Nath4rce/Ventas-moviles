@@ -40,9 +40,7 @@
     </main>
 
     <Footer v-if="!isLoginPage" />
-
-    <!-- Pantalla de error global -->
-    <Error v-if="hasError" />
+    <NotificacionContainer position="top-right" />
   </div>
 </template>
 
@@ -51,13 +49,21 @@ import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import Navbar from './components/Navbar.vue'
 import Footer from './components/Footer.vue'
-import Error from './components/Error.vue'
-import LoadingOverlay from 'vue-loading-overlay'
-import 'vue-loading-overlay/dist/css/index.css'
+import NotificacionContainer from './components/NotificacionContainer.vue'
 
-// Router y estados
-const router = useRouter()
-const route = useRoute()
+export default {
+  name: 'App',
+  components: {
+    Navbar,
+    Footer,
+    NotificacionContainer
+  },
+  setup() {
+    const route = useRoute()
+    
+    const isLoginPage = computed(() => {
+      return route.name === 'Login' || route.name === 'Register'
+    })
 
 // Mostrar u ocultar Navbar y Footer
 const isLoginPage = computed(() => route.name === 'Login' || route.name === 'Register')
