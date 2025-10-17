@@ -4,24 +4,12 @@
     <Navbar v-if="!isLoginPage" />
 
     <!-- 🔹 Overlay global de carga -->
-    <LoadingOverlay
-      v-model:active="isLoading"
-      :is-full-page="true"
-      :can-cancel="false"
-      :lock-scroll="true"
-      color="#2563eb"
-      background-color="rgba(255,255,255,0.95)"
-      :opacity="1"
-      class="z-[9999]"
-    >
+    <LoadingOverlay v-model:active="isLoading" :is-full-page="true" :can-cancel="false" :lock-scroll="true"
+      color="#2563eb" background-color="rgba(255,255,255,0.95)" :opacity="1" class="z-[9999]">
       <template #default>
         <div class="flex flex-col items-center justify-center text-center">
-        <img
-          src="/upb-logo.png"
-          alt="Logo UPB"
-          class="w-20 h-20 mb-4 animate-pulse"
-        />
-        
+          <img src="/upb-logo.png" alt="Logo UPB" class="w-20 h-20 mb-4 animate-pulse" />
+
           <!-- Mensaje dinámico -->
           <p class="text-gray-700 font-semibold text-center">
             {{ loadingMessage }}
@@ -45,39 +33,29 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import Navbar from './components/Navbar.vue'
 import Footer from './components/Footer.vue'
 import NotificacionContainer from './components/NotificacionContainer.vue'
+import LoadingOverlay from 'vue-loading-overlay' // install if missing: npm i vue-loading-overlay
 
-export default {
-  name: 'App',
-  components: {
-    Navbar,
-    Footer,
-    NotificacionContainer
-  },
-  setup() {
-    const route = useRoute()
-    
-    const isLoginPage = computed(() => {
-      return route.name === 'Login' || route.name === 'Register'
-    })
+const route = useRoute()
+const router = useRouter()
 
-
-
+const isLoginPage = computed(() => route.name === 'Login' || route.name === 'Register')
 
 // Estado del overlay
-const isLoading = ref(true) //Empieza cargando (pantalla inicial)
+const isLoading = ref(true) // Empieza cargando (pantalla inicial)
 const loadingMessage = ref('Cargando...')
 
 // Mostrar pantalla de carga inicial
 setTimeout(() => {
   isLoading.value = false
-}, 1000) 
+}, 1000)
 
-// Activar overlay durante navegación
+// Activar overlay durante navegación (nota: añadir guards en main.js es más apropiado,
+// pero esto funciona si necesitas un guard localizado)
 router.beforeEach((to, from, next) => {
   isLoading.value = true
   loadingMessage.value = 'Cargando...'
@@ -110,6 +88,7 @@ const hasError = computed(() => {
 .fade-leave-active {
   transition: opacity 0.25s ease;
 }
+
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
