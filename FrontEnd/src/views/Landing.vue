@@ -7,7 +7,7 @@
           <div class="col-lg-6">
             <h1 class="display-4 fw-bold mb-3">
               <i class="fas fa-shopping-cart me-3"></i>
-              Bienvenido a ventas moviles UPB
+              Bienvenido a Ventas Moviles UPB
             </h1>
             <p class="lead mb-4">
               El marketplace interno de la universidad.

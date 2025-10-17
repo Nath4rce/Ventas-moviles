@@ -320,7 +320,8 @@ export default {
       })
     }
 
-    const logout = () => {
+    // Cierre de sesión con pantalla de carga
+    const logout = async () => {
       if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
         authStore.logout()
         router.push('/login')

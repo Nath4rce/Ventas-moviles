@@ -125,7 +125,7 @@ export default {
       notificationsStore.unreadCount(authStore.user?.id)
     )
 
-    const logout = () => {
+    const logout = async () => {
       authStore.logout()
       router.push('/login')
     }

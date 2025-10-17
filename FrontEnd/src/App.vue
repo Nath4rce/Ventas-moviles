@@ -1,64 +1,114 @@
 <template>
-  <div id="app">
+  <div id="app" class="relative min-h-screen flex flex-col">
+    <!-- Navbar visible excepto en login/register -->
     <Navbar v-if="!isLoginPage" />
-    <main class="main-content">
-      <router-view />
+
+    <!-- 🔹 Overlay global de carga -->
+    <LoadingOverlay
+      v-model:active="isLoading"
+      :is-full-page="true"
+      :can-cancel="false"
+      :lock-scroll="true"
+      color="#2563eb"
+      background-color="rgba(255,255,255,0.95)"
+      :opacity="1"
+      class="z-[9999]"
+    >
+      <template #default>
+        <div class="flex flex-col items-center justify-center text-center">
+        <img
+          src="/upb-logo.png"
+          alt="Logo UPB"
+          class="w-20 h-20 mb-4 animate-pulse"
+        />
+        
+          <!-- Mensaje dinámico -->
+          <p class="text-gray-700 font-semibold text-center">
+            {{ loadingMessage }}
+          </p>
+        </div>
+      </template>
+    </LoadingOverlay>
+
+    <!-- Contenido principal -->
+    <main class="flex-grow main-content">
+      <router-view v-slot="{ Component }">
+        <transition name="fade" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </router-view>
     </main>
+
     <Footer v-if="!isLoginPage" />
-        <ScreenLoading v-if="loading" message="Cargando página..." />
-    <Error v-else-if="hasError" :error="errorMessage" />
+
+    <!-- Pantalla de error global -->
+    <Error v-if="hasError" />
   </div>
 </template>
 
-<script>
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+<script setup>
+import { ref, computed, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import Navbar from './components/Navbar.vue'
 import Footer from './components/Footer.vue'
-import ScreenLoading from "./components/ScreenLoading.vue";
-import Error from "./components/Error.vue";
+import Error from './components/Error.vue'
+import LoadingOverlay from 'vue-loading-overlay'
+import 'vue-loading-overlay/dist/css/index.css'
 
-export default {
-  name: 'App',
-  components: {
-    Navbar,
-    Footer,
-    ScreenLoading,
-    Error
-  },
-  setup() {
-    const route = useRoute()
-    
-    const isLoginPage = computed(() => {
-      return route.name === 'Login' || route.name === 'Register'
-    })
+// Router y estados
+const router = useRouter()
+const route = useRoute()
 
-    return {
-      isLoginPage
-    }
-  },
-  data() {
-    return {
-      loading: false,
-      hasError: false,
-      errorMessage: null,
-    };
-  },
-  created() {
-    // Exponer el estado global para que el router lo controle
-    window.$app = this;
-  },
-}
+// Mostrar u ocultar Navbar y Footer
+const isLoginPage = computed(() => route.name === 'Login' || route.name === 'Register')
+
+// Estado del overlay
+const isLoading = ref(true) //Empieza cargando (pantalla inicial)
+const loadingMessage = ref('Cargando...')
+
+// Mostrar pantalla de carga inicial
+setTimeout(() => {
+  isLoading.value = false
+}, 1000) 
+
+// Activar overlay durante navegación
+router.beforeEach((to, from, next) => {
+  isLoading.value = true
+  loadingMessage.value = 'Cargando...'
+  next()
+})
+
+router.afterEach(() => {
+  // Pequeño retardo para una transición más fluida
+  setTimeout(() => (isLoading.value = false), 400)
+})
+
+// 🔹 Detectar errores globales
+const hasError = computed(() => {
+  try {
+    return !!sessionStorage.getItem('backend_error')
+  } catch {
+    return false
+  }
+})
 </script>
 
 <style>
-/* Estilos específicos del componente App.vue */
 .main-content {
   min-height: calc(100vh - 120px);
   padding-top: 20px;
 }
 
-/* Estilos específicos para mobile */
+/* Animaciones de transición */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
 @media (max-width: 767px) {
   .main-content {
     padding-top: 15px;
