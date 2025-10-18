@@ -191,7 +191,7 @@ export const useProductsStore = defineStore("products", {
       this.loading = true;
       try {
         const categoriaId = Number(productData.categoria_id);
-        if (isNaN(categoriaId)) {
+        if (isNaN(categoriaId) || categoriaId <= 0) {
           console.error(
             "❌ Categoría inválida. Debes seleccionar una categoría antes de publicar."
           );
@@ -203,7 +203,7 @@ export const useProductsStore = defineStore("products", {
           titulo: productData.title?.trim(),
           descripcion: productData.description?.trim(),
           precio: Number(productData.price),
-          categoria_id: Number(productData.categoria_id),
+          categoria_id: categoriaId,
         };
 
         // Solo agregar imágenes si existen

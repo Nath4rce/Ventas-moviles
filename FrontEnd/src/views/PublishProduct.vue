@@ -366,7 +366,7 @@ export default {
       try {
         const productData = {
           title: form.title.trim(),
-          category: form.category,
+          categoria_id: form.category,
           price: form.price,
           description: form.description.trim(),
           images: form.images,
@@ -374,7 +374,7 @@ export default {
           sellerName: authStore.user.name
         }
 
-        const newProduct = productsStore.addProduct(productData)
+        const newProduct = await productsStore.addProduct(productData)
         
         notificacion.success('Producto publicado exitosamente')
         router.push(`/product/${newProduct.id}`)
