@@ -98,7 +98,7 @@
           </div>
         </div>
 
-        <!-- Contenido principal -->
+      <!-- Contenido principal -->
         <div class="col-12 col-lg-8">
           <!-- Mis productos (solo vendedores) -->
           <div v-if="authStore.isSeller" class="card mb-4">
@@ -136,7 +136,10 @@
                       </div>
                     </div>
                   </div>
-                  <div class="actions">
+                  <div class="actions d-flex gap-2">
+                    <router-link :to="`/edit-product/${product.id}`" class="btn btn-sm btn-outline-secondary">
+                      <i class="fas fa-edit"></i>
+                    </router-link>
                     <router-link :to="`/product/${product.id}`" class="btn btn-sm btn-outline-primary">
                       <i class="fas fa-eye"></i>
                     </router-link>

@@ -361,24 +361,33 @@ router.put('/:id', authenticateToken, canModifyProduct, validateProduct, async (
     const updateValues = [];
 
     if (titulo) {
-      updateFields.push('titulo = ?');
+      updateFields.push('titulo = @titulo');
       updateValues.push(titulo);
     }
 
     if (descripcion) {
-      updateFields.push('descripcion = ?');
+      updateFields.push('descripcion = @descripcion');
       updateValues.push(descripcion);
     }
 
     if (precio !== undefined) {
-      updateFields.push('precio = ?');
+    if (precio !== undefined) {
+      updateFields.push('precio = @precio');
       updateValues.push(precio);
+    }
     }
 
     if (categoria_id) {
-      updateFields.push('categoria_id = ?');
-      updateValues.push(categoria_id);
+      updateFields.push('categoria_id = @categoriaId');
+      request.input('categoriaId', sql.Int, categoria_id);
     }
+
+    const isActive = req.body.isActive !== undefined ? req.body.isActive : req.body.is_active;
+
+    if (isActive !== undefined) {
+    updateFields.push('is_active = @isActive');
+    request.input('isActive', sql.Bit, isActive);
+}
 
     if (updateFields.length === 0 && (!imagenes || imagenes.length === 0)) {
       return res.status(400).json({
@@ -398,6 +407,18 @@ router.put('/:id', authenticateToken, canModifyProduct, validateProduct, async (
       await request.query(`UPDATE productos SET ${updateFields.join(', ')}, updated_at = GETDATE() WHERE id = @productId`);
     }
 
+    if (updateFields.length > 0) {
+      const updateQuery = `
+        UPDATE productos 
+        SET 
+            ${updateFields.join(', ')}, 
+            updated_at = GETDATE() 
+        WHERE 
+            id = @productId
+      `;
+      await request.query(updateQuery);
+    }
+    
     // Actualizar imágenes si se proporcionan
     if (imagenes && imagenes.length > 0) {
       await pool.request()

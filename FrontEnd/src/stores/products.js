@@ -284,5 +284,83 @@ export const useProductsStore = defineStore("products", {
         message: "Producto no encontrado",
       };
     },
+
+    // Actualizar Producto
+    async updateProduct(productId, productData) {
+      this.loading = true;
+      try {
+        const id = parseInt(productId, 10);
+        if (isNaN(id) || id <= 0) {
+          throw new Error("ID de producto inválido para la actualización.");
+        }
+
+        // Mapear los datos del formulario a los nombres de campos de tu API
+        const payload = {
+          titulo: productData.title?.trim(),
+          descripcion: productData.description?.trim(),
+          precio: Number(productData.price),
+          categoria_id: Number(productData.categoria_id), 
+          is_active: productData.isActive,
+          imagenes: productData.images, 
+        };
+        
+        console.log(`➡️ Enviando actualización para producto ${id}:`, payload);
+        
+        // Realizar la solicitud PUT para actualizar
+        const response = await axios.put(`${API_URL}/products/${id}`, payload, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+
+        if (response.data.success) {
+          // Si la actualización en la API fue exitosa, refrescamos la lista 
+          // de productos para mantener el estado sincronizado.
+          await this.fetchProducts(); 
+          return response.data.data.product;
+        } else {
+          throw new Error(response.data.message || 'Error desconocido al actualizar.');
+        }
+
+      } catch (error) {
+        console.error(
+          "Error updating product:",
+          error.response?.data || error.message
+        );
+        this.error = "Error al actualizar el producto: " + (error.response?.data?.message || error.message);
+        throw error;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    // Eliminar Producto 
+    async deleteProduct(productId) {
+        this.loading = true;
+        try {
+            const id = parseInt(productId, 10);
+            if (isNaN(id) || id <= 0) {
+              throw new Error("ID de producto inválido para la eliminación.");
+            }
+            
+            const response = await axios.delete(`${API_URL}/products/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+            });
+            
+            if (response.data.success) {
+                // Eliminar el producto del estado local (opcional, pero más rápido que fetch)
+                this.products = this.products.filter(p => p.id !== id);
+            }
+            return response.data;
+        } catch (error) {
+            console.error("Error deleting product:", error);
+            this.error = "Error al eliminar el producto: " + (error.response?.data?.message || error.message);
+            throw error;
+        } finally {
+            this.loading = false;
+        }
+    },
   },
 });

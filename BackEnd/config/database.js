@@ -27,9 +27,6 @@ const config = {
     }
 };
 
-
-
-
 // Validación del server
 if (!config.server || typeof config.server !== 'string') {
     console.error('❌ Error: DB_SERVER no está configurado correctamente');

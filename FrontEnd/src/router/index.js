@@ -10,6 +10,7 @@ const PublishProduct = () => import('../views/PublishProduct.vue')
 const AdminDashboard = () => import('../views/AdminDashboard.vue')
 const Notifications = () => import('../views/Notifications.vue')
 const Profile = () => import('../views/Profile.vue')
+const EditProduct = () => import('../views/EditProduct.vue') 
 
 const routes = [
   {
@@ -37,6 +38,13 @@ const routes = [
     path: '/publish',
     name: 'PublishProduct',
     component: PublishProduct,
+    meta: { requiresAuth: true, requiresRole: 'seller' }
+  },
+  {
+    path: '/edit-product/:id',
+    name: 'EditProduct',
+    component: EditProduct,
+    props: true,
     meta: { requiresAuth: true, requiresRole: 'seller' }
   },
   {
