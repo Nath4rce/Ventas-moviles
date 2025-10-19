@@ -216,7 +216,7 @@
                   <label class="form-label fw-semibold">Categoría</label>
                   <select class="form-select" v-model="productFilters.category" @change="applyProductFilters">
                     <option value="all">Todas las categorías</option>
-                    <option value="alimentos">Alimentos</option>
+                    <option value="comida">Comida</option>
                     <option value="accesorios">Accesorios</option>
                     <option value="papeleria">Papelería</option>
                   </select>
@@ -591,14 +591,11 @@ export default {
     })
 
     const filteredUsers = computed(() => {
-      console.log('🔄 Filtering users. Total:', users.value.length) // ← AGREGAR
-      console.log('🔄 Filters:', userFilters.value) // ← AGREGAR
-      /*let filtered = users.value
-
+      let filtered = users.value
 
       // Filtrar por rol
-      if (userFilters.rol !== 'all') {
-        filtered = filtered.filter(u => u.rol === userFilters.role)
+      if (userFilters.value.rol !== 'all') {
+        filtered = filtered.filter(u => u.rol === userFilters.value.rol)
       }
 
       // Filtrar por estado
@@ -609,9 +606,18 @@ export default {
           filtered = filtered.filter(u => u.is_active === 0 || u.is_active === false)
         }
       }
-      console.log('✅ Filtered result:', filtered.length)
-      return filtered*/
-      return users.value 
+
+      // Filtrar por búsqueda
+      if (userFilters.value.search) {
+        const searchTerm = userFilters.value.search.toLowerCase()
+        filtered = filtered.filter(u => 
+          u.nombre.toLowerCase().includes(searchTerm) ||
+          u.email?.toLowerCase().includes(searchTerm) ||
+          u.id_institucional?.toString().includes(searchTerm)
+        )
+      }
+
+      return filtered
     })
 
     // Productos filtrados
@@ -619,24 +625,62 @@ export default {
       let filtered = productsStore.products || []
 
       // Filtrar por título
-      if (productFilters.title) {
+      if (productFilters.title && productFilters.title.trim()) {
+        const searchTerm = productFilters.title.toLowerCase().trim()
         filtered = filtered.filter(product =>
-          product.title.toLowerCase().includes(productFilters.title.toLowerCase())
+          product.titulo?.toLowerCase().includes(searchTerm) ||
+          product.title?.toLowerCase().includes(searchTerm) ||
+          product.descripcion?.toLowerCase().includes(searchTerm) ||
+          product.description?.toLowerCase().includes(searchTerm)
         )
       }
 
       // Filtrar por categoría
       if (productFilters.category !== 'all') {
-        filtered = filtered.filter(product => product.category === productFilters.category)
+        console.log('📂 Filtrando por categoría:', productFilters.category)
+        
+        // Ver todas las categorías únicas antes de filtrar
+        const uniqueCategories = [...new Set(filtered.map(p => p.categoria || p.category))]
+        console.log('📂 Categorías disponibles:', uniqueCategories)
+        
+        filtered = filtered.filter(product => {
+          const productCategory = (product.categoria || product.category || '').toLowerCase()
+          const filterCategory = productFilters.category.toLowerCase()
+          const match = productCategory === filterCategory
+          
+          if (!match && filtered.length < 10) {
+            console.log('❌ No coincide:', productCategory, '!==', filterCategory)
+          }
+          
+          return match
+        })
+        console.log('📂 Después de filtrar por categoría:', filtered.length)
       }
 
       // Filtrar por estado
       if (productFilters.status !== 'all') {
         const isActive = productFilters.status === 'active'
-        filtered = filtered.filter(product => product.isActive === isActive)
+        filtered = filtered.filter(product => {
+          const status = product.isActive ?? product.is_active ?? product.activo
+          return Boolean(status) === isActive
+        })
+        console.log('✅ Después de filtrar por estado:', filtered.length)
       }
 
-      return filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      // Filtrar por estado
+      if (productFilters.status !== 'all') {
+        const isActive = productFilters.status === 'active'
+        filtered = filtered.filter(product => {
+          const status = product.isActive ?? product.is_active ?? product.activo
+          return Boolean(status) === isActive
+        })
+      }
+
+      return filtered.sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.created_at || a.fecha_creacion || 0)
+        const dateB = new Date(b.createdAt || b.created_at || b.fecha_creacion || 0)
+        return dateB - dateA
+      })
     })
 
     // Productos recientes
