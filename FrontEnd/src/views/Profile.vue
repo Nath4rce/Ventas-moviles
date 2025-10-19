@@ -188,32 +188,7 @@
                 Configuración de Cuenta
               </h5>
             </div>
-            <div class="card-body">
-              <div class="row g-3">
-                <div class="col-12">
-                  <div class="d-flex justify-content-between align-items-center p-3 border rounded">
-                    <div>
-                      <h6 class="mb-1">Cambiar Contraseña</h6>
-                      <p class="text-muted mb-0 small">Actualiza tu contraseña de seguridad</p>
-                    </div>
-                    <button class="btn btn-outline-primary btn-sm">
-                      <i class="fas fa-key me-1"></i>
-                      Cambiar
-                    </button>
-                  </div>
-                </div>
-                <div class="col-12">
-                  <div class="d-flex justify-content-between align-items-center p-3 border rounded">
-                    <div>
-                      <h6 class="mb-1">Notificaciones</h6>
-                      <p class="text-muted mb-0 small">Gestiona tus preferencias de notificación</p>
-                    </div>
-                    <router-link to="/notifications" class="btn btn-outline-primary btn-sm">
-                      <i class="fas fa-bell me-1"></i>
-                      Configurar
-                    </router-link>
-                  </div>
-                </div>
+            
                 <div class="col-12">
                   <div class="d-flex justify-content-between align-items-center p-3 border rounded">
                     <div>
@@ -231,8 +206,6 @@
           </div>
         </div>
       </div>
-    </div>
-  </div>
 </template>
 
 <script>
