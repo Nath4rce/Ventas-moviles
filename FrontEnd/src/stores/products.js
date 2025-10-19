@@ -89,13 +89,13 @@ export const useProductsStore = defineStore("products", {
       this.error = null;
       try {
         const params = new URLSearchParams();
-        if (filters.categoria_id)
-          params.append("categoria_id", filters.categoria_nombre);
+        if (filters.categoria_id) params.append("categoria_id", filters.categoria_id);
         if (filters.precio_min) params.append("precio_min", filters.precio_min);
         if (filters.precio_max) params.append("precio_max", filters.precio_max);
         if (filters.search) params.append("search", filters.search);
         if (filters.sort_by) params.append("sort_by", filters.sort_by);
         if (filters.sort_order) params.append("sort_order", filters.sort_order);
+
 
         const response = await axios.get(`${API_URL}/products?${params}`);
 

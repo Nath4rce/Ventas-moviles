@@ -20,29 +20,32 @@ router.get('/', validatePagination, async (req, res) => {
     } = req.query;
 
     const offset = (page - 1) * limit;
-    let whereConditions = ['p.is_active = TRUE'];
-    let queryParams = [];
+    let whereConditions = ['p.is_active = 1'];
+
+    // Consulta principal
+    const pool = await getPool(); 
+    const request = pool.request();
 
     // Filtros
     if (categoria_id) {
-      request.input('categoriaId', sql.Int, categoria_id);
+      const categoriaIdInt = parseInt(categoria_id);
+      request.input('categoriaId', sql.Int, parseInt(categoria_id));
       whereConditions.push('p.categoria_id = @categoriaId');
     }
 
     if (precio_min) {
-      whereConditions.push('p.precio >= ?');
-      queryParams.push(precio_min);
+      request.input('precioMin', sql.Decimal(10, 2), parseFloat(precio_min));
+      whereConditions.push('p.precio >= @precioMin');
     }
 
     if (precio_max) {
-      whereConditions.push('p.precio <= ?');
-      queryParams.push(precio_max);
+      request.input('precioMax', sql.Decimal(10, 2), parseFloat(precio_max));
+      whereConditions.push('p.precio <= @precioMax');
     }
 
     if (search) {
-      whereConditions.push('(p.titulo LIKE ? OR p.descripcion LIKE ?)');
-      const searchTerm = `%${search}%`;
-      queryParams.push(searchTerm, searchTerm);
+      request.input('search', sql.NVarChar(255), `%${search}%`);
+      whereConditions.push('(p.titulo LIKE @search OR p.descripcion LIKE @search)');
     }
 
     // Ordenamiento válido
@@ -51,12 +54,9 @@ router.get('/', validatePagination, async (req, res) => {
 
     const sortField = validSortFields.includes(sort_by) ? sort_by : 'created_at';
     const sortOrder = validSortOrders.includes(sort_order.toUpperCase()) ? sort_order.toUpperCase() : 'DESC';
-
-    // Consulta principal
-    const pool = await getPool();
-    const request = pool.request();
-
+/*
     // Agregar parámetros dinámicamente
+
     let paramIndex = 0;
     if (categoria_id) {
       request.input('categoriaId', sql.Int, parseInt(categoria_id));
@@ -76,10 +76,12 @@ router.get('/', validatePagination, async (req, res) => {
     }
 
     whereConditions[0] = 'p.is_active = 1'; // Cambiar TRUE a 1
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-
+    
+*/
     request.input('offset', sql.Int, parseInt(offset));
     request.input('limit', sql.Int, parseInt(limit));
+
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
     const productsQuery = `
       SELECT 

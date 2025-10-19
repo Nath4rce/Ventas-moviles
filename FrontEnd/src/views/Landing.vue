@@ -215,9 +215,12 @@ export default {
   const applyFilters = async () => {
     const params = {}
     
-    if (filters.value.category !== 'all') {
-      params.categoria_id = filters.value.category
-    }
+    if (filters.value.category && 
+      filters.value.category !== 'all' && 
+      filters.value.category !== 'undefined' &&
+      !isNaN(parseInt(filters.value.category))) {
+    params.categoria_id = parseInt(filters.value.category)
+  }
     
     if (filters.value.priceRange.min) {
       params.precio_min = filters.value.priceRange.min
