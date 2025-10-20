@@ -4,11 +4,23 @@
     <Navbar v-if="!isLoginPage" />
 
     <!-- 🔹 Overlay global de carga -->
-    <LoadingOverlay v-model:active="isLoading" :is-full-page="true" :can-cancel="false" :lock-scroll="true"
-      color="#2563eb" background-color="rgba(255,255,255,0.95)" :opacity="1" class="z-[9999]">
+    <LoadingOverlay
+      v-model:active="isLoading"
+      :is-full-page="true"
+      :can-cancel="false"
+      :lock-scroll="true"
+      color="#2563eb"
+      background-color="rgba(255,255,255,0.95)"
+      :opacity="1"
+      class="z-[9999]"
+    >
       <template #default>
         <div class="flex flex-col items-center justify-center text-center">
-          <img src="/upb-logo.png" alt="Logo UPB" class="w-20 h-20 mb-4 animate-pulse" />
+        <img
+          src="/upb-logo.png"
+          alt="Logo UPB"
+          class="w-20 h-20 mb-4 animate-pulse"
+        />
 
           <!-- Mensaje dinámico -->
           <p class="text-gray-700 font-semibold text-center">
@@ -29,52 +41,72 @@
 
     <Footer v-if="!isLoginPage" />
     <NotificacionContainer position="top-right" />
+    <Error v-if="hasError" />
   </div>
 </template>
 
-<script setup>
-import { ref, computed } from 'vue'
+<script>
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import Navbar from './components/Navbar.vue'
 import Footer from './components/Footer.vue'
 import NotificacionContainer from './components/NotificacionContainer.vue'
-import LoadingOverlay from 'vue-loading-overlay' // install if missing: npm i vue-loading-overlay
+import LoadingOverlay from 'vue-loading-overlay'
+import 'vue-loading-overlay/dist/css/index.css'
 
-const route = useRoute()
-const router = useRouter()
+export default {
+  name: 'App',
+  components: {
+    Navbar,
+    Footer,
+    NotificacionContainer,
+    LoadingOverlay
+  },
+  setup() {
+    const route = useRoute()
+    const router = useRouter()
 
-const isLoginPage = computed(() => route.name === 'Login' || route.name === 'Register')
+    const isLoginPage = computed(() => route.name === 'Login' || route.name === 'Register')
 
-// Estado del overlay
-const isLoading = ref(true) // Empieza cargando (pantalla inicial)
-const loadingMessage = ref('Cargando...')
+    // Estado del overlay
+    const isLoading = ref(true)
+    const loadingMessage = ref('Cargando...')
 
-// Mostrar pantalla de carga inicial
-setTimeout(() => {
-  isLoading.value = false
-}, 1000)
+    // Mostrar pantalla de carga inicial
+    onMounted(() => {
+      setTimeout(() => {
+        isLoading.value = false
+      }, 1000)
+    })
 
-// Activar overlay durante navegación (nota: añadir guards en main.js es más apropiado,
-// pero esto funciona si necesitas un guard localizado)
-router.beforeEach((to, from, next) => {
-  isLoading.value = true
-  loadingMessage.value = 'Cargando...'
-  next()
-})
+    // Activar overlay durante navegación
+    router.beforeEach((to, from, next) => {
+      isLoading.value = true
+      loadingMessage.value = 'Cargando...'
+      next()
+    })
 
-router.afterEach(() => {
-  // Pequeño retardo para una transición más fluida
-  setTimeout(() => (isLoading.value = false), 400)
-})
+    router.afterEach(() => {
+      setTimeout(() => (isLoading.value = false), 1000)
+    })
 
-// 🔹 Detectar errores globales
-const hasError = computed(() => {
-  try {
-    return !!sessionStorage.getItem('backend_error')
-  } catch {
-    return false
+    // 🔹 Detectar errores globales
+    const hasError = computed(() => {
+      try {
+        return !!sessionStorage.getItem('backend_error')
+      } catch {
+        return false
+      }
+    })
+
+    return {
+      isLoginPage,
+      isLoading,
+      loadingMessage,
+      hasError
+    }
   }
-})
+}
 </script>
 
 <style>
