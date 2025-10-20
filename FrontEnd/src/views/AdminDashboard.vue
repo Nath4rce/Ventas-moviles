@@ -174,17 +174,17 @@
                         </span>
                       </td>
                       <td>
-                        <div class="btn-group btn-group-sm" rol="group">
-                          <button class="btn btn-outline-warning" @click="toggleUserStatus(user.id)"
-                            :title="user.isActive ? 'Desactivar' : 'Activar'">
-                            <i :class="user.isActive ? 'fas fa-pause' : 'fas fa-play'"></i>
-                          </button>
-                          <button class="btn btn-outline-primary" @click="openChangeRoleModal(user)"
-                            title="Cambiar rol">
-                            <i class="fas fa-user-edit"></i>
-                          </button>
-                        </div>
-                      </td>
+                      <div class="btn-group btn-group-sm" role="group">
+                        <button class="btn btn-outline-warning" @click="toggleUserStatus(user)"
+                          :title="user.is_active ? 'Desactivar' : 'Activar'">
+                          <i :class="user.is_active ? 'fas fa-pause' : 'fas fa-play'"></i>
+                        </button>
+                        <button class="btn btn-outline-primary" @click="openChangeRoleModal(user)"
+                          title="Cambiar rol">
+                          <i class="fas fa-user-edit"></i>
+                        </button>
+                      </div>
+                    </td>
                     </tr>
                   </tbody>
                 </table>
@@ -762,14 +762,28 @@ export default {
       // Los filtros se aplican automáticamente por computed
     }
 
-    const toggleProductStatus = (productId) => {
-      const result = productsStore.toggleProductStatus(productId)
-      if (result.success) {
-        notificacion.success(`Producto ${result.product.isActive ? 'activado' : 'desactivado'} exitosamente`)
-      } else {
-        notificacion.error(result.message)
-      }
+    // admin-dashboard.vue (Tu código actualizado en <script>)
+
+const toggleProductStatus = async (productId) => { // ¡Asegúrate de que sea 'async'!
+    console.log('Attempting to toggle product ID:', productId); // <-- Añade para depurar
+
+    try {
+        // Asegúrate de usar 'await' aquí
+        const result = await productsStore.toggleProductStatus(productId); 
+        
+        if (result.success) {
+            notificacion.success(`Producto ${result.product.isActive ? 'activado' : 'desactivado'} exitosamente`);
+            await fetchStats(); // Si es necesario actualizar las estadísticas del dashboard
+        } else {
+            // Este mensaje proviene de un error controlado en la store
+            notificacion.error(result.message); 
+        }
+    } catch (error) {
+        // Este catch maneja errores de red, de CORS, o errores no controlados de la store
+        console.error('Error al ejecutar toggleProductStatus:', error);
+        notificacion.error('Error de red o servidor. No se pudo actualizar el producto.');
     }
+}
 
     const createUser = async () => {
       creatingUser.value = true
@@ -797,12 +811,32 @@ export default {
       newUser.password = ''
     }
 
-    const toggleUserStatus = (userId) => {
-      const result = authStore.toggleUserStatus(userId)
-      if (result.success) {
-        notificacion.success(`Usuario ${result.user.isActive ? 'activado' : 'desactivado'} exitosamente`)
-      } else {
-        notificacion.error(result.message)
+    const toggleUserStatus = async (user) => { 
+      if (!user || user.id === undefined) {
+        notificacion.error('Error: Información de usuario incompleta.');
+        return;
+      }
+        
+      try {
+        // Llama a la tienda con el ID
+        const result = await authStore.toggleUserStatus(user.id)
+          
+        if (result.success) {
+          
+          const updatedUser = users.value.find(u => u.id === user.id);
+          
+          if (updatedUser) {
+            notificacion.success(`Usuario ${updatedUser.is_active ? 'activado' : 'desactivado'} exitosamente`);
+          } else {
+            notificacion.success(`Estado cambiado exitosamente (ID: ${user.id}).`);
+          }
+
+        } else {
+          notificacion.error(result.message || 'Error al cambiar el estado del usuario');
+        }
+      } catch (error) {
+        console.error('Error al cambiar estado:', error);
+        notificacion.error('Error al cambiar el estado del usuario');
       }
     }
 
@@ -838,19 +872,6 @@ export default {
     onMounted(async () => {
       // Inicializar autenticación si hay datos guardados
       authStore.initAuth()
-
-      // Cargar usuarios
-      /*const result = await authStore.searchUsers({})
-      if (result.success) {
-        users.value = result.users.map(u => ({
-          id: u.id,
-          idInstitucional: u.id_institucional,
-          name: u.nombre,
-          email: u.email,
-          rol: u.rol,
-          isActive: u.is_active
-        }))
-      }*/
 
       await productsStore.fetchProducts()
       await notificationsStore.fetchNotifications()
