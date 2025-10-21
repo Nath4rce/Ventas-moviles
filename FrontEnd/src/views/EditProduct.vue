@@ -35,15 +35,8 @@
                     <i class="fas fa-tag me-2"></i>
                     Título del Producto *
                   </label>
-                  <input 
-                    type="text" 
-                    class="form-control" 
-                    id="title" 
-                    v-model="form.title"
-                    placeholder="Ej: Laptop Gaming ASUS" 
-                    required 
-                    :class="{ 'is-invalid': errors.title }"
-                  >
+                  <input type="text" class="form-control" id="title" v-model="form.title"
+                    placeholder="Ej: Laptop Gaming ASUS" required :class="{ 'is-invalid': errors.title }">
                   <div v-if="errors.title" class="invalid-feedback">
                     {{ errors.title }}
                   </div>
@@ -54,13 +47,8 @@
                     <i class="fas fa-tags me-2"></i>
                     Categoría *
                   </label>
-                  <select 
-                    class="form-select" 
-                    id="category" 
-                    v-model="form.category" 
-                    required
-                    :class="{ 'is-invalid': errors.category }"
-                  >
+                  <select class="form-select" id="category" v-model="form.category" required
+                    :class="{ 'is-invalid': errors.category }">
                     <option value="">Selecciona una categoría</option>
                     <option v-for="cat in productsStore.categories" :key="cat.id" :value="cat.id">
                       {{ cat.nombre }}
@@ -78,17 +66,8 @@
                   </label>
                   <div class="input-group">
                     <span class="input-group-text">$</span>
-                    <input 
-                      type="number" 
-                      class="form-control" 
-                      id="price" 
-                      v-model.number="form.price" 
-                      placeholder="0"
-                      min="0" 
-                      step="0.01" 
-                      required 
-                      :class="{ 'is-invalid': errors.price }"
-                    >
+                    <input type="number" class="form-control" id="price" v-model.number="form.price" placeholder="0"
+                      min="0" step="0.01" required :class="{ 'is-invalid': errors.price }">
                   </div>
                   <div v-if="errors.price" class="invalid-feedback">
                     {{ errors.price }}
@@ -100,15 +79,9 @@
                     <i class="fas fa-align-left me-2"></i>
                     Descripción *
                   </label>
-                  <textarea 
-                    class="form-control" 
-                    id="description" 
-                    v-model="form.description" 
-                    rows="4"
-                    placeholder="Describe tu producto en detalle..." 
-                    required
-                    :class="{ 'is-invalid': errors.description }"
-                  ></textarea>
+                  <textarea class="form-control" id="description" v-model="form.description" rows="4"
+                    placeholder="Describe tu producto en detalle..." required
+                    :class="{ 'is-invalid': errors.description }"></textarea>
                   <div v-if="errors.description" class="invalid-feedback">
                     {{ errors.description }}
                   </div>
@@ -119,12 +92,7 @@
 
                 <div class="mb-4">
                   <div class="form-check form-switch">
-                    <input 
-                      class="form-check-input" 
-                      type="checkbox" 
-                      id="isActive" 
-                      v-model="form.isActive"
-                    >
+                    <input class="form-check-input" type="checkbox" id="isActive" v-model="form.isActive">
                     <label class="form-check-label fw-semibold" for="isActive">
                       <i class="fas fa-eye me-2"></i>
                       Producto visible (activo)
@@ -144,17 +112,9 @@
                     <div class="row g-3">
                       <div v-for="(image, index) in form.images" :key="index" class="col-6 col-md-3">
                         <div class="image-preview">
-                          <img 
-                            :src="image" 
-                            :alt="`Imagen ${index + 1}`" 
-                            class="img-thumbnail"
-                            @error="handleImageError"
-                          >
-                          <button 
-                            type="button" 
-                            class="btn btn-sm btn-danger remove-image" 
-                            @click="removeImage(index)"
-                          >
+                          <img :src="image" :alt="`Imagen ${index + 1}`" class="img-thumbnail"
+                            @error="handleImageError">
+                          <button type="button" class="btn btn-sm btn-danger remove-image" @click="removeImage(index)">
                             <i class="fas fa-times"></i>
                           </button>
                         </div>
@@ -162,7 +122,7 @@
 
                       <div v-if="form.images.length < 4" class="col-6 col-md-3">
                         <input type="file" ref="fileInput" @change="handleImageUpload" accept="image/*" class="d-none">
-                        
+
                         <div class="image-upload-placeholder" @click="addImage">
                           <i class="fas fa-plus"></i>
                           <span>Agregar Imagen</span>
@@ -179,21 +139,13 @@
                 </div>
 
                 <div class="d-flex gap-2">
-                  <button 
-                    type="submit" 
-                    class="btn btn-primary" 
-                    :disabled="submitting || deleting"
-                  >
+                  <button type="submit" class="btn btn-primary" :disabled="submitting || deleting">
                     <i v-if="submitting" class="fas fa-spinner fa-spin me-2"></i>
                     <i v-else class="fas fa-save me-2"></i>
                     {{ submitting ? 'Guardando...' : 'Guardar Cambios' }}
                   </button>
-                  <button
-                    type="button"
-                    class="btn btn-outline-secondary"
-                    @click="handleCancel"
-                    :disabled="submitting || deleting"
-                  >
+                  <button type="button" class="btn btn-outline-secondary" @click="handleCancel"
+                    :disabled="submitting || deleting">
                     <i class="fas fa-times me-2"></i>
                     Cancelar
                   </button>
@@ -213,12 +165,8 @@
             </div>
             <div class="card-body">
               <div v-if="product?.images?.length > 0" class="mb-3">
-                <img 
-                  :src="product.images[0]" 
-                  alt="Producto actual" 
-                  class="img-fluid rounded"
-                  style="width: 100%; height: 200px; object-fit: cover;"
-                >
+                <img :src="product.images[0]" alt="Producto actual" class="img-fluid rounded"
+                  style="width: 100%; height: 200px; object-fit: cover;">
               </div>
               <div v-else class="text-center py-5 bg-light rounded mb-3">
                 <i class="fas fa-image text-muted" style="font-size: 3rem;"></i>
@@ -240,7 +188,7 @@
                   </span>
                 </div>
               </div>
-              
+
               <h6 class="fw-bold mb-2">{{ product?.title || 'Sin título' }}</h6>
 
               <div class="seller-info mb-3">
@@ -259,9 +207,10 @@
                   ${{ formatPrice(product?.price) }}
                 </span>
               </div>
-              
+
               <p class="text-muted small mb-3">
-                {{ product?.description ? (product.description.length > 100 ? product.description.substring(0, 100) + '...' : product.description) : 'Sin descripción' }}
+                {{ product?.description ? (product.description.length > 100 ? product.description.substring(0, 100) +
+                  '...' : product.description) : 'Sin descripción' }}
               </p>
 
               <div class="d-flex justify-content-between align-items-center">
@@ -282,21 +231,18 @@
             </div>
             <div class="card-body">
               <div v-if="form.images?.length > 0" class="mb-3">
-                <img 
-                  :src="form.images[0]" 
-                  alt="Vista previa" 
-                  class="img-fluid rounded"
-                  style="width: 100%; height: 150px; object-fit: cover;"
-                >
+                <img :src="form.images[0]" alt="Vista previa" class="img-fluid rounded"
+                  style="width: 100%; height: 150px; object-fit: cover;">
               </div>
               <div v-else class="text-center py-4 bg-light rounded mb-3">
                 <i class="fas fa-image text-muted" style="font-size: 2rem;"></i>
                 <p class="text-muted small mt-2 mb-0">Sin imagen</p>
               </div>
-              
+
               <h6 class="fw-bold mb-2">{{ form.title || 'Título del producto' }}</h6>
               <p class="text-muted small mb-2">
-                {{ form.description ? (form.description.length > 80 ? form.description.substring(0, 80) + '...' : form.description) : 'Descripción del producto...' }}
+                {{ form.description ? (form.description.length > 80 ? form.description.substring(0, 80) + '...' :
+                  form.description) : 'Descripción del producto...' }}
               </p>
               <div class="d-flex justify-content-between align-items-center">
                 <span class="text-primary fw-bold">
@@ -350,12 +296,8 @@
               <p class="text-muted small mb-3">
                 Una vez eliminado, no podrás recuperar este producto.
               </p>
-              <button 
-                type="button" 
-                class="btn btn-danger w-100"
-                @click="confirmDelete"
-                :disabled="submitting || deleting"
-              >
+              <button type="button" class="btn btn-danger w-100" @click="confirmDelete"
+                :disabled="submitting || deleting">
                 <i class="fas fa-trash me-2"></i>
                 Eliminar Producto
               </button>
@@ -385,20 +327,10 @@
             </p>
           </div>
           <div class="modal-footer">
-            <button 
-              type="button" 
-              class="btn btn-secondary" 
-              data-bs-dismiss="modal"
-              :disabled="deleting"
-            >
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" :disabled="deleting">
               Cancelar
             </button>
-            <button 
-              type="button" 
-              class="btn btn-danger"
-              @click="deleteProduct"
-              :disabled="deleting"
-            >
+            <button type="button" class="btn btn-danger" @click="deleteProduct" :disabled="deleting">
               <i v-if="deleting" class="fas fa-spinner fa-spin me-2"></i>
               <i v-else class="fas fa-trash me-2"></i>
               {{ deleting ? 'Eliminando...' : 'Eliminar Producto' }}
@@ -426,7 +358,7 @@ export default {
 
     const productId = route.params.id
     const product = computed(() => productsStore.getProductById(productId))
-    
+
     const form = reactive({
       title: '',
       category: '',
@@ -502,7 +434,7 @@ export default {
       return isValid
     }
 
-    
+
     const addImage = () => {
       if (form.images.length < 4) {
         // En una implementación real, aquí se abriría un modal para subir imágenes
@@ -530,20 +462,20 @@ export default {
       if (form.images.length >= 4) {
         alert('Ya has alcanzado el máximo de 4 imágenes.')
         // Limpiar el input para que pueda seleccionar el mismo archivo de nuevo
-        event.target.value = '' 
+        event.target.value = ''
         return
       }
 
       // Generar una URL temporal para la vista previa local
       const imageUrl = URL.createObjectURL(file)
-      
+
       // En un caso real, aquí deberías subir el archivo a tu servidor
       // y guardar la URL de respuesta en `form.images`.
       // Para esta demostración, usaremos la URL temporal para la vista previa.
 
       form.images.push(imageUrl)
       // Limpiar el input para permitir subir el mismo archivo si se elimina
-      event.target.value = '' 
+      event.target.value = ''
     }
 
     // ELIMINADA: const addImagePrompt = () => { ... }
@@ -577,7 +509,7 @@ export default {
       event.target.src = fallbackSvg
       // Opcional: Si es una URL de objeto temporal, revocarla si falló
       if (event.target.src.startsWith('blob:')) {
-         URL.revokeObjectURL(event.target.src)
+        URL.revokeObjectURL(event.target.src)
       }
     }
 
@@ -604,12 +536,12 @@ export default {
             // archivos procesar.
             images: form.images.filter(img => !img.startsWith('blob:')) // Filtra URLs temporales si no se maneja el upload real
           }
-          
+
           // Lógica de Subida de Archivos (MOCK):
           // Si hubieras subido archivos, aquí tendrías un array de URLs permanentes.
           // Si no tienes un backend real para el upload, mantén la URL original para la simulación.
           // Ya que no tenemos el backend, asumiremos que `form.images` ya tiene las URLs finales.
-          
+
           await productsStore.updateProduct(productId, productData)
           alert('✅ Producto actualizado exitosamente')
           router.push('/profile')
@@ -650,16 +582,16 @@ export default {
     // Eliminar producto
     const deleteProduct = async () => {
       deleting.value = true
-      
+
       try {
         await productsStore.deleteProduct(productId)
-        
+
         // Cerrar modal
         if (typeof bootstrap !== 'undefined' && deleteModal.value) {
           const modal = bootstrap.Modal.getInstance(deleteModal.value)
           if (modal) modal.hide()
         }
-        
+
         alert('✅ Producto eliminado exitosamente')
         router.push('/profile')
       } catch (error) {
@@ -695,12 +627,12 @@ export default {
 
     onMounted(async () => {
       // Inicializar sesión
-      await authStore.initializeUserSession()
-      
+      await authStore.initAuth()
+
       // Cargar categorías y productos
       await productsStore.fetchCategories()
       await productsStore.fetchProducts()
-      
+
       // Verificar que el producto existe
       if (!product.value) {
         alert('Producto no encontrado')
@@ -709,10 +641,14 @@ export default {
       }
 
       // Verificar que el usuario es el dueño del producto
-      const productSellerId = String(product.value.sellerId)
-      const userIdInstitucional = String(authStore.user?.idInstitucional)
+      const productSellerId = String(product.value.sellerId || product.value.vendedor_id_institucional)
+      const userIdInstitucional = String(
+        authStore.user?.idInstitucional ||
+        authStore.user?.id_institucional ||
+        authStore.user?.ID_INSTITUCIONAL
+      )
 
-      if (productSellerId !== userIdInstitucional) {
+      if (!userIdInstitucional || productSellerId !== userIdInstitucional) {
         alert('No tienes permiso para editar este producto. Solo el creador puede editarlo.')
         router.push('/profile')
         return
@@ -721,7 +657,6 @@ export default {
       // Cargar datos del producto
       loadProductData()
     })
-
     return {
       product,
       form,
@@ -729,9 +664,9 @@ export default {
       submitting,
       deleting,
       deleteModal,
-      fileInput, // Retornar la referencia del input de archivo
+      fileInput,
       productsStore,
-      addImage, // NUEVA FUNCIÓN
+      addImage,
       removeImage,
       handleImageError,
       handleSubmit,
