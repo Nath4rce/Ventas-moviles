@@ -284,7 +284,24 @@ export default {
 
 <style scoped>
 .hero-section {
-  background: linear-gradient(135deg, #8B0000 0%, #6b0000 100%);
+  background: linear-gradient(135deg, #ff0040 0%, #ff007f 40%, #c400ff 100%);
+  color: white;
+}
+
+/* Para darle un toque de brillo moderno */
+.hero-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top left, rgba(255,255,255,0.15), transparent 70%);
+  z-index: 0;
+}
+
+.hero-section .container,
+.hero-section .row,
+.hero-section .col-lg-6 {
+  position: relative;
+  z-index: 1;
 }
 
 .filters-section .card {

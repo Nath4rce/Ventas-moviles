@@ -50,6 +50,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import Navbar from './components/Navbar.vue'
 import Footer from './components/Footer.vue'
+import Error from './components/Error.vue'
 import NotificacionContainer from './components/NotificacionContainer.vue'
 import LoadingOverlay from 'vue-loading-overlay'
 import 'vue-loading-overlay/dist/css/index.css'
@@ -60,7 +61,8 @@ export default {
     Navbar,
     Footer,
     NotificacionContainer,
-    LoadingOverlay
+    LoadingOverlay,
+    Error
   },
   setup() {
     const route = useRoute()

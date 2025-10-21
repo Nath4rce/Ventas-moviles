@@ -1,13 +1,13 @@
 /* Variables CSS Globales */
 :root {
   /* Colores principales */
-  --primary-color: #dc2626;        /* Rojo principal */
+  --primary-color: #7b1fa2;       /* Rojo principal */
   --primary-hover: #b91c1c;        /* Rojo más oscuro */
   --primary-light: #fef2f2;        /* Rojo muy claro */
   --secondary-color: #ffffff;      /* Blanco */
-  --accent-color: #ea580c;         /* Naranja */
+  --accent-color: #4b0082;         /* violeta institucional elegante */
   --accent-hover: #c2410c;         /* Naranja más oscuro */
-  --accent-light: #fff7ed;         /* Naranja muy claro */
+  --accent-light: #f5f0ff;         /* fondo violeta muy claro */
   
   /* Colores de texto */
   --text-dark: #1f2937;            /* Gris muy oscuro */
@@ -24,6 +24,13 @@
   --warning-color: #f59e0b;        /* Amarillo/Naranja */
   --danger-color: #dc2626;         /* Rojo */
   --info-color: #ea580c;           /* Naranja */
+
+  /* Colores UPB para navbar y footer */
+  --navbar-bg: #000000; /* Negro */
+  --footer-bg: #000000; /* Negro */
+  --navbar-text: #ffffff; /* Texto blanco */
+  --footer-text: #ffffff; /* Texto blanco */
+
   
   /* Sombras */
   --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.1);

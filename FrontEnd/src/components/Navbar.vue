@@ -1,10 +1,15 @@
 <template>
   <nav class="navbar navbar-expand-lg navbar-dark sticky-top custom-navbar">
     <div class="container">
-      <router-link class="navbar-brand fw-bold" to="/landing">
-        <i class="fas fa-graduation-cap me-2"></i>
-        Ventas Moviles UPB
-      </router-link>
+      <router-link class="navbar-brand fw-bold d-flex align-items-center" to="/landing">
+          <img 
+            src="/BrandbookUPB.png" 
+            alt="Logo UPB" 
+            class="upb-logo-navbar me-2"
+            style="height: 35px; width: auto;"
+          />
+          Ventas Moviles UPB
+        </router-link>
 
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
         aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">

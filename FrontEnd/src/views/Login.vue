@@ -17,7 +17,12 @@
             <div class="card-body p-5">
               <!-- Logo y título -->
               <div class="text-center mb-4">
-                <i class="fas fa-graduation-cap text-primary mb-3" style="font-size: 3rem;"></i>
+                <img 
+                  src="/BrandbookUPB.png" 
+                  alt="Logo UPB" 
+                  class="upb-logo-login mb-3"
+                  style="height: 80px; width: auto;"
+                />
                 <h2 class="fw-bold text-primary">Ventas Moviles UPB</h2>
                 <p class="text-muted">Inicia sesión en tu cuenta</p>
               </div>

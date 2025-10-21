@@ -100,8 +100,9 @@
 
 /* Navegación */
 .custom-navbar {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%) !important;
+  background: var(--navbar-bg) !important;
   box-shadow: var(--shadow-md);
+  padding: 0.75rem 0;
 }
 
 .navbar-toggler {
@@ -114,43 +115,49 @@
 }
 
 .navbar-brand {
-  color: white !important;
-  font-size: 1.5rem;
-  transition: all var(--transition-normal);
+  color: #ffffff !important; /* blanco puro */
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  display: flex;
+  align-items: center;
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
 }
 
 .navbar-brand:hover {
-  color: var(--accent-color) !important;
-  transform: scale(1.05);
+  color: #ffffff !important; /* sin cambio de color */
+  transform: scale(1.03);
+  box-shadow: none;
 }
 
 .nav-link {
   color: rgba(255, 255, 255, 0.9) !important;
-  font-weight: 500;
-  transition: all var(--transition-normal);
+  font-weight: var(--font-weight-medium);
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
   position: relative;
+  padding: 0.5rem 1rem;
 }
 
 .nav-link:hover {
-  color: var(--accent-color) !important;
+  color: rgba(255, 255, 255, 1) !important; /* se mantiene blanca */
   transform: translateY(-1px);
+  box-shadow: none;
 }
 
 .nav-link.router-link-active {
-  color: var(--accent-color) !important;
-  font-weight: 600;
+  color: #ffffff !important;
+  font-weight: var(--font-weight-semibold);
 }
 
 .nav-link.router-link-active::after {
   content: '';
   position: absolute;
-  bottom: -5px;
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 20px;
-  height: 2px;
-  background-color: var(--accent-color);
-  border-radius: 1px;
+  width: 30px;
+  height: 3px;
+  background: #ffffff; /* subrayado blanco para mantener estética UPB */
+  border-radius: 2px;
 }
 
 /* Dropdown personalizado */
@@ -206,8 +213,15 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Footer personalizado */
 .custom-footer {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+  background: var(--footer-bg);
+  color: var(--footer-text);
+  padding: var(--spacing-xl) 0;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.custom-footer h5,
+.custom-footer h6 {
+  color: var(--footer-text);
 }
 
 .custom-footer a {
