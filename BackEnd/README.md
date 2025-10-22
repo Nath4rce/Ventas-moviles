@@ -1,6 +1,6 @@
 # Backend - Ventas Moviles UPB
 
-Backend para el marketplace universitario Ventas Moviles UPB desarrollado con Node.js, Express y MySQL.
+Backend para el marketplace universitario Ventas Moviles UPB desarrollado con Node.js, Express y SQL server.
 
 ## Características
 
@@ -15,7 +15,7 @@ Backend para el marketplace universitario Ventas Moviles UPB desarrollado con No
 ## Requisitos
 
 - Node.js 16+ 
-- MySQL 8.0+
+- SQL server
 - npm o yarn
 
 ## 🛠️ Instalación
@@ -50,7 +50,7 @@ Backend para el marketplace universitario Ventas Moviles UPB desarrollado con No
    ```
 
 4. **Configurar la base de datos**
-   - Crear la base de datos MySQL
+   - Crear la base de datos SQL server
    - Ejecutar el script `DataBase/database_schema.sql`
 
 5. **Iniciar el servidor**
