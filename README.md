@@ -55,11 +55,11 @@ Ventas-moviles-main/
 │   │   ├── product-card.html
 │   │   └── modal.html
 │   ├── views/
-│   │   ├── home.html
-│   │   ├── login.html
-│   │   ├── register.html
-│   │   ├── product-detail.html
-│   │   └── dashboard.html
+│   │   ├── home.vue
+│   │   ├── login.vue
+│   │   ├── register.vue
+│   │   ├── product-detail.vue
+│   │   └── etc
 │   └── config/
 │       └── config.js
 │
@@ -67,6 +67,7 @@ Ventas-moviles-main/
 │   └── database_schema.sql
 │
 └── README.md
+
 
 ------------------------------------------------------------
 Tecnologías Utilizadas
@@ -133,11 +134,11 @@ Autores
 ------------------------------------------------------------
 Desarrollado por
 
-# juan david parra sierra
-# santiago viana ayala
-# miguel angel ramirez velasquez
-# natalia arce peñuela
-# sara soto 
+* juan david parra sierra
+* santiago viana ayala
+* miguel angel ramirez velasquez
+* natalia arce peñuela
+* sara soto 
 
 Estudiantes de Ingeniería en Sistemas e Informática - UPB Medellín
 
