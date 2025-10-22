@@ -5,7 +5,7 @@ Sistema completo para la gestión de ventas de dispositivos móviles, con arquit
 ------------------------------------------------------------
 Estructura del Proyecto
 ------------------------------------------------------------
-## Estructura general resumida
+
 Ventas-moviles-main/
 │
 ├── BackEnd/
@@ -67,7 +67,6 @@ Ventas-moviles-main/
 │   └── database_schema.sql
 │
 └── README.md
-##
 
 ------------------------------------------------------------
 Tecnologías Utilizadas
