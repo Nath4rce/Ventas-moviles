@@ -2,14 +2,14 @@
   <nav class="navbar navbar-expand-lg navbar-dark sticky-top custom-navbar">
     <div class="container">
       <router-link class="navbar-brand fw-bold d-flex align-items-center" to="/landing">
-          <img 
-            src="/BrandbookUPB.png" 
-            alt="Logo UPB" 
-            class="upb-logo-navbar me-2"
-            style="height: 35px; width: auto;"
-          />
-          Ventas Moviles UPB
-        </router-link>
+        <img 
+          src="/BrandbookUPB.png" 
+          alt="Logo UPB" 
+          class="upb-logo-navbar me-2"
+          style="height: 35px; width: auto;"
+        />
+        Ventas Moviles UPB
+      </router-link>
 
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
         aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -24,11 +24,14 @@
               Inicio
             </router-link>
           </li>
-          <!-- Enlace para vendedores -->
+          <!-- Enlace dinámico para vendedores -->
           <li class="nav-item" v-if="authStore.isSeller">
-            <router-link class="nav-link" to="/publish">
+            <router-link 
+              class="nav-link" 
+              :to="hasProducts ? `/edit-product/${userProducts[0]?.id}` : '/publish'"
+            >
               <i class="fas fa-plus me-1"></i>
-              Publicar
+              {{ hasProducts ? 'Editar Producto' : 'Publicar' }}
             </router-link>
           </li>
           <!-- Enlace para administradores -->
@@ -54,13 +57,14 @@
           <!-- Notificaciones -->
           <li class="nav-item dropdown" v-if="authStore.isAuthenticated">
             <a 
-              class="nav-link position-relative" 
+              class="nav-link position-relative d-flex align-items-center" 
               href="#" 
               id="notificationsDropdown" 
               role="button" 
               data-bs-toggle="dropdown"
             >
-              <i class="fas fa-bell"></i>
+              <i class="fas fa-bell me-1"></i>
+              <span class="dropdown-link-text">Notificaciones</span>
               <span 
                 v-if="unreadCount > 0" 
                 class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
@@ -98,7 +102,7 @@
             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="profileDropdown" role="button"
               data-bs-toggle="dropdown">
               <img :src="authStore.user?.avatar" alt="Avatar" class="rounded-circle me-2" width="30" height="30">
-              {{ authStore.user?.name }}
+              <span class="dropdown-link-text">Perfil</span>
             </a>
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="profileDropdown">
               <li>
@@ -129,6 +133,7 @@ import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useNotificationsStore } from '../stores/notifications'
+import { useProductsStore } from '../stores/products' // Importar el store de productos
 
 export default {
   name: 'Navbar',
@@ -136,6 +141,17 @@ export default {
     const router = useRouter()
     const authStore = useAuthStore()
     const notificationsStore = useNotificationsStore()
+    const productsStore = useProductsStore() // Inicializar el store de productos
+
+    // Productos del usuario (solo vendedores)
+    const userProducts = computed(() => {
+      return productsStore.userProducts(authStore.user?.id_institucional) || []
+    })
+
+    // Verificación si el usuario tiene productos
+    const hasProducts = computed(() => {
+      return userProducts.value.length > 0
+    })
 
     const notifications = computed(() =>
       notificationsStore.userNotifications(authStore.user?.id)
@@ -166,11 +182,15 @@ export default {
       authStore.initAuth()
       if (authStore.isAuthenticated) {
         await notificationsStore.fetchNotifications()
+        // Cargar productos si el usuario está autenticado
+        await productsStore.fetchProducts()
       }
     })
 
     return {
       authStore,
+      userProducts,
+      hasProducts,
       notifications,
       unreadCount,
       logout,
@@ -198,6 +218,21 @@ export default {
   font-size: 0.7rem;
 }
 
+/* Mostrar texto en enlaces de dropdown solo en móviles y tablets */
+@media (max-width: 1199px) {
+  .dropdown-link-text {
+    display: inline !important;
+    margin-left: 0.25rem;
+  }
+}
+
+/* Ocultar texto en desktop */
+@media (min-width: 1200px) {
+  .dropdown-link-text {
+    display: none !important;
+  }
+}
+
 /* Mobile optimizations */
 @media (max-width: 767px) {
   .navbar-brand {
@@ -206,5 +241,26 @@ export default {
   .dropdown-menu {
     min-width: 250px;
   }
+  
+  /* Ajustar espaciado para los enlaces con texto */
+  .nav-link {
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .dropdown-link-text {
+    font-size: 0.9rem;
+  }
+}
+
+/* Mejorar la legibilidad del texto en el navbar oscuro */
+.custom-navbar .nav-link {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.custom-navbar .nav-link:hover {
+  color: rgba(255, 255, 255, 1) !important;
 }
 </style>

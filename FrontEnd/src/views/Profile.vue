@@ -76,9 +76,14 @@
             </div>
             <div class="card-body">
               <div class="d-grid gap-2">
-                <router-link v-if="authStore.isSeller" to="/publish" class="btn btn-primary">
+                <!-- Botón dinámico según si tiene productos o no -->
+                <router-link 
+                  v-if="authStore.isSeller" 
+                  :to="hasProducts ? `/edit-product/${userProducts[0].id}` : '/publish'" 
+                  class="btn btn-primary"
+                >
                   <i class="fas fa-plus me-2"></i>
-                  Publicar Producto
+                  {{ hasProducts ? 'Editar Producto' : 'Publicar Producto' }}
                 </router-link>
 
                 <router-link v-if="authStore.isAdmin" to="/admin" class="btn btn-warning">
@@ -98,7 +103,7 @@
           </div>
         </div>
 
-      <!-- Contenido principal -->
+        <!-- Contenido principal -->
         <div class="col-12 col-lg-8">
           <!-- Mis productos (solo vendedores) -->
           <div v-if="authStore.isSeller" class="card mb-4">
@@ -188,16 +193,27 @@
                 Configuración de Cuenta
               </h5>
             </div>
-            
+            <div class="card-body">
+              <div class="row g-3">
                 <div class="col-12">
                   <div class="d-flex justify-content-between align-items-center p-3 border rounded">
                     <div>
                       <h6 class="mb-1 text-danger">Cerrar Sesión</h6>
                       <p class="text-muted mb-0 small">Salir de tu cuenta de forma segura</p>
                     </div>
-                    <button class="btn btn-outline-danger btn-sm" @click="logout">
-                      <i class="fas fa-sign-out-alt me-1"></i>
-                      Cerrar Sesión
+                    <button 
+                      class="btn btn-outline-danger btn-sm" 
+                      @click="logout"
+                      :disabled="loggingOut"
+                    >
+                      <template v-if="!loggingOut">
+                        <i class="fas fa-sign-out-alt me-1"></i>
+                        Cerrar Sesión
+                      </template>
+                      <template v-else>
+                        <i class="fas fa-spinner fa-spin me-1"></i>
+                        Cerrando...
+                      </template>
                     </button>
                   </div>
                 </div>
@@ -206,14 +222,17 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
 </template>
 
 <script>
-import { computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useProductsStore } from '../stores/products'
 import { useNotificationsStore } from '../stores/notifications'
+import Swal from 'sweetalert2'
 
 export default {
   name: 'Profile',
@@ -222,12 +241,18 @@ export default {
     const authStore = useAuthStore()
     const productsStore = useProductsStore()
     const notificationsStore = useNotificationsStore()
+    const loggingOut = ref(false)
 
     const user = computed(() => authStore.user)
 
     // Productos del usuario (solo vendedores)
     const userProducts = computed(() => {
       return productsStore.userProducts(authStore.user?.id_institucional) || []
+    })
+
+    // Verificación si el usuario tiene productos
+    const hasProducts = computed(() => {
+      return userProducts.value.length > 0
     })
 
     // Reseñas del usuario
@@ -247,7 +272,6 @@ export default {
     const unreadNotifications = computed(() =>
       notificationsStore.unreadCount(authStore.user?.id)
     )
-
 
     const getRoleName = (rol) => {
       const names = {
@@ -296,26 +320,60 @@ export default {
 
     // Cierre de sesión con pantalla de carga
     const logout = async () => {
-      if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
-        authStore.logout()
+      const result = await Swal.fire({
+        title: '¿Cerrar sesión?',
+        text: '¿Estás seguro de que quieres salir de tu cuenta?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, cerrar sesión',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        reverseButtons: true,
+      })
+
+      if (!result.isConfirmed) {
+        return
+      }
+
+      loggingOut.value = true
+      
+      try {
+        await authStore.logout()
+        
+        await Swal.fire({
+          title: '¡Sesión cerrada!',
+          text: 'Has cerrado sesión correctamente',
+          icon: 'success',
+          confirmButtonColor: '#198754',
+          timer: 1500,
+          showConfirmButton: false
+        })
+        
         router.push('/login')
+      } catch (error) {
+        Swal.fire({
+          title: 'Error',
+          text: 'Error al cerrar sesión',
+          icon: 'error',
+          confirmButtonColor: '#dc3545'
+        })
+      } finally {
+        loggingOut.value = false
       }
     }
 
     onMounted(async () => {
       authStore.initAuth()
-      //console.log('👤 Usuario actual:', authStore.user)
-      //console.log('🔑 Usuario ID:', authStore.user?.id)
       if (authStore.isAuthenticated) {
         await productsStore.fetchProducts()
-        //console.log('📦 Productos en store:', productsStore.products)
-        //console.log('🛒 Productos del usuario:', userProducts.value)
       }
     })
 
     return {
       user,
       userProducts,
+      hasProducts,
       myReviews,
       userStats,
       unreadNotifications,
@@ -326,7 +384,8 @@ export default {
       getProductTitle,
       formatPrice,
       formatDate,
-      logout
+      logout,
+      loggingOut
     }
   }
 }

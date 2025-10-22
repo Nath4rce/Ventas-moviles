@@ -15,6 +15,8 @@ DELETE FROM resenas;
 DELETE FROM producto_imagenes;
 DELETE FROM productos;
 DELETE FROM categorias;
+DELETE FROM usuarios WHERE id > 4; -- Mantener usuarios base
+DELETE FROM categorias WHERE id > 3; -- Mantener categorías base
 GO
 
 DBCC CHECKIDENT ('categorias', RESEED, 0);
@@ -23,6 +25,7 @@ DBCC CHECKIDENT ('producto_imagenes', RESEED, 0);
 DBCC CHECKIDENT ('resenas', RESEED, 0);
 DBCC CHECKIDENT ('notificaciones', RESEED, 0);
 DBCC CHECKIDENT ('notificaciones_leidas', RESEED, 0);
+DBCC CHECKIDENT ('usuarios', RESEED, 4);
 GO
 
 -- =============================================
@@ -33,6 +36,26 @@ INSERT INTO categorias (nombre, descripcion, icono) VALUES
 ('Papelería', 'Stickers, cuadernos, bolígrafos y materiales de oficina', 'fa-pencil-alt'),
 ('Accesorios', 'Pines, llaveros, detalles y artículos decorativos', 'fa-gem');
 GO
+
+
+-- =============================================
+-- 2. INSERTAR USUARIOS ADICIONALES
+-- =============================================
+PRINT 'Insertando usuarios adicionales...';
+
+INSERT INTO usuarios (id_institucional, email, password_hash, nombre, telefono, rol, is_active) VALUES
+-- Vendedores adicionales
+('000222333', 'ana.martinez@upb.edu.co', '$2a$12$YCrWylKEeoKWtM3qFg0ri.q80UZEUHYh.wUgcgNNAPJJDmr8QuQfG', 'Ana Martínez', '3014445566', 'seller', 1),
+('000444555', 'pedro.gomez@upb.edu.co', '$2a$12$YCrWylKEeoKWtM3qFg0ri.q80UZEUHYh.wUgcgNNAPJJDmr8QuQfG', 'Pedro Gómez', '3025556677', 'seller', 1),
+('000666777', 'laura.silva@upb.edu.co', '$2a$12$YCrWylKEeoKWtM3qFg0ri.q80UZEUHYh.wUgcgNNAPJJDmr8QuQfG', 'Laura Silva', '3036667788', 'seller', 1),
+
+-- Compradores adicionales
+('000888999', 'carlos.lopez@upb.edu.co', '$2a$12$Sbouw.tNIzAdkZwf.k2et.lCogg4MSe5rKWlg0Mb3.NxMWYJ7lZya', 'Carlos López', '3047778899', 'buyer', 1),
+('000111222', 'sofia.ramirez@upb.edu.co', '$2a$12$Sbouw.tNIzAdkZwf.k2et.lCogg4MSe5rKWlg0Mb3.NxMWYJ7lZya', 'Sofía Ramírez', '3058889900', 'buyer', 1),
+('000333444', 'david.herrera@upb.edu.co', '$2a$12$Sbouw.tNIzAdkZwf.k2et.lCogg4MSe5rKWlg0Mb3.NxMWYJ7lZya', 'David Herrera', '3069990011', 'buyer', 1),
+('000555666', 'isabella.castro@upb.edu.co', '$2a$12$Sbouw.tNIzAdkZwf.k2et.lCogg4MSe5rKWlg0Mb3.NxMWYJ7lZya', 'Isabella Castro', '3070001122', 'buyer', 1);
+GO
+
 
 -- =============================================
 -- 3. INSERTAR PRODUCTOS (cada vendedor tiene uno)

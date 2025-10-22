@@ -63,7 +63,7 @@
                     Categoría *
                   </label>
                   <select class="form-select" id="category" v-model="form.category" required
-                    :class="{ 'is-invalid': errors.category }">
+                    :class="{ 'is-invalid': errors.category }" @change="updateCategoryImage">
                     <option value="">Selecciona una categoría</option>
                     <option v-for="cat in productsStore.categories" :key="cat.id" :value="cat.id">
                       {{ cat.nombre }}
@@ -111,10 +111,23 @@
                 <div class="mb-4">
                   <label class="form-label fw-semibold">
                     <i class="fas fa-images me-2"></i>
-                    Imágenes del Producto *
+                    Imágenes del Producto
                   </label>
                   <div class="image-upload-area">
                     <div class="row g-3">
+                      <!-- Vista previa de la imagen de categoría -->
+                      <div v-if="categoryImage" class="col-12">
+                        <div class="alert alert-info">
+                          <i class="fas fa-info-circle me-2"></i>
+                          Se usará automáticamente la imagen de la categoría seleccionada
+                        </div>
+                        <div class="text-center">
+                          <img :src="categoryImage" alt="Imagen de categoría" class="img-thumbnail category-preview">
+                          <p class="text-muted small mt-2">Imagen representativa de la categoría</p>
+                        </div>
+                      </div>
+
+                      <!-- Espacio para imágenes adicionales (opcional) -->
                       <div v-for="(image, index) in form.images" :key="index" class="col-6 col-md-3">
                         <div class="image-preview">
                           <img :src="image" :alt="`Imagen ${index + 1}`" class="img-thumbnail"
@@ -125,19 +138,17 @@
                         </div>
                       </div>
 
+                      <!-- Opción para agregar imágenes adicionales -->
                       <div v-if="form.images.length < 4" class="col-6 col-md-3">
                         <div class="image-upload-placeholder" @click="addImage">
                           <i class="fas fa-plus"></i>
-                          <span>Agregar Imagen</span>
+                          <span>Imagen Adicional</span>
                         </div>
                       </div>
                     </div>
                   </div>
-                  <div v-if="errors.images" class="invalid-feedback d-block">
-                    {{ errors.images }}
-                  </div>
                   <div class="form-text">
-                    Puedes subir hasta 4 imágenes. La primera será la imagen principal.
+                    La imagen de la categoría se asignará automáticamente. Puedes agregar hasta 3 imágenes adicionales opcionales.
                   </div>
                 </div>
 
@@ -249,6 +260,14 @@ export default {
 
     const errors = reactive({})
     const submitting = ref(false)
+    const categoryImage = ref('')
+
+    // URLs de imágenes por categoría
+    const categoryImages = {
+      'Accesorios': 'https://th.bing.com/th/id/R.a3916e476caed05ec0737d4302929140?rik=cac5ieaeglnjwQ&riu=http%3a%2f%2fst.depositphotos.com%2f1007989%2f2098%2fi%2f950%2fdepositphotos_20980957-stock-photo-fashion-accessories-silhouette.jpg&ehk=M2fzg5DuXXJVcFJx2NmLwR7BMXsz%2bjhNKIXHaGPlYTM%3d&risl=&pid=ImgRaw&r=0',
+      'Alimentos': 'https://img.freepik.com/vector-premium/siluetas-alimentos-deliciosos-designs-criativos-e-graficos-arte-culinaria-para-restaurantes-e-receitas_528469-36589.jpg',
+      'Papelería': 'https://static.vecteezy.com/system/resources/previews/025/556/937/original/notebook-flat-silhouette-on-white-background-office-supply-icons-stationery-symbols-item-for-office-school-concept-vector.jpg'
+    }
 
     // Verificar si ya tiene un producto activo
     const currentProduct = computed(() => {
@@ -256,6 +275,21 @@ export default {
         product.sellerId === authStore.user?.id && product.isActive
       )
     })
+
+    // Función para actualizar la imagen según la categoría seleccionada
+    const updateCategoryImage = () => {
+      if (form.category) {
+        const category = productsStore.categories.find(cat => cat.id === form.category)
+        if (category && categoryImages[category.nombre]) {
+          categoryImage.value = categoryImages[category.nombre]
+          // Limpiar imágenes adicionales y agregar la imagen de categoría como principal
+          form.images = [categoryImages[category.nombre]]
+        }
+      } else {
+        categoryImage.value = ''
+        form.images = []
+      }
+    }
 
     const validateForm = () => {
       // Limpiar errores anteriores
@@ -293,31 +327,29 @@ export default {
         isValid = false
       }
 
-      // Validar imágenes
-      if (form.images.length === 0) {
-        errors.images = 'Debes agregar al menos una imagen'
-        isValid = false
-      }
-
       return isValid
     }
 
     const addImage = () => {
       if (form.images.length < 4) {
         // En una implementación real, aquí se abriría un modal para subir imágenes
-        // Por ahora, agregamos imágenes de placeholder
+        // Por ahora, agregamos imágenes de placeholder para adicionales
         const placeholderImages = [
           'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300&h=200&fit=crop&crop=center',
           'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=300&h=200&fit=crop&crop=center',
-          'https://images.unsplash.com/photo-1556742111-a301076d9d18?w=300&h=200&fit=crop&crop=center',
-          'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300&h=200&fit=crop&crop=center'
+          'https://images.unsplash.com/photo-1556742111-a301076d9d18?w=300&h=200&fit=crop&crop=center'
         ]
-        form.images.push(placeholderImages[form.images.length])
+        form.images.push(placeholderImages[form.images.length - 1] || placeholderImages[0])
       }
     }
 
     const removeImage = (index) => {
-      form.images.splice(index, 1)
+      // No permitir eliminar la imagen de categoría (primera imagen)
+      if (index > 0) {
+        form.images.splice(index, 1)
+      } else {
+        notificacion.warning('No puedes eliminar la imagen de categoría principal')
+      }
     }
 
     const handleImageError = (event) => {
@@ -342,6 +374,7 @@ export default {
       form.price = 0
       form.description = ''
       form.images = []
+      categoryImage.value = ''
       Object.keys(errors).forEach(key => errors[key] = '')
     }
 
@@ -395,7 +428,9 @@ export default {
       errors,
       submitting,
       currentProduct,
+      categoryImage,
       productsStore,
+      updateCategoryImage,
       addImage,
       removeImage,
       handleImageError,
@@ -429,6 +464,12 @@ export default {
   height: 120px;
   object-fit: cover;
   border-radius: 8px;
+}
+
+.category-preview {
+  max-width: 200px;
+  height: auto;
+  margin: 0 auto;
 }
 
 .remove-image {
@@ -492,6 +533,10 @@ export default {
   .image-preview img,
   .image-upload-placeholder {
     height: 100px;
+  }
+
+  .category-preview {
+    max-width: 150px;
   }
 
   .d-flex.gap-2 {

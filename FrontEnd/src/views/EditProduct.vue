@@ -353,56 +353,13 @@
               <button 
                 type="button" 
                 class="btn btn-danger w-100"
-                @click="confirmDelete"
+                @click="deleteProduct"
                 :disabled="submitting || deleting"
               >
                 <i class="fas fa-trash me-2"></i>
                 Eliminar Producto
               </button>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal fade" id="deleteModal" tabindex="-1" ref="deleteModal">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header bg-danger text-white">
-            <h5 class="modal-title">
-              <i class="fas fa-exclamation-triangle me-2"></i>
-              Confirmar Eliminación
-            </h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            <p class="mb-0">
-              ¿Estás seguro de que deseas eliminar el producto <strong>"{{ form.title }}"</strong>?
-            </p>
-            <p class="text-danger small mt-2 mb-0">
-              <i class="fas fa-info-circle me-1"></i>
-              Esta acción no se puede deshacer.
-            </p>
-          </div>
-          <div class="modal-footer">
-            <button 
-              type="button" 
-              class="btn btn-secondary" 
-              data-bs-dismiss="modal"
-              :disabled="deleting"
-            >
-              Cancelar
-            </button>
-            <button 
-              type="button" 
-              class="btn btn-danger"
-              @click="deleteProduct"
-              :disabled="deleting"
-            >
-              <i v-if="deleting" class="fas fa-spinner fa-spin me-2"></i>
-              <i v-else class="fas fa-trash me-2"></i>
-              {{ deleting ? 'Eliminando...' : 'Eliminar Producto' }}
-            </button>
           </div>
         </div>
       </div>
@@ -415,6 +372,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useProductsStore } from '../stores/products'
 import { useAuthStore } from '../stores/auth'
+import Swal from 'sweetalert2'
 
 export default {
   name: 'EditProduct',
@@ -433,16 +391,13 @@ export default {
       price: 0,
       description: '',
       isActive: true,
-      images: [] // Este array contendrá las URLs de las imágenes (incluyendo las URLs de objeto temporales)
+      images: []
     })
 
     const errors = reactive({})
-    // ELIMINADA: const newImageUrl = ref('')
     const submitting = ref(false)
     const deleting = ref(false)
-    // ELIMINADA: const imageModal = ref(null)
-    const deleteModal = ref(null)
-    const fileInput = ref(null) // Nueva referencia para el input de archivo
+    const fileInput = ref(null)
 
     // Cargar datos del producto
     const loadProductData = () => {
@@ -458,7 +413,6 @@ export default {
 
     // Validar formulario
     const validateForm = () => {
-      // Limpiar errores anteriores
       Object.keys(errors).forEach(key => delete errors[key])
 
       let isValid = true
@@ -502,11 +456,8 @@ export default {
       return isValid
     }
 
-    
     const addImage = () => {
       if (form.images.length < 4) {
-        // En una implementación real, aquí se abriría un modal para subir imágenes
-        // Por ahora, agregamos imágenes de placeholder
         const placeholderImages = [
           'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300&h=200&fit=crop&crop=center',
           'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=300&h=200&fit=crop&crop=center',
@@ -517,7 +468,7 @@ export default {
       }
     }
 
-    // NUEVA FUNCIÓN: Manejar la selección de archivos
+    // Manejar la selección de archivos
     const handleImageUpload = (event) => {
       const file = event.target.files[0]
       if (!file) return
@@ -529,30 +480,18 @@ export default {
 
       if (form.images.length >= 4) {
         alert('Ya has alcanzado el máximo de 4 imágenes.')
-        // Limpiar el input para que pueda seleccionar el mismo archivo de nuevo
         event.target.value = '' 
         return
       }
 
-      // Generar una URL temporal para la vista previa local
       const imageUrl = URL.createObjectURL(file)
-      
-      // En un caso real, aquí deberías subir el archivo a tu servidor
-      // y guardar la URL de respuesta en `form.images`.
-      // Para esta demostración, usaremos la URL temporal para la vista previa.
-
       form.images.push(imageUrl)
-      // Limpiar el input para permitir subir el mismo archivo si se elimina
       event.target.value = '' 
     }
-
-    // ELIMINADA: const addImagePrompt = () => { ... }
-    // ELIMINADA: const addImage = () => { ... }
 
     // Eliminar imagen
     const removeImage = (index) => {
       if (confirm('¿Estás seguro de eliminar esta imagen?')) {
-        // Si es una URL de objeto temporal, revócala para liberar memoria
         const image = form.images[index]
         if (image.startsWith('blob:')) {
           URL.revokeObjectURL(image)
@@ -561,7 +500,7 @@ export default {
       }
     }
 
-    // Manejar error de carga de imagen (Mantenido y adaptado)
+    // Manejar error de carga de imagen
     const handleImageError = (event) => {
       const fallbackSvg = `data:image/svg+xml,${encodeURIComponent(`
         <svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200">
@@ -575,13 +514,12 @@ export default {
         </svg>
       `)}`
       event.target.src = fallbackSvg
-      // Opcional: Si es una URL de objeto temporal, revocarla si falló
       if (event.target.src.startsWith('blob:')) {
          URL.revokeObjectURL(event.target.src)
       }
     }
 
-    // Actualizar producto (handleSubmit)
+    // Actualizar producto
     const handleSubmit = async () => {
       if (!validateForm()) {
         alert('Por favor corrige los errores antes de continuar')
@@ -598,17 +536,8 @@ export default {
             price: form.price,
             description: form.description.trim(),
             isActive: form.isActive,
-            // NOTA: En un entorno real, las imágenes subidas localmente (blob: URLs) 
-            // deberían haberse subido al servidor aquí, y `form.images` contendría 
-            // las URLs finales del servidor o un indicador para el backend de qué
-            // archivos procesar.
-            images: form.images.filter(img => !img.startsWith('blob:')) // Filtra URLs temporales si no se maneja el upload real
+            images: form.images.filter(img => !img.startsWith('blob:'))
           }
-          
-          // Lógica de Subida de Archivos (MOCK):
-          // Si hubieras subido archivos, aquí tendrías un array de URLs permanentes.
-          // Si no tienes un backend real para el upload, mantén la URL original para la simulación.
-          // Ya que no tenemos el backend, asumiremos que `form.images` ya tiene las URLs finales.
           
           await productsStore.updateProduct(productId, productData)
           alert('✅ Producto actualizado exitosamente')
@@ -629,48 +558,67 @@ export default {
       }
     }
 
-    // Confirmar eliminación
-    const confirmDelete = () => {
+    // Eliminar producto
+    const deleteProduct = async () => {
       if (submitting.value) {
         alert('Espera a que se complete el guardado antes de eliminar')
         return
       }
-      // Asegúrate de que bootstrap esté cargado para usar Modal
-      if (typeof bootstrap !== 'undefined' && deleteModal.value) {
-        const modal = new bootstrap.Modal(deleteModal.value)
-        modal.show()
-      } else {
-        // Fallback si Bootstrap no está disponible globalmente
-        if (confirm(`¿Estás seguro de que deseas eliminar el producto "${form.title}"? Esta acción no se puede deshacer.`)) {
-          deleteProduct()
-        }
-      }
-    }
 
-    // Eliminar producto
-    const deleteProduct = async () => {
+      const result = await Swal.fire({
+        title: '¿Eliminar producto?',
+        text: `¿Estás seguro de que quieres eliminar el producto?. Esta acción no se puede deshacer.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        reverseButtons: true,
+      })
+
+      if (!result.isConfirmed) {
+        return
+      }
+
       deleting.value = true
       
       try {
+        Swal.fire({
+          title: 'Eliminando producto...',
+          text: 'Espera un momento por favor',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading()
+          }
+        })
+
         await productsStore.deleteProduct(productId)
         
-        // Cerrar modal
-        if (typeof bootstrap !== 'undefined' && deleteModal.value) {
-          const modal = bootstrap.Modal.getInstance(deleteModal.value)
-          if (modal) modal.hide()
-        }
+        await Swal.fire({
+          title: '¡Producto eliminado!',
+          text: 'El producto ha sido eliminado exitosamente',
+          icon: 'success',
+          confirmButtonColor: '#198754',
+          timer: 1500,
+          showConfirmButton: false
+        })
         
-        alert('✅ Producto eliminado exitosamente')
         router.push('/profile')
       } catch (error) {
         console.error('Error al eliminar producto:', error)
-        alert('❌ Error al eliminar el producto. Por favor intenta de nuevo.')
+        await Swal.fire({
+          title: 'Error',
+          text: 'Error al eliminar el producto. Por favor intenta de nuevo.',
+          icon: 'error',
+          confirmButtonColor: '#dc3545'
+        })
       } finally {
         deleting.value = false
       }
     }
 
-    // Formatear precio (Mantengo las funciones de ayuda)
+    // Formatear precio
     const formatPrice = (price) => {
       return new Intl.NumberFormat('es-MX').format(price || 0)
     }
@@ -694,21 +642,17 @@ export default {
     }
 
     onMounted(async () => {
-      // Inicializar sesión
       await authStore.initializeUserSession()
       
-      // Cargar categorías y productos
       await productsStore.fetchCategories()
       await productsStore.fetchProducts()
       
-      // Verificar que el producto existe
       if (!product.value) {
         alert('Producto no encontrado')
         router.push('/profile')
         return
       }
 
-      // Verificar que el usuario es el dueño del producto
       const productSellerId = String(product.value.sellerId)
       const userIdInstitucional = String(authStore.user?.idInstitucional)
 
@@ -718,7 +662,6 @@ export default {
         return
       }
 
-      // Cargar datos del producto
       loadProductData()
     })
 
@@ -728,15 +671,13 @@ export default {
       errors,
       submitting,
       deleting,
-      deleteModal,
-      fileInput, // Retornar la referencia del input de archivo
+      fileInput,
       productsStore,
-      addImage, // NUEVA FUNCIÓN
+      addImage,
       removeImage,
       handleImageError,
       handleSubmit,
       handleCancel,
-      confirmDelete,
       deleteProduct,
       formatPrice,
       formatDate,
@@ -747,7 +688,6 @@ export default {
 </script>
 
 <style scoped>
-/* Estilos sin cambios relevantes, se mantienen para la estética original */
 .edit-product-page {
   min-height: 100vh;
   background-color: #f8f9fa;
