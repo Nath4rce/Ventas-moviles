@@ -296,17 +296,12 @@
               <p class="text-muted small mb-3">
                 Una vez eliminado, no podrás recuperar este producto.
               </p>
-<<<<<<< HEAD
               <button 
                 type="button" 
                 class="btn btn-danger w-100"
                 @click="deleteProduct"
                 :disabled="submitting || deleting"
               >
-=======
-              <button type="button" class="btn btn-danger w-100" @click="confirmDelete"
-                :disabled="submitting || deleting">
->>>>>>> 3d06b50c2c4e639510844c16492ff5a37cf20f2d
                 <i class="fas fa-trash me-2"></i>
                 Eliminar Producto
               </button>
@@ -315,42 +310,6 @@
         </div>
       </div>
     </div>
-<<<<<<< HEAD
-=======
-
-    <div class="modal fade" id="deleteModal" tabindex="-1" ref="deleteModal">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header bg-danger text-white">
-            <h5 class="modal-title">
-              <i class="fas fa-exclamation-triangle me-2"></i>
-              Confirmar Eliminación
-            </h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            <p class="mb-0">
-              ¿Estás seguro de que deseas eliminar el producto <strong>"{{ form.title }}"</strong>?
-            </p>
-            <p class="text-danger small mt-2 mb-0">
-              <i class="fas fa-info-circle me-1"></i>
-              Esta acción no se puede deshacer.
-            </p>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" :disabled="deleting">
-              Cancelar
-            </button>
-            <button type="button" class="btn btn-danger" @click="deleteProduct" :disabled="deleting">
-              <i v-if="deleting" class="fas fa-spinner fa-spin me-2"></i>
-              <i v-else class="fas fa-trash me-2"></i>
-              {{ deleting ? 'Eliminando...' : 'Eliminar Producto' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
->>>>>>> 3d06b50c2c4e639510844c16492ff5a37cf20f2d
   </div>
 </template>
 
@@ -443,10 +402,6 @@ export default {
       return isValid
     }
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 3d06b50c2c4e639510844c16492ff5a37cf20f2d
     const addImage = () => {
       if (form.images.length < 4) {
         const placeholderImages = [
@@ -471,29 +426,13 @@ export default {
 
       if (form.images.length >= 4) {
         alert('Ya has alcanzado el máximo de 4 imágenes.')
-<<<<<<< HEAD
         event.target.value = '' 
-=======
-        // Limpiar el input para que pueda seleccionar el mismo archivo de nuevo
-        event.target.value = ''
->>>>>>> 3d06b50c2c4e639510844c16492ff5a37cf20f2d
         return
       }
 
       const imageUrl = URL.createObjectURL(file)
-<<<<<<< HEAD
       form.images.push(imageUrl)
       event.target.value = '' 
-=======
-
-      // En un caso real, aquí deberías subir el archivo a tu servidor
-      // y guardar la URL de respuesta en `form.images`.
-      // Para esta demostración, usaremos la URL temporal para la vista previa.
-
-      form.images.push(imageUrl)
-      // Limpiar el input para permitir subir el mismo archivo si se elimina
-      event.target.value = ''
->>>>>>> 3d06b50c2c4e639510844c16492ff5a37cf20f2d
     }
 
     // Eliminar imagen
@@ -545,16 +484,7 @@ export default {
             isActive: form.isActive,
             images: form.images.filter(img => !img.startsWith('blob:'))
           }
-<<<<<<< HEAD
           
-=======
-
-          // Lógica de Subida de Archivos (MOCK):
-          // Si hubieras subido archivos, aquí tendrías un array de URLs permanentes.
-          // Si no tienes un backend real para el upload, mantén la URL original para la simulación.
-          // Ya que no tenemos el backend, asumiremos que `form.images` ya tiene las URLs finales.
-
->>>>>>> 3d06b50c2c4e639510844c16492ff5a37cf20f2d
           await productsStore.updateProduct(productId, productData)
           alert('✅ Producto actualizado exitosamente')
           router.push('/profile')
@@ -610,7 +540,6 @@ export default {
         })
 
         await productsStore.deleteProduct(productId)
-<<<<<<< HEAD
         
         await Swal.fire({
           title: '¡Producto eliminado!',
@@ -621,16 +550,6 @@ export default {
           showConfirmButton: false
         })
         
-=======
-
-        // Cerrar modal
-        if (typeof bootstrap !== 'undefined' && deleteModal.value) {
-          const modal = bootstrap.Modal.getInstance(deleteModal.value)
-          if (modal) modal.hide()
-        }
-
-        alert('✅ Producto eliminado exitosamente')
->>>>>>> 3d06b50c2c4e639510844c16492ff5a37cf20f2d
         router.push('/profile')
       } catch (error) {
         console.error('Error al eliminar producto:', error)
@@ -669,40 +588,19 @@ export default {
     }
 
     onMounted(async () => {
-<<<<<<< HEAD
       await authStore.initializeUserSession()
       
       await productsStore.fetchCategories()
       await productsStore.fetchProducts()
       
-=======
-      // Inicializar sesión
-      await authStore.initAuth()
-
-      // Cargar categorías y productos
-      await productsStore.fetchCategories()
-      await productsStore.fetchProducts()
-
-      // Verificar que el producto existe
->>>>>>> 3d06b50c2c4e639510844c16492ff5a37cf20f2d
       if (!product.value) {
         alert('Producto no encontrado')
         router.push('/profile')
         return
       }
 
-<<<<<<< HEAD
       const productSellerId = String(product.value.sellerId)
       const userIdInstitucional = String(authStore.user?.idInstitucional)
-=======
-      // Verificar que el usuario es el dueño del producto
-      const productSellerId = String(product.value.sellerId || product.value.vendedor_id_institucional)
-      const userIdInstitucional = String(
-        authStore.user?.idInstitucional ||
-        authStore.user?.id_institucional ||
-        authStore.user?.ID_INSTITUCIONAL
-      )
->>>>>>> 3d06b50c2c4e639510844c16492ff5a37cf20f2d
 
       if (!userIdInstitucional || productSellerId !== userIdInstitucional) {
         alert('No tienes permiso para editar este producto. Solo el creador puede editarlo.')
@@ -718,10 +616,6 @@ export default {
       errors,
       submitting,
       deleting,
-<<<<<<< HEAD
-=======
-      deleteModal,
->>>>>>> 3d06b50c2c4e639510844c16492ff5a37cf20f2d
       fileInput,
       productsStore,
       addImage,
