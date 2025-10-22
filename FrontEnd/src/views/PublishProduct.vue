@@ -82,11 +82,43 @@
                   </label>
                   <div class="input-group">
                     <span class="input-group-text">$</span>
-                    <input type="number" class="form-control" id="price" v-model.number="form.price" placeholder="0"
-                      min="0" step="0.01" required :class="{ 'is-invalid': errors.price }">
+                    <input 
+                      type="number" 
+                      class="form-control" 
+                      id="price" 
+                      v-model.number="form.price" 
+                      placeholder="0"
+                      min="50" 
+                      step="50" 
+                      max="300000"
+                      required 
+                      :class="{ 'is-invalid': errors.price }"
+                      @input="validatePrice"
+                    >
                   </div>
                   <div v-if="errors.price" class="invalid-feedback">
                     {{ errors.price }}
+                  </div>
+                </div>
+                <div class="form-text">
+                    El precio debe ser múltiplo de 50 (ej: 50, 100, 150, etc.) y máximo $300.000
+                </div>
+                <!-- Selector rápido de precios comunes -->
+                <div class="mt-3">
+                  <label class="form-label fw-semibold small">
+                    <i class="fas fa-bolt me-1"></i>
+                      Precios comunes:
+                  </label>
+                  <div class="d-flex flex-wrap gap-2">
+                     <button 
+                      type="button" 
+                      v-for="commonPrice in commonPrices" 
+                      :key="commonPrice"
+                      class="btn btn-outline-primary btn-sm"
+                      @click="setCommonPrice(commonPrice)"
+                    >
+                       ${{ formatPrice(commonPrice) }}
+                    </button>
                   </div>
                 </div>
 
@@ -262,6 +294,9 @@ export default {
     const submitting = ref(false)
     const categoryImage = ref('')
 
+    // Precios comunes para selección rápida
+    const commonPrices = [2500, 5000, 10000, 15000, 25000, 30000]
+
     // URLs de imágenes por categoría
     const categoryImages = {
       'Accesorios': 'https://th.bing.com/th/id/R.a3916e476caed05ec0737d4302929140?rik=cac5ieaeglnjwQ&riu=http%3a%2f%2fst.depositphotos.com%2f1007989%2f2098%2fi%2f950%2fdepositphotos_20980957-stock-photo-fashion-accessories-silhouette.jpg&ehk=M2fzg5DuXXJVcFJx2NmLwR7BMXsz%2bjhNKIXHaGPlYTM%3d&risl=&pid=ImgRaw&r=0',
@@ -275,6 +310,33 @@ export default {
         product.sellerId === authStore.user?.id && product.isActive
       )
     })
+
+    // Función para validar el precio en tiempo real
+    const validatePrice = () => {
+      if (form.price && (form.price < 50 || form.price > 300000)) {
+        errors.price = 'El precio debe estar entre $50 y $300.000'
+        return false
+      }
+      
+      if (form.price && form.price % 50 !== 0) {
+        errors.price = 'El precio debe ser múltiplo de 50 (ej: 50, 100, 150, etc.)'
+        return false
+      }
+      
+      delete errors.price
+      return true
+    }
+
+    // Función para establecer precios comunes
+    const setCommonPrice = (price) => {
+      form.price = price
+      validatePrice()
+    }
+
+    // Función para formatear precio
+    const formatPrice = (price) => {
+      return new Intl.NumberFormat('es-CO').format(price || 0)
+    }
 
     // Función para actualizar la imagen según la categoría seleccionada
     const updateCategoryImage = () => {
@@ -315,6 +377,8 @@ export default {
       // Validar precio
       if (!form.price || form.price <= 0) {
         errors.price = 'El precio debe ser mayor a 0'
+        isValid = false
+      } else if (!validatePrice()) {
         isValid = false
       }
 
@@ -429,6 +493,7 @@ export default {
       submitting,
       currentProduct,
       categoryImage,
+      commonPrices,
       productsStore,
       updateCategoryImage,
       addImage,
@@ -436,7 +501,10 @@ export default {
       handleImageError,
       resetForm,
       deactivateCurrentProduct,
-      handleSubmit
+      handleSubmit,
+      validatePrice,
+      setCommonPrice,
+      formatPrice
     }
   }
 }

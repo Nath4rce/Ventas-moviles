@@ -66,14 +66,45 @@
                   </label>
                   <div class="input-group">
                     <span class="input-group-text">$</span>
-                    <input type="number" class="form-control" id="price" v-model.number="form.price" placeholder="0"
-                      min="0" step="0.01" required :class="{ 'is-invalid': errors.price }">
+                    <input 
+                      type="number" 
+                      class="form-control" 
+                      id="price" 
+                      v-model.number="form.price" 
+                      placeholder="0"
+                      min="50" 
+                      step="50" 
+                      max="300000"
+                      required 
+                      :class="{ 'is-invalid': errors.price }"
+                      @input="validatePrice"
+                    >
                   </div>
                   <div v-if="errors.price" class="invalid-feedback">
                     {{ errors.price }}
                   </div>
                 </div>
-
+                <div class="form-text">
+                    El precio debe ser múltiplo de 50 (ej: 50, 100, 150, etc.) y máximo $300.000
+                </div>
+                <!-- Selector rápido de precios comunes -->
+                <div class="mt-3">
+                  <label class="form-label fw-semibold small">
+                    <i class="fas fa-bolt me-1"></i>
+                      Precios comunes:
+                  </label>
+                  <div class="d-flex flex-wrap gap-2">
+                     <button 
+                      type="button" 
+                      v-for="commonPrice in commonPrices" 
+                      :key="commonPrice"
+                      class="btn btn-outline-primary btn-sm"
+                      @click="setCommonPrice(commonPrice)"
+                    >
+                       ${{ formatPrice(commonPrice) }}
+                    </button>
+                  </div>
+                </div>
                 <div class="mb-4">
                   <label for="description" class="form-label fw-semibold">
                     <i class="fas fa-align-left me-2"></i>
@@ -344,17 +375,42 @@ export default {
     const submitting = ref(false)
     const deleting = ref(false)
     const fileInput = ref(null)
+    
+    // Precios comunes para selección rápida
+    const commonPrices = [2500, 5000, 10000, 15000, 25000, 30000]
 
     // Cargar datos del producto
     const loadProductData = () => {
       if (product.value) {
         form.title = product.value.title
         form.category = product.value.categoria_id || product.value.category
-        form.price = product.value.price
+        form.price = Math.round(product.value.price / 50) * 50
         form.description = product.value.description
         form.isActive = product.value.isActive !== undefined ? product.value.isActive : true
         form.images = [...(product.value.images || [])]
       }
+    }
+
+        // Función para validar el precio en tiempo real
+    const validatePrice = () => {
+      if (form.price && (form.price < 50 || form.price > 300000)) {
+        errors.price = 'El precio debe estar entre $50 y $300.000 COP'
+        return false
+      }
+      
+      if (form.price && form.price % 50 !== 0) {
+        errors.price = 'El precio debe ser múltiplo de 50 (ej: 50, 100, 150, etc.)'
+        return false
+      }
+      
+      delete errors.price
+      return true
+    }
+
+    // Función para establecer precios comunes
+    const setCommonPrice = (price) => {
+      form.price = price
+      validatePrice()
     }
 
     // Validar formulario
@@ -382,6 +438,8 @@ export default {
       if (!form.price || form.price <= 0) {
         errors.price = 'El precio debe ser un valor positivo'
         isValid = false
+      } else if (!validatePrice()) {
+        isValid = false
       }
 
       // Validar descripción
@@ -401,7 +459,7 @@ export default {
 
       return isValid
     }
-
+ 
     const addImage = () => {
       if (form.images.length < 4) {
         const placeholderImages = [
@@ -566,7 +624,7 @@ export default {
 
     // Formatear precio
     const formatPrice = (price) => {
-      return new Intl.NumberFormat('es-MX').format(price || 0)
+      return new Intl.NumberFormat('es-CO').format(price || 0)
     }
 
     // Formatear fecha
@@ -617,6 +675,7 @@ export default {
       submitting,
       deleting,
       fileInput,
+      commonPrices,
       productsStore,
       addImage,
       removeImage,
@@ -624,6 +683,8 @@ export default {
       handleSubmit,
       handleCancel,
       deleteProduct,
+      validatePrice,
+      setCommonPrice,
       formatPrice,
       formatDate,
       getCategoryName

@@ -73,17 +73,46 @@
                 </label>
                 <div class="row g-2">
                   <div class="col-6">
-                    <input type="number" class="form-control form-control-sm" v-model.number="filters.priceRange.min"
-                      placeholder="Mín" min="0" @change="applyFilters">
+                    <input 
+                      type="number" 
+                      class="form-control form-control-sm" 
+                      v-model.number="filters.priceRange.min"
+                      placeholder="Mín" 
+                      min="0" 
+                      step="50" 
+                      max="300000"
+                      @change="validatePriceRange"
+                    >
                   </div>
                   <div class="col-6">
-                    <input type="number" class="form-control form-control-sm" v-model.number="filters.priceRange.max"
-                      placeholder="Máx" min="0" @change="applyFilters">
+                    <input 
+                      type="number" 
+                      class="form-control form-control-sm" 
+                      v-model.number="filters.priceRange.max"
+                      placeholder="Máx" 
+                      min="0" 
+                      step="50" 
+                      max="300000"
+                      @change="validatePriceRange"
+                    >
                   </div>
                 </div>
-                <small class="text-muted">Deja vacío para sin límite</small>
+                <small class="text-muted">Mín: 0 (sin límite) o múltiplos de 50. Máx: múltiplos de 50 hasta $300.000</small>
               </div>
-
+              <!-- Selector rápido de rangos de precio -->
+              <div class="mt-2">
+                <div class="d-flex flex-wrap gap-1">
+                  <button 
+                    type="button" 
+                    v-for="range in priceRanges" 
+                    :key="range.label"
+                    class="btn btn-outline-primary btn-xs"
+                    @click="setPriceRange(range.min, range.max)"
+                  >
+                    {{ range.label }}
+                  </button>
+                </div>
+              </div>
               <!-- Ordenar por -->
               <div class="col-12 col-md-6 col-lg-2">
                 <label class="form-label fw-semibold">
@@ -195,6 +224,15 @@ export default {
     sortBy: 'rating'
   })
 
+  // Rangos de precio predefinidos
+    const priceRanges = [
+      { label: '≤$10k', min: 0, max: 10000 },
+      { label: '$10k-$25k', min: 10000, max: 25000 },
+      { label: '$25k-$50k', min: 25000, max: 50000 },
+      { label: '$50k-$100k', min: 50000, max: 100000 },
+      { label: '≥$100k', min: 100000, max: 300000 }
+    ]
+
   // Usar productos directamente del store
   const displayedProducts = computed(() => {
     let products = productsStore.products || []
@@ -210,6 +248,54 @@ export default {
 
     return products
   })
+
+// Validar y ajustar el rango de precios
+  const validatePriceRange = () => {
+    // Validar precio mínimo
+    if (filters.value.priceRange.min !== null && filters.value.priceRange.min !== 0) {
+      if (filters.value.priceRange.min < 0) {
+        filters.value.priceRange.min = 0
+      } else if (filters.value.priceRange.min > 300000) {
+        filters.value.priceRange.min = 300000
+      } else if (filters.value.priceRange.min > 0) {
+      // Solo ajustar a múltiplo de 50 si es mayor a 0
+      filters.value.priceRange.min = Math.round(filters.value.priceRange.min / 50) * 50
+      }
+    }
+
+    // Validar precio máximo
+    if (filters.value.priceRange.max !== null && filters.value.priceRange.max > 0) {
+      if (filters.value.priceRange.max < 50) {
+        filters.value.priceRange.max = 50
+      } else if (filters.value.priceRange.max > 300000) {
+        filters.value.priceRange.max = 300000
+      } else {
+        // Ajustar al múltiplo de 50 más cercano
+        filters.value.priceRange.max = Math.round(filters.value.priceRange.max / 50) * 50
+      }
+    }
+
+    // Validar que el mínimo no sea mayor que el máximo
+    if (filters.value.priceRange.min !== null && 
+        filters.value.priceRange.max !== null &&
+        filters.value.priceRange.min > 0 && 
+        filters.value.priceRange.max > 0) {
+    if (filters.value.priceRange.min > filters.value.priceRange.max) {
+        // Si el mínimo es mayor que el máximo, ajustar el máximo
+        filters.value.priceRange.max = filters.value.priceRange.min
+    }
+  }
+
+    // Aplicar filtros después de validar
+    applyFilters()
+  }
+
+  // Establecer rango de precio predefinido
+  const setPriceRange = (min, max) => {
+    filters.value.priceRange.min = min
+    filters.value.priceRange.max = max
+    applyFilters()
+  }
 
   // Aplicar filtros llamando al backend
   const applyFilters = async () => {
@@ -276,7 +362,9 @@ export default {
     applyFilters,
     searchProducts,
     viewProductDetails,
-    clearFilters
+    clearFilters,
+    validatePriceRange,
+    setPriceRange,
   }
 }
 }
@@ -353,6 +441,22 @@ export default {
   background-color: #f8f9fa;
 }
 
+.price-filter .btn-xs {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: 6px;
+}
+
+.price-filter .btn-outline-primary {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.price-filter .btn-outline-primary:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
 /* Mobile optimizations */
 @media (max-width: 767px) {
   .hero-section h1 {
@@ -370,6 +474,14 @@ export default {
   .d-flex.gap-2 {
     flex-direction: column;
     gap: 0.5rem !important;
+  }
+  .price-filter .d-flex.gap-1 {
+    gap: 0.25rem !important;
+  }
+  
+  .price-filter .btn-xs {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.7rem;
   }
 }
 
