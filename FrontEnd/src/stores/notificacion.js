@@ -39,4 +39,3 @@ export const useNotificacionStore = defineStore('notificacion', {
   }
 })
 
-

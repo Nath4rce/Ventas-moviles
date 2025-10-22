@@ -17,12 +17,8 @@
             <div class="card-body p-5">
               <!-- Logo y título -->
               <div class="text-center mb-4">
-                <img 
-                  src="/BrandbookUPB.png" 
-                  alt="Logo UPB" 
-                  class="upb-logo-login mb-3"
-                  style="height: 80px; width: auto;"
-                />
+                <img src="/BrandbookUPB.png" alt="Logo UPB" class="upb-logo-login mb-3"
+                  style="height: 80px; width: auto;" />
                 <h2 class="fw-bold text-primary">Ventas Moviles UPB</h2>
                 <p class="text-muted">Inicia sesión en tu cuenta</p>
               </div>
@@ -34,15 +30,8 @@
                     <i class="fas fa-id-card me-2"></i>
                     ID Institucional
                   </label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="idInstitucional"
-                    v-model="form.idInstitucional"
-                    placeholder="Ej: 000497849"
-                    required
-                    :class="{ 'is-invalid': errors.idInstitucional }"
-                  >
+                  <input type="text" class="form-control" id="idInstitucional" v-model="form.idInstitucional"
+                    placeholder="Ej: 000497849" required :class="{ 'is-invalid': errors.idInstitucional }">
                   <div v-if="errors.idInstitucional" class="invalid-feedback">
                     {{ errors.idInstitucional }}
                   </div>
@@ -54,21 +43,11 @@
                     Contraseña
                   </label>
                   <div class="input-group">
-                    <input
-                      :type="showPassword ? 'text' : 'password'"
-                      class="form-control"
-                      id="password"
-                      v-model="form.password"
-                      placeholder="Tu contraseña"
-                      required
-                      :class="{ 'is-invalid': errors.password }"
-                    >
-                    <button
-                      class="btn btn-outline-secondary"
-                      type="button"
-                      @click="showPassword = !showPassword"
-                      title="Mostrar/ocultar contraseña"
-                    >
+                    <input :type="showPassword ? 'text' : 'password'" class="form-control" id="password"
+                      v-model="form.password" placeholder="Tu contraseña" required
+                      :class="{ 'is-invalid': errors.password }">
+                    <button class="btn btn-outline-secondary" type="button" @click="showPassword = !showPassword"
+                      title="Mostrar/ocultar contraseña">
                       <i :class="showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
                     </button>
                   </div>
@@ -84,11 +63,7 @@
                 </div>
 
                 <!-- Botón de login -->
-                <button
-                  type="submit"
-                  class="btn btn-primary w-100 py-2 fw-semibold"
-                  :disabled="loading"
-                >
+                <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold" :disabled="loading">
                   <i v-if="loading" class="fas fa-spinner fa-spin me-2"></i>
                   <i v-else class="fas fa-sign-in-alt me-2"></i>
                   {{ loading ? 'Iniciando sesión...' : 'Iniciar Sesión' }}
@@ -103,16 +78,19 @@
                 </p>
               </div>
 
-              <!-- Credenciales de prueba -->
-              <div class="mt-4 p-3 bg-light rounded">
+              <!-- Credenciales de prueba - Solo en desarrollo -->
+              <div v-if="isDevelopment" class="mt-4 p-3 bg-light rounded">
                 <h6 class="fw-semibold text-muted mb-2">
                   <i class="fas fa-info-circle me-1"></i>
                   Credenciales de prueba:
                 </h6>
                 <div class="small">
                   <div><strong>Admin:</strong> 000000001 / admin123</div>
-                  <div><strong>Vendedor:</strong> 000497849 / seller123</div>
-                  <div><strong>Comprador:</strong> 000357854 / buyer123</div>
+                  <div><strong>Vendedor Activo:</strong> 000111111 / seller123</div>
+                  <div><strong>Vendedor (Producto Pausado):</strong> 000111112 / seller123</div>
+                  <div><strong>Usuario Suspendido:</strong> 000111113 / buyer123</div>
+                  <div><strong>Usuario con Notificación VIP:</strong> 000111114 / buyer123</div>
+                  <div><strong>Comprador Normal:</strong> 000111115 / buyer123</div>
                 </div>
               </div>
             </div>
@@ -128,6 +106,8 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useUIStore } from '../stores/ui'
+
+const isDevelopment = import.meta.env.VITE_NODE_ENV === 'development' || import.meta.env.MODE === 'development'
 
 export default {
   name: 'Login',
@@ -187,7 +167,7 @@ export default {
           : { message: error.message || 'Error al iniciar sesión' }
 
         ui.setError(payload)
-        try { sessionStorage.setItem('backend_error', JSON.stringify(payload)) } catch (e) {}
+        try { sessionStorage.setItem('backend_error', JSON.stringify(payload)) } catch (e) { }
         router.push({ name: 'Error', query: { error: JSON.stringify(payload) } })
         errorMessage.value = 'Error al iniciar sesión. Inténtalo de nuevo.'
       } finally {
@@ -204,7 +184,8 @@ export default {
       errorMessage,
       loading,
       showPassword,
-      handleLogin
+      handleLogin,
+      isDevelopment
     }
   }
 }

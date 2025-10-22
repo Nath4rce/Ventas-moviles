@@ -140,7 +140,7 @@ export const useProductsStore = defineStore("products", {
             price: p.precio,
             category: p.categoria_nombre,
             categoryIcon: p.categoria_icono,
-            images: [p.imagen_principal].filter(Boolean), // Usar imagen principal
+            images: p.imagenes || [p.imagen_principal].filter(Boolean),
             sellerId: p.vendedor_id_institucional,
             sellerName: p.vendedor_nombre,
             sellerPhone: p.vendedor_telefono,
@@ -195,30 +195,6 @@ export const useProductsStore = defineStore("products", {
         console.error("Error fetching categories:", error);
       }
     },
-    /*
-    // Agregar producto (solo vendedores)
-    async addProduct(productData) {
-      this.loading = true
-      try {
-        const response = await axios.post(`${API_URL}/products`, {
-          titulo: productData.title,
-          descripcion: productData.description,
-          precio: productData.price,
-          categoria_id: productData.categoria_id,
-          imagenes: productData.images
-        })
-
-        if (response.data.success) {
-          await this.fetchProducts()
-          return response.data.data.product
-        }
-      } catch (error) {
-        console.error('Error adding product:', error)
-        throw error
-      } finally {
-        this.loading = false
-      }
-    },*/
 
     async addProduct(productData) {
       this.loading = true;
@@ -254,7 +230,7 @@ export const useProductsStore = defineStore("products", {
 
         if (response.data.success) {
           await this.fetchProducts();
-          return response.data.data.product;
+          return true;
         }
       } catch (error) {
         console.error(
@@ -325,9 +301,8 @@ export const useProductsStore = defineStore("products", {
           return {
             success: true,
             product: product,
-            message: `Producto ${
-              newStatus === 1 ? "activado" : "desactivado"
-            } exitosamente`,
+            message: `Producto ${newStatus === 1 ? "activado" : "desactivado"
+              } exitosamente`,
           };
         }
 
@@ -353,7 +328,6 @@ export const useProductsStore = defineStore("products", {
           throw new Error("ID de producto inválido para la actualización.");
         }
 
-        // Mapear los datos del formulario a los nombres de campos de tu API
         const payload = {
           titulo: productData.title?.trim(),
           descripcion: productData.description?.trim(),
@@ -365,18 +339,18 @@ export const useProductsStore = defineStore("products", {
 
         console.log(`➡️ Enviando actualización para producto ${id}:`, payload);
 
-        // Realizar la solicitud PUT para actualizar
         const response = await axios.put(`${API_URL}/products/${id}`, payload, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
 
+        console.log('📥 Respuesta del servidor:', response.data);  // TEMPORAL PARA DEBUG
+
         if (response.data.success) {
-          // Si la actualización en la API fue exitosa, refrescamos la lista
-          // de productos para mantener el estado sincronizado.
+          // Recargar los productos para obtener los datos actualizados
           await this.fetchProducts();
-          return response.data.data.product;
+          return response.data;  // ✅ Solo devolver response.data
         } else {
           throw new Error(
             response.data.message || "Error desconocido al actualizar."
@@ -385,7 +359,7 @@ export const useProductsStore = defineStore("products", {
       } catch (error) {
         console.error(
           "Error updating product:",
-          error.response?.data || error.message
+          error.response?.data || error.message || error
         );
         this.error =
           "Error al actualizar el producto: " +

@@ -1,6 +1,6 @@
 # Ventas Moviles UPB - Marketplace Estudiantil
 
-Marketplace interno completo para estudiantes de la Universidad Pontificia Bolivariana, desarrollado con Vue 3, Node.js y MySQL.
+Marketplace interno completo para estudiantes de la Universidad Pontificia Bolivariana, desarrollado con Vue 3, Node.js y SQL Server.
 
 ## Descripción del Proyecto
 
@@ -27,7 +27,7 @@ Ventas Moviles UPB es una plataforma web completa que permite a los estudiantes 
 
 ### Backend (Node.js)
 - **Framework**: Express.js con middleware de seguridad
-- **Base de Datos**: MySQL con triggers y procedimientos almacenados
+- **Base de Datos**: SQL Server con triggers y procedimientos almacenados
 - **Autenticación**: JWT (JSON Web Tokens) con expiración
 - **Validación**: Express-validator con sanitización
 - **Seguridad**: Helmet, CORS, Rate Limiting, Bcrypt
@@ -91,7 +91,7 @@ Ventas-moviles-main/
 │   └── vite.config.js
 ├── BackEnd/                  # API Node.js
 │   ├── config/
-│   │   └── database.js       # Configuración MySQL
+│   │   └── database.js       # Configuración SQL Server
 │   ├── middleware/
 │   │   ├── auth.js          # Autenticación JWT
 │   │   └── validation.js     # Validaciones
@@ -112,7 +112,7 @@ Ventas-moviles-main/
 
 ### Requisitos Previos
 - **Node.js 16+** y npm/yarn
-- **MySQL 8.0+** (SQL Developer compatible)
+- **SQL Server** (SQL Developer compatible)
 - **Git** para clonar el repositorio
 
 ### Instalación Completa
@@ -139,7 +139,7 @@ Ventas-moviles-main/
    
    # Crear archivo .env con tu configuración
    cp .env.example .env
-   # Editar .env con tus datos de MySQL
+   # Editar .env con tus datos de SQL Server
    
    npm run dev
    ```
@@ -354,7 +354,7 @@ npm run build
 ### Servicios Recomendados
 - **Frontend**: Netlify, Vercel, GitHub Pages
 - **Backend**: Railway, DigitalOcean, AWS EC2
-- **Base de Datos**: MySQL en la nube (AWS RDS, DigitalOcean)
+- **Base de Datos**: SQL Server en la nube (AWS RDS, DigitalOcean)
 - **Monitoreo**: PM2 para Node.js en producción
 
 ## Contribución
@@ -387,7 +387,7 @@ s
 Para más información detallada, consulta los README específicos de cada módulo:
 - [📱 Frontend README](FrontEnd/README.md) - Aplicación Vue 3
 - [🔧 Backend README](BackEnd/README.md) - API Node.js
-- [🗄️ Base de Datos](DataBase/database_schema.sql) - Esquema MySQL
+- [🗄️ Base de Datos](DataBase/database_schema.sql) - Esquema SQL Server
 
 ---
 

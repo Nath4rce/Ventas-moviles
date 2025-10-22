@@ -33,8 +33,8 @@
             <div class="card-body text-center">
               <!-- Avatar -->
               <div class="mb-3">
-                <img :src="user?.avatar" :alt="user?.name" class="rounded-circle border border-3 border-primary"
-                  width="120" height="120" style="object-fit: cover;">
+                <img :src="getAvatarUrl(authStore.user)" :alt="authStore.user?.nombre" class="rounded-circle border border-3 border-primary"
+                width="120" height="120" style="object-fit: cover;">
               </div>
 
               <!-- Información básica -->
@@ -77,11 +77,8 @@
             <div class="card-body">
               <div class="d-grid gap-2">
                 <!-- Botón dinámico según si tiene productos o no -->
-                <router-link 
-                  v-if="authStore.isSeller" 
-                  :to="hasProducts ? `/edit-product/${userProducts[0].id}` : '/publish'" 
-                  class="btn btn-primary"
-                >
+                <router-link v-if="authStore.isSeller"
+                  :to="hasProducts ? `/edit-product/${userProducts[0].id}` : '/publish'" class="btn btn-primary">
                   <i class="fas fa-plus me-2"></i>
                   {{ hasProducts ? 'Editar Producto' : 'Publicar Producto' }}
                 </router-link>
@@ -201,11 +198,7 @@
                       <h6 class="mb-1 text-danger">Cerrar Sesión</h6>
                       <p class="text-muted mb-0 small">Salir de tu cuenta de forma segura</p>
                     </div>
-                    <button 
-                      class="btn btn-outline-danger btn-sm" 
-                      @click="logout"
-                      :disabled="loggingOut"
-                    >
+                    <button class="btn btn-outline-danger btn-sm" @click="logout" :disabled="loggingOut">
                       <template v-if="!loggingOut">
                         <i class="fas fa-sign-out-alt me-1"></i>
                         Cerrar Sesión
@@ -270,7 +263,7 @@ export default {
 
     // Notificaciones no leídas
     const unreadNotifications = computed(() =>
-      notificationsStore.unreadCount(authStore.user?.id)
+      notificationsStore.unreadCount
     )
 
     const getRoleName = (rol) => {
@@ -318,6 +311,11 @@ export default {
       })
     }
 
+    const getAvatarUrl = (user) => {
+      if (user?.avatar_url) return user.avatar_url
+      return `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.nombre || 'U')}&background=random&size=128`
+    }
+
     // Cierre de sesión con pantalla de carga
     const logout = async () => {
       const result = await Swal.fire({
@@ -337,10 +335,10 @@ export default {
       }
 
       loggingOut.value = true
-      
+
       try {
         await authStore.logout()
-        
+
         await Swal.fire({
           title: '¡Sesión cerrada!',
           text: 'Has cerrado sesión correctamente',
@@ -349,7 +347,7 @@ export default {
           timer: 1500,
           showConfirmButton: false
         })
-        
+
         router.push('/login')
       } catch (error) {
         Swal.fire({
@@ -385,7 +383,8 @@ export default {
       formatPrice,
       formatDate,
       logout,
-      loggingOut
+      loggingOut,
+      getAvatarUrl
     }
   }
 }
@@ -475,6 +474,7 @@ export default {
     flex-direction: column;
     align-items: flex-start !important;
   }
+
   .d-flex.align-items-center.gap-3 {
     flex-direction: column;
     align-items: flex-start !important;
@@ -487,6 +487,7 @@ export default {
   .profile-page {
     padding: 1.5rem 0;
   }
+
   .product-item {
     flex-direction: row;
   }

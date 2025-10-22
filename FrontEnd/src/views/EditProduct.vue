@@ -296,12 +296,8 @@
               <p class="text-muted small mb-3">
                 Una vez eliminado, no podrás recuperar este producto.
               </p>
-              <button 
-                type="button" 
-                class="btn btn-danger w-100"
-                @click="deleteProduct"
-                :disabled="submitting || deleting"
-              >
+              <button type="button" class="btn btn-danger w-100" @click="deleteProduct"
+                :disabled="submitting || deleting">
                 <i class="fas fa-trash me-2"></i>
                 Eliminar Producto
               </button>
@@ -348,12 +344,33 @@ export default {
     // Cargar datos del producto
     const loadProductData = () => {
       if (product.value) {
-        form.title = product.value.title
-        form.category = product.value.categoria_id || product.value.category
-        form.price = product.value.price
-        form.description = product.value.description
+        //console.log('📝 Cargando datos del producto:', product.value) // TEMPORAL PARA DEBUG
+
+        form.title = product.value.title || ''
+
+        if (product.value.categoria_id) {
+          form.category = product.value.categoria_id
+        } else if (product.value.category) {
+          // Buscar el ID de la categoría por su nombre
+          const categoryObj = productsStore.categories?.find(
+            cat => cat.nombre === product.value.category
+          )
+          form.category = categoryObj ? categoryObj.id : ''
+
+          console.log('🔍 Categoría encontrada:', categoryObj)
+          console.log('🔍 ID asignado a form.category:', form.category)
+        } else {
+          form.category = ''
+        }
+
+        form.price = product.value.price || 0
+        form.description = product.value.description || ''
         form.isActive = product.value.isActive !== undefined ? product.value.isActive : true
         form.images = [...(product.value.images || [])]
+
+        //console.log('✅ Formulario cargado:', form) // TEMPORAL PARA DEBUG
+      } else {
+        console.error('❌ No hay producto para cargar')
       }
     }
 
@@ -420,30 +437,26 @@ export default {
       if (!file) return
 
       if (!file.type.startsWith('image/')) {
-        alert('Por favor, selecciona un archivo de imagen válido.')
         return
       }
-
+      //VERIFICAR
       if (form.images.length >= 4) {
-        alert('Ya has alcanzado el máximo de 4 imágenes.')
-        event.target.value = '' 
+        event.target.value = ''
         return
       }
 
       const imageUrl = URL.createObjectURL(file)
       form.images.push(imageUrl)
-      event.target.value = '' 
+      event.target.value = ''
     }
 
     // Eliminar imagen
     const removeImage = (index) => {
-      if (confirm('¿Estás seguro de eliminar esta imagen?')) {
-        const image = form.images[index]
-        if (image.startsWith('blob:')) {
-          URL.revokeObjectURL(image)
-        }
-        form.images.splice(index, 1)
+      const image = form.images[index]
+      if (image.startsWith('blob:')) {
+        URL.revokeObjectURL(image)
       }
+      form.images.splice(index, 1)
     }
 
     // Manejar error de carga de imagen
@@ -468,38 +481,87 @@ export default {
     // Actualizar producto
     const handleSubmit = async () => {
       if (!validateForm()) {
-        alert('Por favor corrige los errores antes de continuar')
+        await Swal.fire({
+          title: 'Formulario incompleto',
+          text: 'Por favor corrige los errores antes de continuar',
+          icon: 'warning',
+          confirmButtonColor: '#0d6efd'
+        })
         return
       }
 
-      if (confirm('¿Estás seguro de guardar estos cambios?')) {
-        submitting.value = true
+      const confirmResult = await Swal.fire({
+        title: '¿Guardar cambios?',
+        text: '¿Estás seguro de que quieres actualizar este producto?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, guardar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#198754',
+        cancelButtonColor: '#6c757d',
+        reverseButtons: true
+      })
 
-        try {
-          const productData = {
-            title: form.title.trim(),
-            categoria_id: form.category,
-            price: form.price,
-            description: form.description.trim(),
-            isActive: form.isActive,
-            images: form.images.filter(img => !img.startsWith('blob:'))
-          }
-          
-          await productsStore.updateProduct(productId, productData)
-          alert('✅ Producto actualizado exitosamente')
-          router.push('/profile')
-        } catch (error) {
-          console.error('Error al actualizar producto:', error)
-          alert('❌ Error al actualizar el producto. Por favor intenta de nuevo.')
-        } finally {
-          submitting.value = false
+      if (!confirmResult.isConfirmed) {
+        return
+      }
+
+      submitting.value = true
+
+      try {
+        // ✅ DEFINIR productData AQUÍ
+        const productData = {
+          title: form.title.trim(),
+          categoria_id: parseInt(form.category, 10),
+          price: form.price,
+          description: form.description.trim(),
+          isActive: form.isActive,
+          images: form.images.filter(img => !img.startsWith('blob:'))
         }
+
+        console.log('📦 form.category:', form.category)
+        console.log('📦 productData a enviar:', productData)
+
+        await productsStore.updateProduct(productId, productData)
+
+        await Swal.fire({
+          title: '¡Actualizado!',
+          text: 'El producto ha sido actualizado exitosamente',
+          icon: 'success',
+          confirmButtonColor: '#198754',
+          timer: 1500,
+          showConfirmButton: false
+        })
+
+        router.push('/profile')
+      } catch (error) {
+        console.error('Error al actualizar producto:', error)
+        await Swal.fire({
+          title: 'Error',
+          text: error.response?.data?.message || 'Error al actualizar el producto. Por favor intenta de nuevo.',
+          icon: 'error',
+          confirmButtonColor: '#dc3545'
+        })
+      } finally {
+        submitting.value = false
       }
     }
 
     // Manejar cancelación
-    const handleCancel = () => {
-      if (confirm('¿Estás seguro de cancelar? Los cambios no guardados se perderán.')) {
+    const handleCancel = async () => {
+      const result = await Swal.fire({
+        title: '¿Cancelar edición?',
+        text: 'Los cambios no guardados se perderán',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, cancelar',
+        cancelButtonText: 'Continuar editando',
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        reverseButtons: true
+      })
+
+      if (result.isConfirmed) {
         router.push('/profile')
       }
     }
@@ -540,7 +602,7 @@ export default {
         })
 
         await productsStore.deleteProduct(productId)
-        
+
         await Swal.fire({
           title: '¡Producto eliminado!',
           text: 'El producto ha sido eliminado exitosamente',
@@ -549,7 +611,7 @@ export default {
           timer: 1500,
           showConfirmButton: false
         })
-        
+
         router.push('/profile')
       } catch (error) {
         console.error('Error al eliminar producto:', error)
@@ -586,29 +648,78 @@ export default {
       const category = productsStore.categories?.find(cat => cat.id === categoryId)
       return category?.nombre || 'Sin categoría'
     }
-
+    //await authStore.initializeUserSession()
     onMounted(async () => {
-      await authStore.initializeUserSession()
-      
-      await productsStore.fetchCategories()
-      await productsStore.fetchProducts()
-      
-      if (!product.value) {
-        alert('Producto no encontrado')
+      try {
+        //console.log('🔍 Métodos disponibles en authStore:', Object.keys(authStore))
+        //console.log('🔍 Usuario actual:', authStore.user)
+        // 1. Verificar autenticación
+        if (authStore.isAuthenticated) {
+          await authStore.initAuth() // o el método que uses para cargar el usuario
+        }
+
+        // Verificar que el usuario esté cargado
+        //console.log('👤 Usuario cargado:', authStore.user)
+
+        if (!authStore.user) {
+          await Swal.fire({
+            title: 'Sesión no válida',
+            text: 'Debes iniciar sesión para editar productos',
+            icon: 'warning',
+            confirmButtonColor: '#0d6efd'
+          })
+          router.push('/login')
+          return
+        }
+        // Verificar que el producto existe
+        if (!product.value) {
+          await Swal.fire({
+            title: 'Producto no encontrado',
+            text: 'El producto que intentas editar no existe',
+            icon: 'error',
+            confirmButtonColor: '#dc3545'
+          })
+          router.push('/profile')
+          return
+        }
+
+        // 2. Cargar categorías y productos
+        await productsStore.fetchCategories()
+        //console.log('📦 Categorías cargadas:', productsStore.categories)
+
+        await productsStore.fetchProducts()
+        //console.log('🔍 Producto encontrado:', product.value)
+
+        // 4. Verificar permisos
+        const productSellerId = String(product.value.sellerId)
+        const userIdInstitucional = String(authStore.user?.id_institucional)
+
+        //console.log('🔍 User ID:', userIdInstitucional)
+        //console.log('🔍 Seller ID:', productSellerId)
+
+        if (!userIdInstitucional || productSellerId !== userIdInstitucional) {
+          await Swal.fire({
+            title: 'Acceso denegado',
+            text: 'No tienes permiso para editar este producto. Solo el creador puede editarlo.',
+            icon: 'error',
+            confirmButtonColor: '#dc3545'
+          })
+          router.push('/profile')
+          return
+        }
+
+        // Si todo está bien, cargar los datos del producto en el formulario
+        loadProductData()
+      } catch (error) {
+        console.error('Error al cargar datos:', error)
+        await Swal.fire({
+          title: 'Error',
+          text: 'Hubo un problema al cargar el producto',
+          icon: 'error',
+          confirmButtonColor: '#dc3545'
+        })
         router.push('/profile')
-        return
       }
-
-      const productSellerId = String(product.value.sellerId)
-      const userIdInstitucional = String(authStore.user?.idInstitucional)
-
-      if (!userIdInstitucional || productSellerId !== userIdInstitucional) {
-        alert('No tienes permiso para editar este producto. Solo el creador puede editarlo.')
-        router.push('/profile')
-        return
-      }
-
-      loadProductData()
     })
     return {
       product,
@@ -618,9 +729,11 @@ export default {
       deleting,
       fileInput,
       productsStore,
+      authStore,
       addImage,
       removeImage,
       handleImageError,
+      handleImageUpload,
       handleSubmit,
       handleCancel,
       deleteProduct,

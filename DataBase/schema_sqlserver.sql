@@ -432,7 +432,7 @@ GO
 INSERT INTO configuracion_sitio (clave, valor, descripcion) VALUES
 ('sitio_activo', 'true', 'Indica si el sitio está activo o en mantenimiento'),
 ('mensaje_mantenimiento', 'El sitio se encuentra en mantenimiento. Volveremos pronto.', 'Mensaje mostrado durante mantenimiento'),
-('max_imagenes_producto', '5', 'Número máximo de imágenes por producto');
+('max_imagenes_producto', '4', 'Número máximo de imágenes por producto');
 GO
 
 -- =============================================

@@ -2,144 +2,159 @@ import { defineStore } from 'pinia'
 import axios from 'axios'
 
 const API_URL = import.meta.env.VITE_API_URL
-//import API_URL from '../services/api.js'
-
 
 export const useNotificationsStore = defineStore('notifications', {
   state: () => ({
     notifications: [],
+    unreadCount: 0,
     loading: false,
     error: null,
-    isSiteDisabled: false
+    _pollingInterval: null
   }),
 
   getters: {
-    // Notificaciones para el usuario actual
-    userNotifications: (state) => (userId) => {
-      return state.notifications.filter(notification =>
-        notification.userId === null || notification.userId === userId
-      ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    // Notificaciones ordenadas por prioridad y fecha
+    sortedNotifications: (state) => {
+      return [...state.notifications].sort((a, b) => {
+        if (a.prioridad !== b.prioridad) {
+          return b.prioridad - a.prioridad
+        }
+        return new Date(b.created_at) - new Date(a.created_at)
+      })
     },
 
     // Notificaciones no leídas
-    unreadNotifications: (state) => (userId) => {
-      return state.notifications.filter(notification =>
-        (notification.userId === null || notification.userId === userId) && !notification.isRead
-      )
+    unreadNotifications: (state) => {
+      return state.notifications.filter(n => !n.is_read)
     },
 
-    // Contador de notificaciones no leídas
-    unreadCount: (state) => (userId) => {
-      return state.unreadNotifications(userId).length
+    // Últimas 5 notificaciones para el navbar
+    recentNotifications: (state) => {
+      return state.notifications
+        .filter(n => !n.is_read)
+        .slice(0, 5)
     }
   },
 
   actions: {
-    // Crear nueva notificación
-    createNotification(notificationData) {
-      const newNotification = {
-        id: this.notifications.length + 1,
-        ...notificationData,
-        isRead: false,
-        createdAt: new Date().toISOString().split('T')[0]
-      }
-      this.notifications.push(newNotification)
-      return newNotification
-    },
-
-    async fetchNotifications() {
+    // Obtener notificaciones del usuario actual
+    async fetchNotifications(unreadOnly = false) {
       this.loading = true
+      this.error = null
       try {
-        const response = await axios.get(`${API_URL}/notifications`)
+        const token = localStorage.getItem('token')
+        if (!token) return
+
+        const params = unreadOnly ? { unread_only: true } : {}
+        const response = await axios.get(`${API_URL}/notifications`, {
+          params,
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        
         if (response.data.success) {
           this.notifications = response.data.data.notifications
+          this.unreadCount = response.data.data.unread_count
         }
       } catch (error) {
-        console.error('Error fetching notifications:', error)
+        console.error('Error al obtener notificaciones:', error)
+        this.error = 'Error al cargar notificaciones'
       } finally {
         this.loading = false
       }
     },
 
+    // Marcar notificación como leída
     async markAsRead(notificationId) {
       try {
-        await axios.put(`${API_URL}/notifications/${notificationId}/read`)
-        await this.fetchNotifications()
-      } catch (error) {
-        console.error('Error marking as read:', error)
-      }
-    },
+        const token = localStorage.getItem('token')
+        if (!token) return
 
-    async sendNotification(data) {
-      try {
-        const response = await axios.post(`${API_URL}/notifications`, {
-          titulo: data.title,
-          mensaje: data.message,
-          tipo: data.type,
-          destinatario_tipo: data.recipients === 'nrc' ? 'id_institucional_especifico' : data.recipients,
-          id_institucional_especifico: data.id_institucional || null,
-          prioridad: data.priority || 1,
-          es_permanente: data.permanent || false
-        })
-        return response.data
+        const response = await axios.put(
+          `${API_URL}/notifications/${notificationId}/read`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+        
+        if (response.data.success) {
+          // Actualizar el estado local
+          const notification = this.notifications.find(n => n.id === notificationId)
+          if (notification && !notification.is_read) {
+            notification.is_read = true
+            notification.leida_at = new Date().toISOString()
+            this.unreadCount = Math.max(0, this.unreadCount - 1)
+          }
+        }
       } catch (error) {
-        console.error('Error sending notification:', error)
+        console.error('Error al marcar como leída:', error)
         throw error
       }
     },
 
-    // Marcar notificación como leída
-    markAsRead(notificationId) {
-      const notification = this.notifications.find(n => n.id === notificationId)
-      if (notification) {
-        notification.isRead = true
+    // Marcar todas como leídas
+    async markAllAsRead() {
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) return
+
+        const response = await axios.put(
+          `${API_URL}/notifications/read-all`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+        
+        if (response.data.success) {
+          // Actualizar todas las notificaciones localmente
+          this.notifications.forEach(n => {
+            if (!n.is_read) {
+              n.is_read = true
+              n.leida_at = new Date().toISOString()
+            }
+          })
+          this.unreadCount = 0
+        }
+      } catch (error) {
+        console.error('Error al marcar todas como leídas:', error)
+        throw error
       }
     },
 
-    // Marcar todas las notificaciones como leídas
-    markAllAsRead(userId) {
-      this.notifications.forEach(notification => {
-        if (notification.userId === null || notification.userId === userId) {
-          notification.isRead = true
-        }
-      })
-    },
+    // Crear notificación (admin)
+    async sendNotification(data) {
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) return
 
-    // Enviar notificación a todos los usuarios
-    broadcastNotification(title, message, type = 'info') {
-      this.createNotification({
-        title,
-        message,
-        type,
-        userId: null
-      })
-    },
-
-    // Enviar notificación a usuario específico
-    sendToUser(userId, title, message, type = 'info') {
-      this.createNotification({
-        title,
-        message,
-        type,
-        userId
-      })
-    },
-
-    // Deshabilitar/habilitar sitio
-    toggleSiteStatus() {
-      this.isSiteDisabled = !this.isSiteDisabled
-      if (this.isSiteDisabled) {
-        this.broadcastNotification(
-          'Sitio temporalmente deshabilitado',
-          'El sitio está temporalmente fuera de servicio por mantenimiento.',
-          'warning'
+        const response = await axios.post(
+          `${API_URL}/notifications`,
+          {
+            titulo: data.title,
+            mensaje: data.message,
+            tipo: data.type,
+            destinatario_tipo: data.recipients === 'idInstitucional' ? 'id_institucional_especifico' : data.recipients,
+            id_institucional_especifico: data.id_institucional || null
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
         )
-      } else {
-        this.broadcastNotification(
-          'Sitio habilitado',
-          'El sitio está nuevamente disponible.',
-          'success'
-        )
+        
+        return response.data
+      } catch (error) {
+        console.error('Error al enviar notificación:', error)
+        throw error
+      }
+    },
+
+    // Polling automático
+    startPolling(interval = 30000) {
+      this.stopPolling()
+      this._pollingInterval = setInterval(() => {
+        this.fetchNotifications()
+      }, interval)
+    },
+
+    stopPolling() {
+      if (this._pollingInterval) {
+        clearInterval(this._pollingInterval)
+        this._pollingInterval = null
       }
     }
   }

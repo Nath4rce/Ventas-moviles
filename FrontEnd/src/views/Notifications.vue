@@ -1,370 +1,296 @@
 <template>
   <div class="notifications-page">
-    <div class="container">
+    <div class="container py-4">
       <!-- Header -->
-      <div class="row mb-4">
-        <div class="col-12">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h2 class="fw-bold mb-1">
-                <i class="fas fa-bell me-2"></i>
-                Notificaciones
-              </h2>
-              <p class="text-muted mb-0">Mantente al día con las últimas novedades</p>
-            </div>
-            <div class="d-flex gap-2">
-              <button class="btn btn-outline-primary btn-sm" @click="markAllAsRead" :disabled="unreadCount === 0">
-                <i class="fas fa-check-double me-1"></i>
-                Marcar Todas como Leídas
-              </button>
-              <router-link to="/landing" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left me-2"></i>
-                Volver
-              </router-link>
-            </div>
-          </div>
-        </div>
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+          <i class="fas fa-bell me-2"></i>
+          Notificaciones
+        </h2>
+        <button 
+          v-if="unreadCount > 0" 
+          @click="markAllAsReadHandler"
+          class="btn btn-outline-primary"
+          :disabled="loading"
+        >
+          <i class="fas fa-check-double me-2"></i>
+          Marcar todas como leídas
+        </button>
+      </div>
+
+      <!-- Alerta de éxito/error -->
+      <div v-if="alertMessage" :class="`alert alert-${alertType} alert-dismissible fade show`" role="alert">
+        {{ alertMessage }}
+        <button type="button" class="btn-close" @click="alertMessage = ''"></button>
       </div>
 
       <!-- Filtros -->
-      <div class="row mb-4">
-        <div class="col-12">
-          <div class="card">
-            <div class="card-body">
-              <div class="row g-3">
-                <div class="col-12 col-md-6 col-lg-4">
-                  <label class="form-label fw-semibold">Filtrar por tipo</label>
-                  <select class="form-select" v-model="filterType" @change="applyFilters">
-                    <option value="all">Todos los tipos</option>
-                    <option value="info">Información</option>
-                    <option value="success">Éxito</option>
-                    <option value="warning">Advertencia</option>
-                    <option value="danger">Importante</option>
-                  </select>
-                </div>
-                <div class="col-12 col-md-6 col-lg-4">
-                  <label class="form-label fw-semibold">Estado</label>
-                  <select class="form-select" v-model="filterStatus" @change="applyFilters">
-                    <option value="all">Todas</option>
-                    <option value="unread">No leídas</option>
-                    <option value="read">Leídas</option>
-                  </select>
-                </div>
-                <div class="col-12 col-md-6 col-lg-4">
-                  <label class="form-label fw-semibold">Ordenar por</label>
-                  <select class="form-select" v-model="sortBy" @change="applyFilters">
-                    <option value="newest">Más recientes</option>
-                    <option value="oldest">Más antiguas</option>
-                  </select>
-                </div>
-              </div>
+      <div class="card mb-4">
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Filtrar por estado</label>
+              <select v-model="filter" @change="loadNotifications" class="form-select">
+                <option value="all">Todas</option>
+                <option value="unread">No leídas</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Filtrar por tipo</label>
+              <select v-model="typeFilter" class="form-select">
+                <option value="all">Todos los tipos</option>
+                <option value="info">Información</option>
+                <option value="success">Éxito</option>
+                <option value="warning">Advertencia</option>
+                <option value="danger">Importante</option>
+              </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+              <button @click="loadNotifications" class="btn btn-primary w-100" :disabled="loading">
+                <i class="fas fa-sync-alt me-2" :class="{ 'fa-spin': loading }"></i>
+                Actualizar
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Contador de notificaciones -->
-      <div class="row mb-3">
-        <div class="col-12">
-          <div class="d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">
-              <i class="fas fa-list me-2"></i>
-              Notificaciones
-              <span class="badge bg-primary ms-2">{{ filteredNotifications.length }}</span>
-            </h5>
-            <div v-if="unreadCount > 0" class="text-muted">
-              <i class="fas fa-circle text-primary me-1"></i>
-              {{ unreadCount }} sin leer
-            </div>
-          </div>
+      <!-- Loading -->
+      <div v-if="loading && notifications.length === 0" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Cargando...</span>
         </div>
+        <p class="mt-3">Cargando notificaciones...</p>
       </div>
 
       <!-- Lista de notificaciones -->
-      <div class="row">
-        <div class="col-12">
-          <div v-if="filteredNotifications.length === 0" class="text-center py-5">
-            <i class="fas fa-bell-slash text-muted mb-3" style="font-size: 3rem;"></i>
-            <h5 class="text-muted">No hay notificaciones</h5>
-            <p class="text-muted">No se encontraron notificaciones con los filtros aplicados</p>
-          </div>
+      <div v-else-if="filteredNotifications.length > 0" class="notifications-list">
+        <div 
+          v-for="notification in filteredNotifications" 
+          :key="notification.id"
+          class="notification-card mb-3"
+          :class="[
+            `notification-${notification.tipo}`,
+            { 'notification-unread': !notification.is_read }
+          ]"
+          @click="markAsReadHandler(notification)"
+        >
+          <div class="card">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                  <!-- Icono y título -->
+                  <div class="d-flex align-items-center mb-2">
+                    <i 
+                      :class="getNotificationIcon(notification.tipo)" 
+                      class="me-2 fs-5"
+                    ></i>
+                    <h5 class="mb-0 me-2">{{ notification.titulo }}</h5>
+                    <span 
+                      v-if="!notification.is_read" 
+                      class="badge bg-primary"
+                    >
+                      Nueva
+                    </span>
+                    <span 
+                      v-if="notification.prioridad > 1" 
+                      class="badge bg-danger ms-2"
+                    >
+                      <i class="fas fa-exclamation-circle me-1"></i>
+                      Importante
+                    </span>
+                  </div>
 
-          <div v-else class="notifications-list">
-            <div v-for="notification in filteredNotifications" :key="notification.id" class="notification-item" :class="{
-              'unread': !notification.isRead,
-              'read': notification.isRead
-            }" @click="markAsRead(notification.id)">
-              <div class="card mb-3">
-                <div class="card-body">
-                  <div class="d-flex align-items-start">
-                    <!-- Icono de tipo -->
-                    <div class="notification-icon me-3">
-                      <i class="fas fa-2x" :class="getNotificationIcon(notification.type)"
-                        :style="{ color: getNotificationColor(notification.type) }"></i>
-                    </div>
+                  <!-- Mensaje -->
+                  <p class="mb-2">{{ notification.mensaje }}</p>
 
-                    <!-- Contenido -->
-                    <div class="flex-grow-1">
-                      <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h6 class="notification-title mb-0 fw-bold">
-                          {{ notification.title }}
-                        </h6>
-                        <div class="d-flex align-items-center gap-2">
-                          <!-- Badge de estado -->
-                          <span v-if="!notification.isRead" class="badge bg-primary">
-                            Nuevo
-                          </span>
-                          <!-- Fecha -->
-                          <small class="text-muted">
-                            {{ formatDate(notification.createdAt) }}
-                          </small>
-                        </div>
-                      </div>
-                      <p class="notification-message text-muted mb-0">
-                        {{ notification.message }}
-                      </p>
-                    </div>
-
-                    <!-- Indicador de no leída -->
-                    <div v-if="!notification.isRead" class="unread-indicator">
-                      <i class="fas fa-circle text-primary"></i>
-                    </div>
+                  <!-- Metadata -->
+                  <div class="d-flex gap-3 text-muted small">
+                    <span>
+                      <i class="far fa-clock me-1"></i>
+                      {{ formatDate(notification.created_at) }}
+                    </span>
+                    <span v-if="notification.destinatario_tipo !== 'all'">
+                      <i class="fas fa-users me-1"></i>
+                      {{ getRecipientType(notification.destinatario_tipo) }}
+                    </span>
                   </div>
                 </div>
+
+                <!-- Botón de marcar como leída -->
+                <button 
+                  v-if="!notification.is_read"
+                  @click.stop="markAsReadHandler(notification)"
+                  class="btn btn-sm btn-outline-primary"
+                  title="Marcar como leída"
+                >
+                  <i class="fas fa-check"></i>
+                </button>
               </div>
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Empty state -->
+      <div v-else class="text-center py-5">
+        <i class="fas fa-bell-slash fa-4x text-muted mb-3"></i>
+        <h4>No hay notificaciones</h4>
+        <p class="text-muted">
+          {{ filter === 'unread' ? 'No tienes notificaciones sin leer' : 'No se encontraron notificaciones con los filtros aplicados' }}
+        </p>
       </div>
     </div>
   </div>
 </template>
 
-<script>
-import { ref, computed, onMounted } from 'vue'
-import { useAuthStore } from '../stores/auth'
+<script setup>
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useNotificationsStore } from '../stores/notifications'
 
-export default {
-  name: 'Notifications',
-  setup() {
-    const authStore = useAuthStore()
-    const notificationsStore = useNotificationsStore()
+const notificationsStore = useNotificationsStore()
 
-    const filterType = ref('all')
-    const filterStatus = ref('all')
-    const sortBy = ref('newest')
+const filter = ref('all')
+const typeFilter = ref('all')
+const loading = ref(false)
+const alertMessage = ref('')
+const alertType = ref('success')
 
-    // Notificaciones filtradas
-    const filteredNotifications = computed(() => {
-      let notifications = notificationsStore.userNotifications(authStore.user?.id)
+const notifications = computed(() => notificationsStore.sortedNotifications)
+const unreadCount = computed(() => notificationsStore.unreadCount)
 
-      // Filtrar por tipo
-      if (filterType.value !== 'all') {
-        notifications = notifications.filter(n => n.type === filterType.value)
-      }
+const filteredNotifications = computed(() => {
+  let filtered = notifications.value
 
-      // Filtrar por estado
-      if (filterStatus.value === 'unread') {
-        notifications = notifications.filter(n => !n.isRead)
-      } else if (filterStatus.value === 'read') {
-        notifications = notifications.filter(n => n.isRead)
-      }
+  // Filtrar por tipo
+  if (typeFilter.value !== 'all') {
+    filtered = filtered.filter(n => n.tipo === typeFilter.value)
+  }
 
-      // Ordenar
-      if (sortBy.value === 'newest') {
-        notifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      } else {
-        notifications.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-      }
+  return filtered
+})
 
-      return notifications
-    })
+const showAlert = (message, type = 'success') => {
+  alertMessage.value = message
+  alertType.value = type
+  setTimeout(() => {
+    alertMessage.value = ''
+  }, 3000)
+}
 
-    // Contador de no leídas
-    const unreadCount = computed(() =>
-      notificationsStore.unreadCount(authStore.user?.id)
-    )
-
-    const getNotificationIcon = (type) => {
-      const icons = {
-        info: 'fa-info-circle',
-        success: 'fa-check-circle',
-        warning: 'fa-exclamation-triangle',
-        danger: 'fa-exclamation-circle'
-      }
-      return icons[type] || 'fa-bell'
-    }
-
-    const getNotificationColor = (type) => {
-      const colors = {
-        info: '#17a2b8',
-        success: '#28a745',
-        warning: '#ffc107',
-        danger: '#dc3545'
-      }
-      return colors[type] || '#6c757d'
-    }
-
-    const formatDate = (dateString) => {
-      const date = new Date(dateString)
-      const now = new Date()
-      const diffTime = Math.abs(now - date)
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-      if (diffDays === 1) {
-        return 'Ayer'
-      } else if (diffDays < 7) {
-        return `Hace ${diffDays} días`
-      } else {
-        return date.toLocaleDateString('es-ES', {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric'
-        })
-      }
-    }
-
-    const markAsRead = async (notificationId) => {
-      await notificationsStore.markAsRead(notificationId)
-    }
-
-    const markAllAsRead = async () => {
-      await notificationsStore.markAllAsRead()
-    }
-
-    const applyFilters = () => {
-      // Los filtros se aplican automáticamente por computed
-    }
-
-    onMounted(async () => {
-      authStore.initAuth()
-      if (authStore.isAuthenticated) {
-        await notificationsStore.fetchNotifications()
-      }
-    })
-
-    return {
-      filterType,
-      filterStatus,
-      sortBy,
-      filteredNotifications,
-      unreadCount,
-      getNotificationIcon,
-      getNotificationColor,
-      formatDate,
-      markAsRead,
-      markAllAsRead,
-      applyFilters
-    }
+const loadNotifications = async () => {
+  loading.value = true
+  try {
+    await notificationsStore.fetchNotifications(filter.value === 'unread')
+  } catch (error) {
+    showAlert('Error al cargar notificaciones', 'danger')
+  } finally {
+    loading.value = false
   }
 }
+
+const markAsReadHandler = async (notification) => {
+  if (notification.is_read) return
+  
+  try {
+    await notificationsStore.markAsRead(notification.id)
+  } catch (error) {
+    showAlert('Error al marcar notificación como leída', 'danger')
+  }
+}
+
+const markAllAsReadHandler = async () => {
+  try {
+    await notificationsStore.markAllAsRead()
+    showAlert('Todas las notificaciones marcadas como leídas', 'success')
+  } catch (error) {
+    showAlert('Error al marcar todas como leídas', 'danger')
+  }
+}
+
+const getNotificationIcon = (type) => {
+  const icons = {
+    info: 'fas fa-info-circle text-info',
+    success: 'fas fa-check-circle text-success',
+    warning: 'fas fa-exclamation-triangle text-warning',
+    danger: 'fas fa-exclamation-circle text-danger'
+  }
+  return icons[type] || icons.info
+}
+
+const getRecipientType = (type) => {
+  const types = {
+    all: 'Todos',
+    sellers: 'Vendedores',
+    buyers: 'Compradores',
+    id_institucional_especifico: 'Específico'
+  }
+  return types[type] || type
+}
+
+const formatDate = (dateString) => {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diff = now - date
+  const seconds = Math.floor(diff / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const hours = Math.floor(minutes / 60)
+  const days = Math.floor(hours / 24)
+
+  if (days > 7) {
+    return date.toLocaleDateString('es-ES', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    })
+  } else if (days > 0) {
+    return `Hace ${days} día${days > 1 ? 's' : ''}`
+  } else if (hours > 0) {
+    return `Hace ${hours} hora${hours > 1 ? 's' : ''}`
+  } else if (minutes > 0) {
+    return `Hace ${minutes} minuto${minutes > 1 ? 's' : ''}`
+  } else {
+    return 'Justo ahora'
+  }
+}
+
+onMounted(() => {
+  loadNotifications()
+  // Polling cada 30 segundos
+  notificationsStore.startPolling()
+})
+
+onUnmounted(() => {
+  notificationsStore.stopPolling()
+})
 </script>
 
 <style scoped>
 .notifications-page {
-  min-height: 100vh;
+  min-height: calc(100vh - 200px);
   background-color: #f8f9fa;
-  padding: 2rem 0;
 }
 
-.notification-item {
+.notification-card {
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
-.notification-item:hover {
+.notification-card:hover {
   transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
-.notification-item .card {
-  border: none;
-  border-radius: 15px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+.notification-unread {
+  border-left: 4px solid #0d6efd;
 }
 
-.notification-item.unread .card {
-  border-left: 4px solid var(--primary-color);
-  background-color: #f8f9ff;
+.notification-unread .card {
+  background-color: #f0f7ff;
 }
 
-.notification-item.read .card {
-  opacity: 0.8;
-}
-
-.notification-icon {
-  flex-shrink: 0;
-}
-
-.notification-title {
-  color: #333;
-}
-
-.notification-message {
-  line-height: 1.5;
-}
-
-.unread-indicator {
-  flex-shrink: 0;
-  margin-left: 1rem;
-}
-
-.badge {
-  font-size: 0.7rem;
-}
-
-.form-control,
-.form-select {
-  border-radius: 8px;
-  border: 2px solid #e9ecef;
-  transition: all 0.3s ease;
-}
-
-.form-control:focus,
-.form-select:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 0.2rem rgba(139, 0, 0, 0.25);
-}
-
-/* Mobile optimizations */
-@media (max-width: 767px) {
-  .notifications-page {
-    padding: 1rem 0;
-  }
-
-  .d-flex.gap-2 {
-    flex-direction: column;
-  }
-
-  .btn {
-    width: 100%;
-  }
-
-  .notification-item .card-body {
-    padding: 1rem;
-  }
-
-  .notification-icon i {
-    font-size: 1.5rem !important;
-  }
-
-  .d-flex.justify-content-between {
-    flex-direction: column;
-    align-items: flex-start !important;
-  }
-  .d-flex.align-items-center.gap-2 {
-    margin-top: 0.5rem;
-  }
-}
-
-/* Tablet optimizations */
-@media (min-width: 768px) and (max-width: 1199px) {
-  .notifications-page {
-    padding: 1.5rem 0;
-  }
-  .notification-item .card-body {
-    padding: 1.25rem;
-  }
-}
+.notification-info { border-left-color: #0dcaf0; }
+.notification-success { border-left-color: #198754; }
+.notification-warning { border-left-color: #ffc107; }
+.notification-danger { border-left-color: #dc3545; }
 </style>

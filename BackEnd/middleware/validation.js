@@ -54,8 +54,8 @@ const validateProduct = [
   body('titulo')
     .notEmpty()
     .withMessage('Título es requerido')
-    .isLength({ min: 5, max: 200 })
-    .withMessage('Título debe tener entre 5 y 200 caracteres'),
+    .isLength({ min: 3, max: 200 })
+    .withMessage('Título debe tener entre 3 y 200 caracteres'),
   body('descripcion')
     .notEmpty()
     .withMessage('Descripción es requerida')
@@ -101,7 +101,7 @@ const validateNotification = [
     .isIn(['all', 'sellers', 'buyers', 'id_institucional_especifico'])
     .withMessage('Tipo de destinatario inválido'),
   body('id_institucional_especifico')
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .matches(/^\d{9}$/)
     .withMessage('ID institucional debe tener 9 dígitos'),
   handleValidationErrors
@@ -157,8 +157,8 @@ const validatePagination = [
     .withMessage('Página debe ser un número entero positivo'),
   query('limit')
     .optional()
-    .isInt({ min: 1, max: 100 })
-    .withMessage('Límite debe ser entre 1 y 100'),
+    .isInt({ min: 1, max: 3000 })
+    .withMessage('Límite debe ser entre 1 y 3000'),
   handleValidationErrors
 ];
 

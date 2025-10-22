@@ -27,6 +27,12 @@
         </div>
       </div>
 
+      <!-- Alerta de éxito/error -->
+      <div v-if="alertMessage" :class="`alert alert-${alertType} alert-dismissible fade show`" role="alert">
+        {{ alertMessage }}
+        <button type="button" class="btn-close" @click="alertMessage = ''"></button>
+      </div>
+
       <!-- Estado del sitio -->
       <div class="row mb-4">
         <div class="col-12">
@@ -119,7 +125,7 @@
               <div class="row g-3 mb-4">
                 <div class="col-12 col-md-4">
                   <label class="form-label fw-semibold">Tipo de Usuario</label>
-                  <select class="form-select" v-model="userFilters.rol" @change="applyUserFilters">
+                  <select class="form-select" v-model="userFilters.rol">
                     <option value="all">Todos los tipos</option>
                     <option value="admin">Administrador</option>
                     <option value="seller">Vendedor</option>
@@ -128,7 +134,7 @@
                 </div>
                 <div class="col-12 col-md-4">
                   <label class="form-label fw-semibold">Estado</label>
-                  <select class="form-select" v-model="userFilters.status" @change="applyUserFilters">
+                  <select class="form-select" v-model="userFilters.status">
                     <option value="all">Todos</option>
                     <option value="active">Activos</option>
                     <option value="inactive">Inactivos</option>
@@ -149,19 +155,19 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="user in filteredUsers" :key="user.id">
+                    <tr v-for="user in paginatedUsers" :key="user.id">
                       <td>
                         <div class="d-flex align-items-center">
-                          <img :src="user.avatar_url || '/default-avatar.png'" :alt="user.nombre"
-                            class="rounded-circle me-2" width="30" height="30">
+                          <img :src="getAvatarUrl(user)" :alt="user.nombre" class="rounded-circle me-2" width="30"
+                            height="30">
                           <div>
                             <div class="fw-semibold">{{ user.nombre }}</div>
-                            <small class="text-muted">{{ user.email }}</small> <!-- ← CAMBIAR -->
+                            <small class="text-muted">{{ user.email }}</small>
                           </div>
                         </div>
                       </td>
                       <td>
-                        <span class="badge bg-info">{{ user.id_institucional }}</span> <!-- ← CAMBIAR -->
+                        <span class="badge bg-info">{{ user.id_institucional }}</span>
                       </td>
                       <td>
                         <span class="badge" :class="getRoleBadgeClass(user.rol)">
@@ -169,7 +175,7 @@
                         </span>
                       </td>
                       <td>
-                        <span class="badge" :class="user.is_active ? 'bg-success' : 'bg-danger'"> <!-- ← CAMBIAR -->
+                        <span class="badge" :class="user.is_active ? 'bg-success' : 'bg-danger'">
                           {{ user.is_active ? 'Activo' : 'Inactivo' }}
                         </span>
                       </td>
@@ -188,6 +194,30 @@
                     </tr>
                   </tbody>
                 </table>
+                <!-- Paginación de usuarios -->
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                  <div class="text-muted">
+                    Mostrando {{ (userPagination.currentPage - 1) * userPagination.itemsPerPage + 1 }}
+                    a {{ Math.min(userPagination.currentPage * userPagination.itemsPerPage, filteredUsers.length) }}
+                    de {{ filteredUsers.length }} usuarios
+                  </div>
+                  <nav v-if="totalUserPages > 1">
+                    <ul class="pagination pagination-sm mb-0">
+                      <li class="page-item" :class="{ disabled: userPagination.currentPage === 1 }">
+                        <button class="page-link"
+                          @click="changePage('users', userPagination.currentPage - 1)">Anterior</button>
+                      </li>
+                      <li v-for="page in totalUserPages" :key="page" class="page-item"
+                        :class="{ active: page === userPagination.currentPage }">
+                        <button class="page-link" @click="changePage('users', page)">{{ page }}</button>
+                      </li>
+                      <li class="page-item" :class="{ disabled: userPagination.currentPage === totalUserPages }">
+                        <button class="page-link"
+                          @click="changePage('users', userPagination.currentPage + 1)">Siguiente</button>
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
               </div>
             </div>
           </div>
@@ -246,7 +276,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="product in filteredProducts" :key="product.id">
+                    <tr v-for="product in paginatedProducts" :key="product.id">
                       <td>
                         <div class="d-flex align-items-center">
                           <img :src="product.images[0]" :alt="product.title" class="rounded me-2" width="40" height="40"
@@ -289,6 +319,33 @@
                     </tr>
                   </tbody>
                 </table>
+              </div>
+              <!-- AGREGAR AQUÍ ↓ Paginación de productos -->
+              <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="text-muted small">
+                  Mostrando {{ (productPagination.currentPage - 1) * productPagination.itemsPerPage + 1 }}
+                  a {{ Math.min(productPagination.currentPage * productPagination.itemsPerPage, filteredProducts.length)
+                  }}
+                  de {{ filteredProducts.length }} productos
+                </div>
+                <nav v-if="totalProductPages > 1">
+                  <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item" :class="{ disabled: productPagination.currentPage === 1 }">
+                      <button class="page-link" @click="changePage('products', productPagination.currentPage - 1)">
+                        <i class="fas fa-chevron-left"></i>
+                      </button>
+                    </li>
+                    <li v-for="page in totalProductPages" :key="page" class="page-item"
+                      :class="{ active: page === productPagination.currentPage }">
+                      <button class="page-link" @click="changePage('products', page)">{{ page }}</button>
+                    </li>
+                    <li class="page-item" :class="{ disabled: productPagination.currentPage === totalProductPages }">
+                      <button class="page-link" @click="changePage('products', productPagination.currentPage + 1)">
+                        <i class="fas fa-chevron-right"></i>
+                      </button>
+                    </li>
+                  </ul>
+                </nav>
               </div>
             </div>
           </div>
@@ -362,11 +419,11 @@
                       <option value="all">Todos los usuarios</option>
                       <option value="sellers">Solo vendedores</option>
                       <option value="students">Solo estudiantes</option>
-                      <option value="idInstitucional ">ID Institucional específico</option>
+                      <option value="idInstitucional">ID Institucional específico</option>
                     </select>
                   </div>
 
-                  <div v-if="notificationForm.recipients === 'idInstitucional '" class="col-12 col-md-4">
+                  <div v-if="notificationForm.recipients === 'idInstitucional'" class="col-12 col-md-4">
                     <label class="form-label fw-semibold">ID Institucional </label>
                     <input type="text" class="form-control" v-model="notificationForm.id_institucional"
                       placeholder="Ej: 000497849" maxlength="9">
@@ -508,6 +565,17 @@ export default {
 
     const users = ref([])
 
+    const alertMessage = ref('')
+    const alertType = ref('success')
+
+    const showAlert = (message, type = 'success') => {
+      alertMessage.value = message
+      alertType.value = type
+      setTimeout(() => {
+        alertMessage.value = ''
+      }, 3000)
+    }
+
     // Funciones para fetch
     const fetchStats = async () => {
       try {
@@ -520,25 +588,38 @@ export default {
       }
     }
 
-    const fetchUsers = async () => {
+    /*= async () => {
       try {
         const params = new URLSearchParams()
         if (userFilters.value.rol !== 'all') params.append('rol', userFilters.value.rol)
         if (userFilters.value.status !== 'all') params.append('status', userFilters.value.status)
         if (userFilters.value.search) params.append('search', userFilters.value.search)
 
-        console.log('🔍 Fetching users with params:', params.toString()) // ← AGREGAR
         const response = await axios.get(`${API_URL}/admin/users?${params}`)
-        console.log('📥 Users response:', response.data) // ← AGREGAR
 
         if (response.data.success) {
           users.value = response.data.data.users
-          console.log('👥 Users array:', users.value) // ← AGREGAR
         }
       } catch (error) {
         console.error('Error fetching users:', error)
       }
+    }*/
+
+const fetchUsers = async () => {
+  try {
+    // Pedir 100 usuarios (máximo permitido por validación)
+    const response = await axios.get(`${API_URL}/admin/users?limit=100`)
+
+    if (response.data.success) {
+      users.value = response.data.data.users
+      console.log('👥 Usuarios cargados:', users.value.length)
     }
+  } catch (error) {
+    console.error('Error fetching users:', error)
+  }
+}
+
+
 
     const loading = ref(false)
     const sendingNotification = ref(false)
@@ -559,6 +640,16 @@ export default {
       title: '',
       category: 'all',
       status: 'all'
+    })
+
+    const userPagination = ref({
+      currentPage: 1,
+      itemsPerPage: 10
+    })
+
+    const productPagination = ref({
+      currentPage: 1,
+      itemsPerPage: 10
     })
 
     const newUser = reactive({
@@ -590,24 +681,19 @@ export default {
       total_productos_inactivos: 0,
     })
 
+    //filteredUsers
     const filteredUsers = computed(() => {
       let filtered = users.value
 
-      // Filtrar por rol
       if (userFilters.value.rol !== 'all') {
         filtered = filtered.filter(u => u.rol === userFilters.value.rol)
       }
 
-      // Filtrar por estado
       if (userFilters.value.status !== 'all') {
-        if (userFilters.value.status === 'active') {
-          filtered = filtered.filter(u => u.is_active === 1 || u.is_active === true)
-        } else {
-          filtered = filtered.filter(u => u.is_active === 0 || u.is_active === false)
-        }
+        const isActive = userFilters.value.status === 'active'
+        filtered = filtered.filter(u => Boolean(u.is_active) === isActive)
       }
 
-      // Filtrar por búsqueda
       if (userFilters.value.search) {
         const searchTerm = userFilters.value.search.toLowerCase()
         filtered = filtered.filter(u =>
@@ -619,6 +705,38 @@ export default {
 
       return filtered
     })
+
+    // Paginación de usuarios
+    const paginatedUsers = computed(() => {
+      const start = (userPagination.value.currentPage - 1) * userPagination.value.itemsPerPage
+      const end = start + userPagination.value.itemsPerPage
+      return filteredUsers.value.slice(start, end)
+    })
+
+    const totalUserPages = computed(() =>
+      Math.ceil(filteredUsers.value.length / userPagination.value.itemsPerPage)
+    )
+
+    // Paginación de productos
+    const paginatedProducts = computed(() => {
+      const start = (productPagination.value.currentPage - 1) * productPagination.value.itemsPerPage
+      const end = start + productPagination.value.itemsPerPage
+      return filteredProducts.value.slice(start, end)
+    })
+
+    const totalProductPages = computed(() =>
+      Math.ceil(filteredProducts.value.length / productPagination.value.itemsPerPage)
+    )
+
+    const changePage = (pagination, page) => {
+      if (page >= 1 && page <= (pagination === 'users' ? totalUserPages.value : totalProductPages.value)) {
+        if (pagination === 'users') {
+          userPagination.value.currentPage = page
+        } else {
+          productPagination.value.currentPage = page
+        }
+      }
+    }
 
     // Productos filtrados
     const filteredProducts = computed(() => {
@@ -685,6 +803,11 @@ export default {
     // Estado del sitio
     const isSiteDisabled = computed(() => notificationsStore.isSiteDisabled)
 
+    const getAvatarUrl = (user) => {
+      if (user?.avatar_url) return user.avatar_url
+      return `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.nombre || 'U')}&background=random&size=128`
+    }
+
     const getRoleName = (rol) => {
       const names = {
         admin: 'Administrador',
@@ -721,15 +844,19 @@ export default {
     const sendNotification = async () => {
       sendingNotification.value = true
       try {
-        notificationsStore.broadcastNotification(
-          notificationForm.title,
-          notificationForm.message,
-          notificationForm.type
-        )
+        await notificationsStore.sendNotification({
+          title: notificationForm.title,
+          message: notificationForm.message,
+          type: notificationForm.type,
+          recipients: notificationForm.recipients,
+          id_institucional: notificationForm.id_institucional
+        })
+
         resetNotificationForm()
-        notificacion.success('Notificación enviada exitosamente')
+        showAlert('Notificación enviada exitosamente', 'success')
       } catch (error) {
-        notificacion.error('Error al enviar la notificación')
+        console.log('Error completo:', error.response?.data) // Para ver el error del backend
+        showAlert(error.response?.data?.message || 'Error al enviar la notificación', 'danger')
       } finally {
         sendingNotification.value = false
       }
@@ -864,7 +991,7 @@ export default {
     onMounted(async () => {
       // Inicializar autenticación si hay datos guardados
       authStore.initAuth()
- 
+
       await productsStore.fetchAllProducts()
       await notificationsStore.fetchNotifications()
       await fetchStats()
@@ -888,6 +1015,8 @@ export default {
       productFilters,
       newUser,
       notificationForm,
+      alertMessage,
+      alertType,
       stats,
       filteredUsers,
       filteredProducts,
@@ -907,7 +1036,15 @@ export default {
       toggleUserStatus,
       openChangeRoleModal,
       changeUserRole,
-      handleRecipientChange
+      handleRecipientChange,
+      getAvatarUrl,
+      paginatedUsers,
+      paginatedProducts,
+      userPagination,
+      productPagination,
+      totalUserPages,
+      totalProductPages,
+      changePage
     }
   }
 }

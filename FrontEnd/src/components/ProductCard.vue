@@ -52,6 +52,11 @@
       <div class="card-body d-flex flex-column">
         <!-- Título y vendedor -->
         <div class="mb-2">
+          <h5 class="card-title mb-1">{{ product.title }}</h5>
+          <p class="text-muted small mb-2">
+            <i class="fas fa-user me-1"></i>
+            Vendedor: {{ product.sellerName }}
+          </p>
           <div class="d-flex align-items-center mb-1">
             <div class="stars me-2">
               <i v-for="star in 5" :key="star" class="fas fa-star"
@@ -269,6 +274,7 @@ export default {
   .product-images {
     height: 220px;
   }
+
   .product-image {
     height: 220px;
   }

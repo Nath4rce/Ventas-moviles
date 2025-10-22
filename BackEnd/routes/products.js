@@ -126,30 +126,7 @@ router.get("/", validatePagination, async (req, res) => {
     const sortOrder = validSortOrders.includes(sort_order.toUpperCase())
       ? sort_order.toUpperCase()
       : "DESC";
-    /*
-    // Agregar parámetros dinámicamente
 
-    let paramIndex = 0;
-    if (categoria_id) {
-      request.input('categoriaId', sql.Int, parseInt(categoria_id));
-      whereConditions[whereConditions.findIndex(c => c.includes('categoria_id'))] = 'p.categoria_id = @categoriaId';
-    }
-    if (precio_min) {
-      request.input('precioMin', sql.Decimal(10, 2), parseFloat(precio_min));
-      whereConditions[whereConditions.findIndex(c => c.includes('precio >='))] = 'p.precio >= @precioMin';
-    }
-    if (precio_max) {
-      request.input('precioMax', sql.Decimal(10, 2), parseFloat(precio_max));
-      whereConditions[whereConditions.findIndex(c => c.includes('precio <='))] = 'p.precio <= @precioMax';
-    }
-    if (search) {
-      request.input('search', sql.NVarChar(255), `%${search}%`);
-      whereConditions[whereConditions.findIndex(c => c.includes('LIKE'))] = '(p.titulo LIKE @search OR p.descripcion LIKE @search)';
-    }
-
-    whereConditions[0] = 'p.is_active = 1'; // Cambiar TRUE a 1
-    
-*/
     request.input("offset", sql.Int, parseInt(offset));
     request.input("limit", sql.Int, parseInt(limit));
 
@@ -484,9 +461,8 @@ router.patch("/:id/status", async (req, res) => {
 
     res.json({
       success: true,
-      message: `Producto ${
-        isActive === 1 ? "activado" : "desactivado"
-      } correctamente`,
+      message: `Producto ${isActive === 1 ? "activado" : "desactivado"
+        } correctamente`,
       data: { id, isActive },
     });
   } catch (error) {
@@ -499,6 +475,7 @@ router.patch("/:id/status", async (req, res) => {
 });
 
 // PUT /api/products/:id - Actualizar producto
+// PUT /api/products/:id - Actualizar producto
 router.put(
   "/:id",
   authenticateToken,
@@ -510,9 +487,8 @@ router.put(
       const { titulo, descripcion, precio, categoria_id, imagenes } = req.body;
 
       const pool = await getPool();
-      const request = pool.request().input("productId", sql.Int, productId);
 
-      // Verificar que la categoría existe
+      // Verificar que la categoría existe (si se proporciona)
       if (categoria_id) {
         const checkCategory = await pool
           .request()
@@ -529,25 +505,23 @@ router.put(
         }
       }
 
-      // Actualizar producto
+      // Construir campos a actualizar
       const updateFields = [];
-      const updateValues = [];
+      const request = pool.request().input("productId", sql.Int, productId);
 
       if (titulo) {
         updateFields.push("titulo = @titulo");
-        updateValues.push(titulo);
+        request.input("titulo", sql.NVarChar(255), titulo);
       }
 
       if (descripcion) {
         updateFields.push("descripcion = @descripcion");
-        updateValues.push(descripcion);
+        request.input("descripcion", sql.NVarChar(sql.MAX), descripcion);
       }
 
       if (precio !== undefined) {
-        if (precio !== undefined) {
-          updateFields.push("precio = @precio");
-          updateValues.push(precio);
-        }
+        updateFields.push("precio = @precio");
+        request.input("precio", sql.Decimal(10, 2), precio);
       }
 
       if (categoria_id) {
@@ -565,6 +539,7 @@ router.put(
         request.input("isActive", sql.Bit, isActive);
       }
 
+      // Validar que hay algo para actualizar
       if (updateFields.length === 0 && (!imagenes || imagenes.length === 0)) {
         return res.status(400).json({
           success: false,
@@ -572,37 +547,19 @@ router.put(
         });
       }
 
-      if (updateFields.length > 0) {
-        
-
-        if (titulo) request.input("titulo", sql.NVarChar(255), titulo);
-        if (descripcion)
-          request.input("descripcion", sql.NVarChar(sql.MAX), descripcion);
-        if (precio !== undefined)
-          request.input("precio", sql.Decimal(10, 2), precio);
-        if (categoria_id) request.input("categoriaId", sql.Int, categoria_id);
-
-        await request.query(
-          `UPDATE productos SET ${updateFields.join(
-            ", "
-          )}, updated_at = GETDATE() WHERE id = @productId`
-        );
-      }
-
+      // Ejecutar actualización de producto
       if (updateFields.length > 0) {
         const updateQuery = `
-        UPDATE productos 
-        SET 
-            ${updateFields.join(", ")}, 
-            updated_at = GETDATE() 
-        WHERE 
-            id = @productId
-      `;
+          UPDATE productos 
+          SET ${updateFields.join(", ")}, updated_at = GETDATE() 
+          WHERE id = @productId
+        `;
         await request.query(updateQuery);
       }
 
       // Actualizar imágenes si se proporcionan
       if (imagenes && imagenes.length > 0) {
+        // Eliminar imágenes anteriores
         await pool
           .request()
           .input("productId", sql.Int, productId)
@@ -610,6 +567,7 @@ router.put(
             "DELETE FROM producto_imagenes WHERE producto_id = @productId"
           );
 
+        // Insertar nuevas imágenes
         for (let i = 0; i < imagenes.length; i++) {
           await pool
             .request()

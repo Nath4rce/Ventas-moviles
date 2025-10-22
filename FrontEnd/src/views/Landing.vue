@@ -233,7 +233,7 @@ export default {
     if (filters.value.sortBy) {
       params.sort_by = filters.value.sortBy === 'rating' ? 'rating_promedio' : 
                        filters.value.sortBy === 'price' ? 'precio' : 'created_at'
-      params.sort_order = 'DESC'
+      params.sort_order = 'ASC'
     }
 
     await productsStore.fetchProducts(params)
