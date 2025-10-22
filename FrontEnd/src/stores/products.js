@@ -84,18 +84,51 @@ export const useProductsStore = defineStore("products", {
       this.filters = { ...this.filters, ...newFilters };
     },
 
+    // Obtener TODOS los productos (para admin)
+    async fetchAllProducts() {
+      this.loading = true;
+      this.error = null;
+      try {
+        const response = await axios.get(`${API_URL}/products/admin/all`);
+
+        if (response.data.success) {
+          this.products = response.data.data.products.map((p) => ({
+            id: p.id,
+            title: p.titulo,
+            description: p.descripcion,
+            price: p.precio,
+            category: p.categoria_nombre,
+            categoryIcon: p.categoria_icono,
+            images: p.imagenes || [p.imagen_principal].filter(Boolean),
+            sellerId: p.vendedor_id_institucional,
+            sellerName: p.vendedor_nombre,
+            sellerPhone: p.vendedor_telefono,
+            rating: p.rating_promedio || 0,
+            reviewCount: p.total_resenas || 0,
+            isActive: Boolean(p.is_active),
+            createdAt: p.created_at,
+          }));
+        }
+      } catch (error) {
+        console.error("Error fetching all products:", error);
+        this.error = error.message;
+      } finally {
+        this.loading = false;
+      }
+    },
+
     async fetchProducts(filters = {}) {
       this.loading = true;
       this.error = null;
       try {
         const params = new URLSearchParams();
-        if (filters.categoria_id) params.append("categoria_id", filters.categoria_id);
+        if (filters.categoria_id)
+          params.append("categoria_id", filters.categoria_id);
         if (filters.precio_min) params.append("precio_min", filters.precio_min);
         if (filters.precio_max) params.append("precio_max", filters.precio_max);
         if (filters.search) params.append("search", filters.search);
         if (filters.sort_by) params.append("sort_by", filters.sort_by);
         if (filters.sort_order) params.append("sort_order", filters.sort_order);
-
 
         const response = await axios.get(`${API_URL}/products?${params}`);
 
@@ -267,22 +300,48 @@ export const useProductsStore = defineStore("products", {
     },
 
     // Cambiar estado de producto (activar/desactivar)
-    toggleProductStatus(productId) {
-      const product = this.products.find((p) => p.id === productId);
-      if (product) {
-        product.isActive = !product.isActive;
+    async toggleProductStatus(productId) {
+      try {
+        const product = this.products.find((p) => p.id === productId);
+        if (!product) {
+          return {
+            success: false,
+            message: "Producto no encontrado",
+          };
+        }
+
+        const newStatus = product.isActive ? 0 : 1;
+
+        // Llamada al backend
+        const response = await axios.patch(
+          `${API_URL}/products/${productId}/status`,
+          { isActive: newStatus }
+        );
+
+        if (response.data.success) {
+          // Actualizar estado local
+          product.isActive = newStatus;
+
+          return {
+            success: true,
+            product: product,
+            message: `Producto ${
+              newStatus === 1 ? "activado" : "desactivado"
+            } exitosamente`,
+          };
+        }
+
         return {
-          success: true,
-          product: product,
-          message: `Producto ${
-            product.isActive ? "activado" : "desactivado"
-          } exitosamente`,
+          success: false,
+          message: response.data.message || "Error al actualizar el producto",
+        };
+      } catch (error) {
+        console.error("Error en toggleProductStatus:", error);
+        return {
+          success: false,
+          message: "Error al actualizar el estado del producto",
         };
       }
-      return {
-        success: false,
-        message: "Producto no encontrado",
-      };
     },
 
     // Actualizar Producto
@@ -299,13 +358,13 @@ export const useProductsStore = defineStore("products", {
           titulo: productData.title?.trim(),
           descripcion: productData.description?.trim(),
           precio: Number(productData.price),
-          categoria_id: Number(productData.categoria_id), 
+          categoria_id: Number(productData.categoria_id),
           is_active: productData.isActive,
-          imagenes: productData.images, 
+          imagenes: productData.images,
         };
-        
+
         console.log(`➡️ Enviando actualización para producto ${id}:`, payload);
-        
+
         // Realizar la solicitud PUT para actualizar
         const response = await axios.put(`${API_URL}/products/${id}`, payload, {
           headers: {
@@ -314,53 +373,58 @@ export const useProductsStore = defineStore("products", {
         });
 
         if (response.data.success) {
-          // Si la actualización en la API fue exitosa, refrescamos la lista 
+          // Si la actualización en la API fue exitosa, refrescamos la lista
           // de productos para mantener el estado sincronizado.
-          await this.fetchProducts(); 
+          await this.fetchProducts();
           return response.data.data.product;
         } else {
-          throw new Error(response.data.message || 'Error desconocido al actualizar.');
+          throw new Error(
+            response.data.message || "Error desconocido al actualizar."
+          );
         }
-
       } catch (error) {
         console.error(
           "Error updating product:",
           error.response?.data || error.message
         );
-        this.error = "Error al actualizar el producto: " + (error.response?.data?.message || error.message);
+        this.error =
+          "Error al actualizar el producto: " +
+          (error.response?.data?.message || error.message);
         throw error;
       } finally {
         this.loading = false;
       }
     },
 
-    // Eliminar Producto 
+    // Eliminar Producto
     async deleteProduct(productId) {
-        this.loading = true;
-        try {
-            const id = parseInt(productId, 10);
-            if (isNaN(id) || id <= 0) {
-              throw new Error("ID de producto inválido para la eliminación.");
-            }
-            
-            const response = await axios.delete(`${API_URL}/products/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-            });
-            
-            if (response.data.success) {
-                // Eliminar el producto del estado local (opcional, pero más rápido que fetch)
-                this.products = this.products.filter(p => p.id !== id);
-            }
-            return response.data;
-        } catch (error) {
-            console.error("Error deleting product:", error);
-            this.error = "Error al eliminar el producto: " + (error.response?.data?.message || error.message);
-            throw error;
-        } finally {
-            this.loading = false;
+      this.loading = true;
+      try {
+        const id = parseInt(productId, 10);
+        if (isNaN(id) || id <= 0) {
+          throw new Error("ID de producto inválido para la eliminación.");
         }
+
+        const response = await axios.delete(`${API_URL}/products/${id}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+
+        if (response.data.success) {
+          // Eliminar el producto del estado local (opcional, pero más rápido que fetch)
+          this.products = this.products.filter((p) => p.id !== id);
+        }
+        return response.data;
+      } catch (error) {
+        console.error("Error deleting product:", error);
+        this.error =
+          "Error al eliminar el producto: " +
+          (error.response?.data?.message || error.message);
+        throw error;
+      } finally {
+        this.loading = false;
+      }
     },
   },
 });

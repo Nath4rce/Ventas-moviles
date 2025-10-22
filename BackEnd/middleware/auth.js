@@ -102,6 +102,7 @@ const generateToken = (userId) => {
 // Función para verificar si el usuario puede realizar una acción en un producto
 const canModifyProduct = async (req, res, next) => {
   try {
+    
     const productId = req.params.id;
     const userId = req.user.id;
     const userRole = req.user.rol;

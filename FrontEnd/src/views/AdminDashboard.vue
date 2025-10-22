@@ -174,17 +174,17 @@
                         </span>
                       </td>
                       <td>
-                      <div class="btn-group btn-group-sm" role="group">
-                        <button class="btn btn-outline-warning" @click="toggleUserStatus(user)"
-                          :title="user.is_active ? 'Desactivar' : 'Activar'">
-                          <i :class="user.is_active ? 'fas fa-pause' : 'fas fa-play'"></i>
-                        </button>
-                        <button class="btn btn-outline-primary" @click="openChangeRoleModal(user)"
-                          title="Cambiar rol">
-                          <i class="fas fa-user-edit"></i>
-                        </button>
-                      </div>
-                    </td>
+                        <div class="btn-group btn-group-sm" role="group">
+                          <button class="btn btn-outline-warning" @click="toggleUserStatus(user)"
+                            :title="user.is_active ? 'Desactivar' : 'Activar'">
+                            <i :class="user.is_active ? 'fas fa-pause' : 'fas fa-play'"></i>
+                          </button>
+                          <button class="btn btn-outline-primary" @click="openChangeRoleModal(user)"
+                            title="Cambiar rol">
+                            <i class="fas fa-user-edit"></i>
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -216,9 +216,9 @@
                   <label class="form-label fw-semibold">Categoría</label>
                   <select class="form-select" v-model="productFilters.category" @change="applyProductFilters">
                     <option value="all">Todas las categorías</option>
-                    <option value="comida">Comida</option>
+                    <option value="alimentos">Alimentos</option>
                     <option value="accesorios">Accesorios</option>
-                    <option value="papeleria">Papelería</option>
+                    <option value="papelería">Papelería</option>
                   </select>
                 </div>
                 <div class="col-12 col-md-4">
@@ -555,7 +555,7 @@ export default {
       search: ''
     })
 
-    const productFilters = reactive({
+    const productFilters = ref({
       title: '',
       category: 'all',
       status: 'all'
@@ -610,7 +610,7 @@ export default {
       // Filtrar por búsqueda
       if (userFilters.value.search) {
         const searchTerm = userFilters.value.search.toLowerCase()
-        filtered = filtered.filter(u => 
+        filtered = filtered.filter(u =>
           u.nombre.toLowerCase().includes(searchTerm) ||
           u.email?.toLowerCase().includes(searchTerm) ||
           u.id_institucional?.toString().includes(searchTerm)
@@ -625,8 +625,8 @@ export default {
       let filtered = productsStore.products || []
 
       // Filtrar por título
-      if (productFilters.title && productFilters.title.trim()) {
-        const searchTerm = productFilters.title.toLowerCase().trim()
+      if (productFilters.value.title && productFilters.value.title.trim()) {
+        const searchTerm = productFilters.value.title.toLowerCase().trim()
         filtered = filtered.filter(product =>
           product.titulo?.toLowerCase().includes(searchTerm) ||
           product.title?.toLowerCase().includes(searchTerm) ||
@@ -636,44 +636,35 @@ export default {
       }
 
       // Filtrar por categoría
-      if (productFilters.category !== 'all') {
-        console.log('📂 Filtrando por categoría:', productFilters.category)
-        
+      if (productFilters.value.category !== 'all') {
+        console.log('Filtrando por categoría:', productFilters.value.category)
+
         // Ver todas las categorías únicas antes de filtrar
         const uniqueCategories = [...new Set(filtered.map(p => p.categoria || p.category))]
         console.log('📂 Categorías disponibles:', uniqueCategories)
-        
+
         filtered = filtered.filter(product => {
           const productCategory = (product.categoria || product.category || '').toLowerCase()
-          const filterCategory = productFilters.category.toLowerCase()
+          const filterCategory = productFilters.value.category.toLowerCase()
           const match = productCategory === filterCategory
-          
+
           if (!match && filtered.length < 10) {
             console.log('❌ No coincide:', productCategory, '!==', filterCategory)
           }
-          
+
           return match
         })
-        console.log('📂 Después de filtrar por categoría:', filtered.length)
+        console.log('Después de filtrar por categoría:', filtered.length)
       }
 
       // Filtrar por estado
-      if (productFilters.status !== 'all') {
-        const isActive = productFilters.status === 'active'
+      if (productFilters.value.status !== 'all') {
+        const isActive = productFilters.value.status === 'active'
         filtered = filtered.filter(product => {
           const status = product.isActive ?? product.is_active ?? product.activo
           return Boolean(status) === isActive
         })
         console.log('✅ Después de filtrar por estado:', filtered.length)
-      }
-
-      // Filtrar por estado
-      if (productFilters.status !== 'all') {
-        const isActive = productFilters.status === 'active'
-        filtered = filtered.filter(product => {
-          const status = product.isActive ?? product.is_active ?? product.activo
-          return Boolean(status) === isActive
-        })
       }
 
       return filtered.sort((a, b) => {
@@ -764,26 +755,26 @@ export default {
 
     // admin-dashboard.vue (Tu código actualizado en <script>)
 
-const toggleProductStatus = async (productId) => { // ¡Asegúrate de que sea 'async'!
-    console.log('Attempting to toggle product ID:', productId); // <-- Añade para depurar
+    const toggleProductStatus = async (productId) => {
+      console.log('Attempting to toggle product ID:', productId);
 
-    try {
+      try {
         // Asegúrate de usar 'await' aquí
-        const result = await productsStore.toggleProductStatus(productId); 
-        
+        const result = await productsStore.toggleProductStatus(productId);
+
         if (result.success) {
-            notificacion.success(`Producto ${result.product.isActive ? 'activado' : 'desactivado'} exitosamente`);
-            await fetchStats(); // Si es necesario actualizar las estadísticas del dashboard
+          notificacion.success(`Producto ${result.product.isActive ? 'activado' : 'desactivado'} exitosamente`);
+          await fetchStats(); // Si es necesario actualizar las estadísticas del dashboard
         } else {
-            // Este mensaje proviene de un error controlado en la store
-            notificacion.error(result.message); 
+          // Este mensaje proviene de un error controlado en la store
+          notificacion.error(result.message);
         }
-    } catch (error) {
+      } catch (error) {
         // Este catch maneja errores de red, de CORS, o errores no controlados de la store
         console.error('Error al ejecutar toggleProductStatus:', error);
         notificacion.error('Error de red o servidor. No se pudo actualizar el producto.');
+      }
     }
-}
 
     const createUser = async () => {
       creatingUser.value = true
@@ -811,20 +802,21 @@ const toggleProductStatus = async (productId) => { // ¡Asegúrate de que sea 'a
       newUser.password = ''
     }
 
-    const toggleUserStatus = async (user) => { 
+    const toggleUserStatus = async (user) => {
       if (!user || user.id === undefined) {
         notificacion.error('Error: Información de usuario incompleta.');
         return;
       }
-        
+
       try {
         // Llama a la tienda con el ID
         const result = await authStore.toggleUserStatus(user.id)
-          
+
         if (result.success) {
-          
+
           const updatedUser = users.value.find(u => u.id === user.id);
-          
+          await fetchUsers()
+
           if (updatedUser) {
             notificacion.success(`Usuario ${updatedUser.is_active ? 'activado' : 'desactivado'} exitosamente`);
           } else {
@@ -872,8 +864,8 @@ const toggleProductStatus = async (productId) => { // ¡Asegúrate de que sea 'a
     onMounted(async () => {
       // Inicializar autenticación si hay datos guardados
       authStore.initAuth()
-
-      await productsStore.fetchProducts()
+ 
+      await productsStore.fetchAllProducts()
       await notificationsStore.fetchNotifications()
       await fetchStats()
       await fetchUsers()
