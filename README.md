@@ -132,11 +132,13 @@ Rutas Principales del Backend
 Autores
 ------------------------------------------------------------
 Desarrollado por
-juan david parra sierra
-santiago viana ayala
-miguel angel ramirez velasquez
-natalia arce peñuela
-sara soto 
+
+# juan david parra sierra
+# santiago viana ayala
+# miguel angel ramirez velasquez
+# natalia arce peñuela
+# sara soto 
+
 Estudiantes de Ingeniería en Sistemas e Informática - UPB Medellín
 
 ------------------------------------------------------------
