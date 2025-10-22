@@ -54,7 +54,7 @@ Base de Datos:
 Instalación y Ejecución
 ------------------------------------------------------------
 1. Clonar el repositorio
-git clone https://github.com/tuusuario/Ventas-moviles.git
+git clone https://github.com/Nath4rce/Ventas-moviles.git
 cd Ventas-moviles-main
 
 2. Configurar el backend
