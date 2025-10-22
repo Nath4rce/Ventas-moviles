@@ -5,6 +5,7 @@ Sistema completo para la gestión de ventas de dispositivos móviles, con arquit
 ------------------------------------------------------------
 Estructura del Proyecto
 ------------------------------------------------------------
+
 Ventas-moviles-main/
 │
 ├── BackEnd/
@@ -26,7 +27,41 @@ Ventas-moviles-main/
 ├── FrontEnd/
 │   ├── index.html
 │   ├── package.json
-│   └── README.md
+│   ├── README.md
+│   ├── css/
+│   │   └── main.css
+│   ├── js/
+│   │   ├── app.js
+│   │   ├── api.js
+│   │   ├── auth.js
+│   │   └── ui.js
+│   ├── assets/
+│   │   ├── img/
+│   │   │   ├── logo.png
+│   │   │   └── productos/
+│   │   │       ├── telefono1.jpg
+│   │   │       ├── telefono2.jpg
+│   │   │       └── telefono3.jpg
+│   │   ├── fonts/
+│   │   │   ├── Roboto-Regular.ttf
+│   │   │   └── Roboto-Bold.ttf
+│   │   └── icons/
+│   │       ├── carrito.svg
+│   │       ├── usuario.svg
+│   │       └── menu.svg
+│   ├── components/
+│   │   ├── header.html
+│   │   ├── footer.html
+│   │   ├── product-card.html
+│   │   └── modal.html
+│   ├── views/
+│   │   ├── home.html
+│   │   ├── login.html
+│   │   ├── register.html
+│   │   ├── product-detail.html
+│   │   └── dashboard.html
+│   └── config/
+│       └── config.js
 │
 ├── DataBase/
 │   └── database_schema.sql
