@@ -21,7 +21,8 @@ export const useProductsStore = defineStore("products", {
   getters: {
     // Productos filtrados y ordenados
     filteredProducts: (state) => {
-      let filtered = state.products.filter((product) => product.isActive);
+      // Primero filtrar solo productos activos
+      let filtered = state.products.filter((product) => product.isActive === true);
       // Filtrar por categoría
       if (state.filters.category !== "all") {
         filtered = filtered.filter(
@@ -50,10 +51,33 @@ export const useProductsStore = defineStore("products", {
           return filtered;
       }
     },
+    /*
+        // Productos del usuario actual
+        userProducts: (state) => (userIdInstitucional) => {
+          return state.products.filter((p) => p.sellerId === userIdInstitucional);
+        },*/
 
-    // Productos del usuario actual
+    // Productos del usuario actual (TODOS: activos e inactivos)
+    allUserProducts: (state) => (userIdInstitucional) => {
+      const products = state.products.filter((p) => {
+        const match = String(p.sellerId) === String(userIdInstitucional)
+        return match
+      })
+
+      console.log('🔍 allUserProducts getter:', {
+        userIdInstitucional,
+        products: products,
+        count: products.length
+      })
+
+      return products
+    },
+
+    // Productos del usuario actual (ALIAS de allUserProducts)
     userProducts: (state) => (userIdInstitucional) => {
-      return state.products.filter((p) => p.sellerId === userIdInstitucional);
+      return state.products.filter((p) =>
+        String(p.sellerId) === String(userIdInstitucional)
+      )
     },
 
     // Obtener producto por ID
@@ -133,7 +157,7 @@ export const useProductsStore = defineStore("products", {
         const response = await axios.get(`${API_URL}/products?${params}`);
 
         if (response.data.success) {
-          this.products = response.data.data.products.map((p) => ({
+          const newProducts = response.data.data.products.map((p) => ({
             id: p.id,
             title: p.titulo,
             description: p.descripcion,
@@ -149,9 +173,89 @@ export const useProductsStore = defineStore("products", {
             isActive: Boolean(p.is_active),
             createdAt: p.created_at,
           }));
+
+          // ✅ CAMBIO CRÍTICO: No borrar productos del usuario actual
+          // Primero, identificar el ID institucional del usuario autenticado
+          const currentUserIdInstitucional = localStorage.getItem('user')
+            ? JSON.parse(localStorage.getItem('user')).id_institucional
+            : null;
+
+          if (currentUserIdInstitucional) {
+            // Mantener productos del usuario actual
+            const userProducts = this.products.filter(p => p.sellerId === currentUserIdInstitucional);
+
+            // Eliminar productos que NO son del usuario y actualizar con los nuevos
+            const otherProducts = newProducts.filter(p => p.sellerId !== currentUserIdInstitucional);
+
+            // Combinar: productos del usuario + otros productos nuevos
+            this.products = [...userProducts, ...otherProducts];
+
+            console.log('✅ fetchProducts - Productos preservados del usuario:', userProducts.length);
+            console.log('✅ fetchProducts - Otros productos cargados:', otherProducts.length);
+            console.log('✅ fetchProducts - Total en store:', this.products.length);
+          } else {
+            // Si no hay usuario autenticado, simplemente reemplazar todo
+            this.products = newProducts;
+          }
         }
       } catch (error) {
         console.error("Error fetching products:", error);
+        this.error = error.message;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    // Obtener productos de un usuario específico (activos e inactivos)
+    async fetchUserProducts(userIdInstitucional) {
+      if (!userIdInstitucional) {
+        console.warn('⚠️ No se proporcionó ID institucional');
+        return;
+      }
+
+      this.loading = true;
+      this.error = null;
+
+      try {
+        console.log('📦 Cargando productos del usuario:', userIdInstitucional);
+
+        const response = await axios.get(`${API_URL}/products/user/${userIdInstitucional}`);
+
+        console.log('📦 Respuesta del servidor:', response.data);
+
+        if (response.data.success) {
+          const userProducts = response.data.data.products.map((p) => ({
+            id: p.id,
+            title: p.titulo,
+            description: p.descripcion,
+            price: p.precio,
+            category: p.categoria_nombre,
+            categoryIcon: p.categoria_icono,
+            categoria_id: p.categoria_id,
+            images: p.imagenes || [p.imagen_principal].filter(Boolean),
+            sellerId: userIdInstitucional,
+            sellerName: p.vendedor_nombre,
+            sellerPhone: p.vendedor_telefono,
+            rating: p.rating_promedio || 0,
+            reviewCount: p.total_resenas || 0,
+            isActive: Boolean(p.is_active),
+            createdAt: p.created_at,
+          }));
+
+          console.log('✅ Productos mapeados:', userProducts);
+
+          // Eliminar productos antiguos de este usuario del state
+          this.products = this.products.filter(p => p.sellerId !== userIdInstitucional);
+
+          // Agregar los productos del usuario (activos e inactivos)
+          this.products.push(...userProducts);
+
+          console.log('✅ State actualizado. Total productos:', this.products.length);
+
+          return userProducts;
+        }
+      } catch (error) {
+        console.error("Error fetching user products:", error);
         this.error = error.message;
       } finally {
         this.loading = false;
@@ -276,33 +380,34 @@ export const useProductsStore = defineStore("products", {
     },
 
     // Cambiar estado de producto (activar/desactivar)
-    async toggleProductStatus(productId) {
+    // Cambiar estado de producto (activar/desactivar) con confirmación
+    async toggleProductStatus(productId, currentStatus) {
       try {
-        const product = this.products.find((p) => p.id === productId);
-        if (!product) {
-          return {
-            success: false,
-            message: "Producto no encontrado",
-          };
-        }
-
-        const newStatus = product.isActive ? 0 : 1;
+        const newStatus = currentStatus ? 0 : 1;
+        const action = newStatus === 1 ? "activar" : "desactivar";
 
         // Llamada al backend
         const response = await axios.patch(
           `${API_URL}/products/${productId}/status`,
-          { isActive: newStatus }
+          { isActive: newStatus },
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
         );
 
         if (response.data.success) {
           // Actualizar estado local
-          product.isActive = newStatus;
+          const product = this.products.find((p) => p.id === productId);
+          if (product) {
+            product.isActive = Boolean(newStatus);
+          }
 
           return {
             success: true,
             product: product,
-            message: `Producto ${newStatus === 1 ? "activado" : "desactivado"
-              } exitosamente`,
+            message: response.data.message,
           };
         }
 
@@ -314,7 +419,7 @@ export const useProductsStore = defineStore("products", {
         console.error("Error en toggleProductStatus:", error);
         return {
           success: false,
-          message: "Error al actualizar el estado del producto",
+          message: error.response?.data?.message || "Error al actualizar el estado del producto",
         };
       }
     },
@@ -400,5 +505,35 @@ export const useProductsStore = defineStore("products", {
         this.loading = false;
       }
     },
+
+    // Obtener estado de inhabilitación de un producto
+    async getDisabilityStatus(productId) {
+      try {
+        const response = await axios.get(`${API_URL}/products/${productId}/disability-status`)
+
+        if (response.data.success) {
+          return response.data.data
+        }
+        return { isDisabled: false }
+      } catch (error) {
+        console.error('Error al obtener estado de inhabilitación:', error)
+        throw error
+      }
+    },
+
+    // Enviar apelación
+    async sendAppeal(productId, mensaje) {
+      try {
+        const response = await axios.post(`${API_URL}/products/${productId}/appeal`, {
+          mensaje
+        })
+
+        return response.data
+      } catch (error) {
+        console.error('Error al enviar apelación:', error)
+        throw error
+      }
+    }
+
   },
 });

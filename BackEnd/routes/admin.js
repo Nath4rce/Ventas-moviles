@@ -527,4 +527,351 @@ router.post('/categories', authenticateToken, requireAdmin, async (req, res) => 
   }
 });
 
+const { 
+  validateSancionUsuario, 
+  validateInhabilitarProducto 
+} = require('../middleware/validation');
+
+// POST /api/admin/users/sanction - Sancionar usuario
+router.post('/users/sanction', 
+  authenticateToken, 
+  requireAdmin, 
+  validateSancionUsuario,
+  async (req, res) => {
+    try {
+      const { 
+        usuario_id, 
+        motivo, 
+        descripcion, 
+        tipo_suspension, 
+        dias_suspension, 
+        fecha_fin 
+      } = req.body;
+      
+      const pool = await getPool();
+      const result = await pool.request()
+        .input('usuario_id', sql.Int, usuario_id)
+        .input('motivo', sql.NVarChar, motivo)
+        .input('descripcion', sql.NVarChar, descripcion)
+        .input('tipo_suspension', sql.NVarChar, tipo_suspension)
+        .input('dias_suspension', sql.Int, dias_suspension || null)
+        .input('fecha_fin', sql.DateTime2, fecha_fin || null)
+        .input('admin_id', sql.Int, req.user.id)
+        .execute('sp_sancionar_usuario');
+      
+      res.json({
+        success: true,
+        message: 'Usuario sancionado exitosamente',
+        data: result.recordset[0]
+      });
+    } catch (error) {
+      console.error('Error al sancionar usuario:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al aplicar sanción'
+      });
+    }
+  }
+);
+
+// POST /api/admin/products/disable - Inhabilitar producto
+router.post('/products/disable', 
+  authenticateToken, 
+  requireAdmin, 
+  validateInhabilitarProducto,
+  async (req, res) => {
+    try {
+      const { producto_id, motivo, feedback } = req.body;
+      
+      const pool = await getPool();
+      const result = await pool.request()
+        .input('producto_id', sql.Int, producto_id)
+        .input('motivo', sql.NVarChar, motivo)
+        .input('feedback', sql.NVarChar, feedback)
+        .input('admin_id', sql.Int, req.user.id)
+        .execute('sp_inhabilitar_producto');
+      
+      res.json({
+        success: true,
+        message: 'Producto inhabilitado exitosamente',
+        data: result.recordset[0]
+      });
+    } catch (error) {
+      console.error('Error al inhabilitar producto:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al inhabilitar producto'
+      });
+    }
+  }
+);
+
+// GET /api/admin/sanctions - Obtener sanciones activas
+router.get('/sanctions', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const pool = await getPool();
+    const result = await pool.request()
+      .query('SELECT * FROM vw_sanciones_activas ORDER BY created_at DESC');
+    
+    res.json({
+      success: true,
+      data: { sanctions: result.recordset }
+    });
+  } catch (error) {
+    console.error('Error al obtener sanciones:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener sanciones'
+    });
+  }
+});
+
+// GET /api/admin/appeals - Obtener apelaciones pendientes
+router.get('/appeals', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const pool = await getPool();
+    const result = await pool.request()
+      .query(`
+        SELECT 
+          i.*,
+          p.titulo AS producto_titulo,
+          p.descripcion AS producto_descripcion,
+          u.nombre AS vendedor_nombre,
+          u.id_institucional,
+          u.email AS vendedor_email
+        FROM inhabilitaciones_productos i
+        INNER JOIN productos p ON i.producto_id = p.id
+        INNER JOIN usuarios u ON p.vendedor_id = u.id
+        WHERE i.apelacion_pendiente = 1
+        ORDER BY i.apelacion_fecha DESC
+      `);
+    
+    res.json({
+      success: true,
+      data: { appeals: result.recordset }
+    });
+  } catch (error) {
+    console.error('Error al obtener apelaciones:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener apelaciones'
+    });
+  }
+});
+
+// POST /api/admin/appeals/:id/approve - Aprobar apelación
+router.post('/appeals/:id/approve', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pool = await getPool();
+    
+    // Obtener producto_id
+    const inhab = await pool.request()
+      .input('id', sql.Int, id)
+      .query('SELECT producto_id FROM inhabilitaciones_productos WHERE id = @id');
+    
+    if (inhab.recordset.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Inhabilitación no encontrada'
+      });
+    }
+    
+    const producto_id = inhab.recordset[0].producto_id;
+    
+    // Reactivar producto y cerrar apelación
+    await pool.request()
+      .input('producto_id', sql.Int, producto_id)
+      .query('UPDATE productos SET is_active = 1 WHERE id = @producto_id');
+    
+    await pool.request()
+      .input('id', sql.Int, id)
+      .query('UPDATE inhabilitaciones_productos SET apelacion_pendiente = 0 WHERE id = @id');
+    
+    res.json({
+      success: true,
+      message: 'Apelación aprobada y producto reactivado'
+    });
+  } catch (error) {
+    console.error('Error al aprobar apelación:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al aprobar apelación'
+    });
+  }
+});
+
+// POST /api/admin/appeals/:id/reject - Rechazar apelación
+router.post('/appeals/:id/reject', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { razon } = req.body;
+    
+    const pool = await getPool();
+    await pool.request()
+      .input('id', sql.Int, id)
+      .query('UPDATE inhabilitaciones_productos SET apelacion_pendiente = 0 WHERE id = @id');
+    
+    // Enviar notificación al vendedor (opcional)
+    // TODO: Implementar notificación de rechazo
+    
+    res.json({
+      success: true,
+      message: 'Apelación rechazada'
+    });
+  } catch (error) {
+    console.error('Error al rechazar apelación:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al rechazar apelación'
+    });
+  }
+});
+
+// POST /api/admin/users/:id/reactivate - Reactivar usuario
+router.post('/users/:id/reactivate', 
+  authenticateToken, 
+  requireAdmin, 
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const pool = await getPool();
+      
+      // Reactivar usuario
+      await pool.request()
+        .input('id', sql.Int, id)
+        .query('UPDATE usuarios SET is_active = 1 WHERE id = @id');
+      
+      // Desactivar sanciones activas
+      await pool.request()
+        .input('usuario_id', sql.Int, id)
+        .query('UPDATE sanciones_usuarios SET esta_activa = 0 WHERE usuario_id = @usuario_id AND esta_activa = 1');
+      
+      res.json({
+        success: true,
+        message: 'Usuario reactivado exitosamente'
+      });
+    } catch (error) {
+      console.error('Error al reactivar usuario:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al reactivar usuario'
+      });
+    }
+  }
+);
+
+// POST /api/admin/products/:id/reactivate - Reactivar producto
+router.post('/products/:id/reactivate', 
+  authenticateToken, 
+  requireAdmin, 
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const pool = await getPool();
+      
+      // Reactivar producto
+      await pool.request()
+        .input('id', sql.Int, id)
+        .query('UPDATE productos SET is_active = 1 WHERE id = @id');
+      
+      // Cerrar inhabilitación (no eliminar, mantener historial)
+      await pool.request()
+        .input('producto_id', sql.Int, id)
+        .query(`
+          UPDATE inhabilitaciones_productos 
+          SET apelacion_pendiente = 0 
+          WHERE producto_id = @producto_id 
+          AND apelacion_pendiente = 1
+        `);
+      
+      res.json({
+        success: true,
+        message: 'Producto reactivado exitosamente'
+      });
+    } catch (error) {
+      console.error('Error al reactivar producto:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al reactivar producto'
+      });
+    }
+  }
+);
+
+//Reactivar usuario
+//Reactivar producto
+
+// POST /api/admin/users/:id/reactivate - Reactivar usuario
+router.post('/users/:id/reactivate', 
+  authenticateToken, 
+  requireAdmin, 
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const pool = await getPool();
+      
+      // Reactivar usuario
+      await pool.request()
+        .input('id', sql.Int, id)
+        .query('UPDATE usuarios SET is_active = 1 WHERE id = @id');
+      
+      // Desactivar sanciones activas
+      await pool.request()
+        .input('usuario_id', sql.Int, id)
+        .query('UPDATE sanciones_usuarios SET esta_activa = 0 WHERE usuario_id = @usuario_id AND esta_activa = 1');
+      
+      res.json({
+        success: true,
+        message: 'Usuario reactivado exitosamente'
+      });
+    } catch (error) {
+      console.error('Error al reactivar usuario:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al reactivar usuario'
+      });
+    }
+  }
+);
+
+// POST /api/admin/products/:id/reactivate - Reactivar producto
+router.post('/products/:id/reactivate', 
+  authenticateToken, 
+  requireAdmin, 
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const pool = await getPool();
+      
+      // Reactivar producto
+      await pool.request()
+        .input('id', sql.Int, id)
+        .query('UPDATE productos SET is_active = 1 WHERE id = @id');
+      
+      // Cerrar inhabilitación (no eliminar, mantener historial)
+      await pool.request()
+        .input('producto_id', sql.Int, id)
+        .query(`
+          UPDATE inhabilitaciones_productos 
+          SET apelacion_pendiente = 0 
+          WHERE producto_id = @producto_id 
+          AND apelacion_pendiente = 1
+        `);
+      
+      res.json({
+        success: true,
+        message: 'Producto reactivado exitosamente'
+      });
+    } catch (error) {
+      console.error('Error al reactivar producto:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al reactivar producto'
+      });
+    }
+  }
+);
+
+
 module.exports = router;

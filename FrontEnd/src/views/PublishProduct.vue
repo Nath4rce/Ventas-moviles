@@ -82,42 +82,27 @@
                   </label>
                   <div class="input-group">
                     <span class="input-group-text">$</span>
-                    <input 
-                      type="number" 
-                      class="form-control" 
-                      id="price" 
-                      v-model.number="form.price" 
-                      placeholder="0"
-                      min="50" 
-                      step="50" 
-                      max="300000"
-                      required 
-                      :class="{ 'is-invalid': errors.price }"
-                      @input="validatePrice"
-                    >
+                    <input type="number" class="form-control" id="price" v-model.number="form.price" placeholder="0"
+                      min="50" step="50" max="300000" required :class="{ 'is-invalid': errors.price }"
+                      @input="validatePrice">
                   </div>
                   <div v-if="errors.price" class="invalid-feedback">
                     {{ errors.price }}
                   </div>
                 </div>
                 <div class="form-text">
-                    El precio debe ser múltiplo de 50 (ej: 50, 100, 150, etc.) y máximo $300.000
+                  El precio debe ser múltiplo de 50 (ej: 50, 100, 150, etc.) y máximo $300.000
                 </div>
                 <!-- Selector rápido de precios comunes -->
                 <div class="mt-3">
                   <label class="form-label fw-semibold small">
                     <i class="fas fa-bolt me-1"></i>
-                      Precios comunes:
+                    Precios comunes:
                   </label>
                   <div class="d-flex flex-wrap gap-2">
-                     <button 
-                      type="button" 
-                      v-for="commonPrice in commonPrices" 
-                      :key="commonPrice"
-                      class="btn btn-outline-primary btn-sm"
-                      @click="setCommonPrice(commonPrice)"
-                    >
-                       ${{ formatPrice(commonPrice) }}
+                    <button type="button" v-for="commonPrice in commonPrices" :key="commonPrice"
+                      class="btn btn-outline-primary btn-sm" @click="setCommonPrice(commonPrice)">
+                      ${{ formatPrice(commonPrice) }}
                     </button>
                   </div>
                 </div>
@@ -180,7 +165,8 @@
                     </div>
                   </div>
                   <div class="form-text">
-                    La imagen de la categoría se asignará automáticamente. Puedes agregar hasta 3 imágenes adicionales opcionales.
+                    La imagen de la categoría se asignará automáticamente. Puedes agregar hasta 3 imágenes adicionales
+                    opcionales.
                   </div>
                 </div>
 
@@ -317,12 +303,12 @@ export default {
         errors.price = 'El precio debe estar entre $50 y $300.000'
         return false
       }
-      
+
       if (form.price && form.price % 50 !== 0) {
         errors.price = 'El precio debe ser múltiplo de 50 (ej: 50, 100, 150, etc.)'
         return false
       }
-      
+
       delete errors.price
       return true
     }
@@ -452,6 +438,18 @@ export default {
     const handleSubmit = async () => {
       if (!validateForm()) return
 
+      const existingProducts = productsStore.userProducts(authStore.user?.id_institucional)
+      if (existingProducts && existingProducts.length > 0) {
+        Swal.fire({
+          title: 'Ya tienes un producto',
+          text: 'Solo puedes tener un producto publicado. Edita el existente.',
+          icon: 'warning',
+          confirmButtonColor: '#0d6efd'
+        })
+        router.push(`/edit-product/${existingProducts[0].id}`)
+        return
+      }
+
       // Verificar si ya tiene un producto activo
       if (currentProduct.value) {
         notificacion.warning('Ya tienes un producto activo. Debes desactivarlo primero.')
@@ -472,7 +470,7 @@ export default {
         }
 
         const newProduct = await productsStore.addProduct(productData)
-        
+
         notificacion.success('Producto publicado exitosamente')
         router.push(`/product/${newProduct.id}`)
       } catch (error) {
@@ -598,6 +596,7 @@ export default {
 
 /* Mobile optimizations */
 @media (max-width: 767px) {
+
   .image-preview img,
   .image-upload-placeholder {
     height: 100px;

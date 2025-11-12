@@ -251,6 +251,101 @@ CREATE TABLE configuracion_sitio (
 );
 GO
 
+
+
+-- =============================================
+-- TABLA: sanciones_usuarios
+-- =============================================
+CREATE TABLE sanciones_usuarios (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    usuario_id INT NOT NULL,
+    motivo NVARCHAR(50) NOT NULL CHECK (motivo IN (
+        'venta_sin_autorizacion',
+        'producto_no_autorizado',
+        'venta_estacionaria',
+        'incumplimiento_horario',
+        'recipiente_no_conforme',
+        'productos_prohibidos',
+        'publicidad_no_autorizada',
+        'subarrendamiento',
+        'otro'
+    )),
+    descripcion NVARCHAR(1000) NOT NULL,
+    tipo_suspension NVARCHAR(20) NOT NULL CHECK (tipo_suspension IN ('temporal', 'permanente')) DEFAULT 'temporal',
+    fecha_inicio DATETIME2 NOT NULL DEFAULT GETDATE(),
+    fecha_fin DATETIME2 NULL,
+    dias_suspension INT NULL,
+    sancionado_por INT NOT NULL,
+    notificacion_enviada BIT DEFAULT 0,
+    esta_activa BIT DEFAULT 1,
+    created_at DATETIME2 NOT NULL DEFAULT GETDATE(),
+    
+    CONSTRAINT fk_sancion_usuario FOREIGN KEY (usuario_id) 
+        REFERENCES usuarios(id) ON DELETE NO ACTION,
+    CONSTRAINT fk_sancion_admin FOREIGN KEY (sancionado_por) 
+        REFERENCES usuarios(id) ON DELETE NO ACTION,
+    
+    INDEX idx_sancion_usuario (usuario_id),
+    INDEX idx_sancion_activa (esta_activa) WHERE esta_activa = 1
+);
+GO
+
+-- =============================================
+-- TABLA: inhabilitaciones_productos
+-- =============================================
+CREATE TABLE inhabilitaciones_productos (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    producto_id INT NOT NULL,
+    motivo NVARCHAR(50) NOT NULL CHECK (motivo IN (
+        'producto_prohibido',
+        'informacion_incorrecta',
+        'imagenes_inadecuadas',
+        'precio_no_conforme',
+        'categoria_incorrecta',
+        'productos_vencidos',
+        'recipiente_no_conforme',
+        'otro'
+    )),
+    feedback NVARCHAR(1000) NOT NULL,
+    inhabilitado_por INT NOT NULL,
+    notificacion_enviada BIT DEFAULT 0,
+    apelacion_pendiente BIT DEFAULT 0,
+    apelacion_mensaje NVARCHAR(1000) NULL,
+    apelacion_fecha DATETIME2 NULL,
+    created_at DATETIME2 NOT NULL DEFAULT GETDATE(),
+    
+    CONSTRAINT fk_inhab_producto FOREIGN KEY (producto_id) 
+        REFERENCES productos(id) ON DELETE CASCADE,
+    CONSTRAINT fk_inhab_admin FOREIGN KEY (inhabilitado_por) 
+        REFERENCES usuarios(id) ON DELETE NO ACTION,
+    
+    INDEX idx_inhab_producto (producto_id),
+    INDEX idx_inhab_apelacion (apelacion_pendiente) WHERE apelacion_pendiente = 1
+);
+GO
+
+-- =============================================
+-- VISTA: sanciones_activas
+-- =============================================
+CREATE VIEW vw_sanciones_activas AS
+SELECT 
+    s.*,
+    u.nombre AS usuario_nombre,
+    u.id_institucional,
+    u.email,
+    a.nombre AS admin_nombre,
+    CASE 
+        WHEN s.tipo_suspension = 'permanente' THEN 1
+        WHEN s.fecha_fin IS NULL THEN 1
+        WHEN s.fecha_fin > GETDATE() THEN 1
+        ELSE 0
+    END AS sancion_vigente
+FROM sanciones_usuarios s
+INNER JOIN usuarios u ON s.usuario_id = u.id
+INNER JOIN usuarios a ON s.sancionado_por = a.id
+WHERE s.esta_activa = 1;
+GO
+
 -- =============================================
 -- TRIGGERS
 -- =============================================
@@ -404,6 +499,157 @@ BEGIN
         (SELECT COUNT(*) FROM categorias WHERE is_active = 1) AS total_categorias,
         (SELECT AVG(rating_promedio) FROM productos WHERE total_resenas > 0) AS rating_promedio_global;
 END;
+GO
+
+
+-- =============================================
+-- SP: Sancionar usuario
+-- =============================================
+CREATE PROCEDURE sp_sancionar_usuario
+    @usuario_id INT,
+    @motivo NVARCHAR(50),
+    @descripcion NVARCHAR(1000),
+    @tipo_suspension NVARCHAR(20),
+    @dias_suspension INT = NULL,
+    @fecha_fin DATETIME2 = NULL,
+    @admin_id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRANSACTION;
+    
+    BEGIN TRY
+        -- Calcular fecha_fin si se proporcionaron días
+        IF @dias_suspension IS NOT NULL AND @fecha_fin IS NULL
+        BEGIN
+            SET @fecha_fin = DATEADD(DAY, @dias_suspension, GETDATE());
+        END
+        
+        -- Insertar sanción
+        INSERT INTO sanciones_usuarios 
+        (usuario_id, motivo, descripcion, tipo_suspension, fecha_inicio, fecha_fin, dias_suspension, sancionado_por)
+        VALUES 
+        (@usuario_id, @motivo, @descripcion, @tipo_suspension, GETDATE(), @fecha_fin, @dias_suspension, @admin_id);
+        
+        DECLARE @sancion_id INT = SCOPE_IDENTITY();
+        
+        -- Desactivar usuario
+        UPDATE usuarios SET is_active = 0 WHERE id = @usuario_id;
+        
+        -- Crear notificación
+        DECLARE @id_institucional CHAR(9) = (SELECT id_institucional FROM usuarios WHERE id = @usuario_id);
+        DECLARE @titulo NVARCHAR(255) = N'Tu cuenta ha sido suspendida';
+        DECLARE @mensaje NVARCHAR(MAX) = N'Tu cuenta ha sido suspendida por: ' + @descripcion;
+        
+        IF @tipo_suspension = 'temporal' AND @fecha_fin IS NOT NULL
+        BEGIN
+            SET @mensaje = @mensaje + N'. Suspensión vigente hasta el ' + 
+                          CONVERT(NVARCHAR(50), @fecha_fin, 103) + N'.';
+        END
+        ELSE
+        BEGIN
+            SET @mensaje = @mensaje + N'. Suspensión permanente hasta nuevo aviso.';
+        END
+        
+        INSERT INTO notificaciones 
+        (titulo, mensaje, tipo, destinatario_tipo, id_institucional_especifico, created_by)
+        VALUES 
+        (@titulo, @mensaje, 'danger', 'id_institucional_especifico', @id_institucional, @admin_id);
+        
+        UPDATE sanciones_usuarios SET notificacion_enviada = 1 WHERE id = @sancion_id;
+        
+        COMMIT TRANSACTION;
+        
+        SELECT @sancion_id AS sancion_id, 1 AS success;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+GO
+
+-- =============================================
+-- SP: Inhabilitar producto
+-- =============================================
+CREATE PROCEDURE sp_inhabilitar_producto
+    @producto_id INT,
+    @motivo NVARCHAR(50),
+    @feedback NVARCHAR(1000),
+    @admin_id INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRANSACTION;
+    
+    BEGIN TRY
+        -- Insertar inhabilitación
+        INSERT INTO inhabilitaciones_productos 
+        (producto_id, motivo, feedback, inhabilitado_por)
+        VALUES 
+        (@producto_id, @motivo, @feedback, @admin_id);
+        
+        DECLARE @inhab_id INT = SCOPE_IDENTITY();
+        
+        -- Desactivar producto
+        UPDATE productos SET is_active = 0 WHERE id = @producto_id;
+        
+        -- Obtener info
+        DECLARE @vendedor_id INT = (SELECT vendedor_id FROM productos WHERE id = @producto_id);
+        DECLARE @producto_titulo NVARCHAR(255) = (SELECT titulo FROM productos WHERE id = @producto_id);
+        DECLARE @id_institucional CHAR(9) = (SELECT id_institucional FROM usuarios WHERE id = @vendedor_id);
+        
+        -- Crear notificación
+        DECLARE @titulo NVARCHAR(255) = N'Producto inhabilitado: ' + @producto_titulo;
+        DECLARE @mensaje NVARCHAR(MAX) = N'Tu producto "' + @producto_titulo + 
+            N'" ha sido inhabilitado. Motivo: ' + @feedback + 
+            N'. Realiza las correcciones y solicita apelación.';
+        
+        INSERT INTO notificaciones 
+        (titulo, mensaje, tipo, destinatario_tipo, id_institucional_especifico, created_by)
+        VALUES 
+        (@titulo, @mensaje, 'warning', 'id_institucional_especifico', @id_institucional, @admin_id);
+        
+        UPDATE inhabilitaciones_productos SET notificacion_enviada = 1 WHERE id = @inhab_id;
+        
+        COMMIT TRANSACTION;
+        
+        SELECT @inhab_id AS inhabilitacion_id, 1 AS success;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+GO
+
+-- =============================================
+-- SP: Apelar inhabilitación
+-- =============================================
+CREATE PROCEDURE sp_apelar_inhabilitacion
+    @producto_id INT,
+    @mensaje_apelacion NVARCHAR(1000)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    UPDATE inhabilitaciones_productos
+    SET 
+        apelacion_pendiente = 1,
+        apelacion_mensaje = @mensaje_apelacion,
+        apelacion_fecha = GETDATE()
+    WHERE producto_id = @producto_id
+    AND apelacion_pendiente = 0;
+    
+    SELECT @@ROWCOUNT AS affected_rows;
+END;
+GO
+
+PRINT 'Tablas y SPs creados exitosamente';
 GO
 
 -- =============================================

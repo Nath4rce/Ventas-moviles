@@ -152,7 +152,12 @@ export default {
       errorMessage.value = ''
 
       try {
-        const result = await authStore.login(form)
+
+        // Aplicar trim a los campos antes de enviar
+        const result = await authStore.login({
+          idInstitucional: form.idInstitucional.trim(),
+          password: form.password.trim()
+        })
 
         if (result.success) {
           // Espera un momento antes de redirigir, para ver la pantalla de carga

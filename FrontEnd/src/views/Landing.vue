@@ -235,7 +235,7 @@ export default {
 
   // Usar productos directamente del store
   const displayedProducts = computed(() => {
-    let products = productsStore.products || []
+    let products = productsStore.filteredProducts || []
 
     // Filtro local solo para búsqueda en tiempo real
     if (searchQuery.value.trim()) {

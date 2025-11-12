@@ -10,6 +10,7 @@ const {
   validateProduct,
   validateId,
   validatePagination,
+  validateUserIdParam
 } = require("../middleware/validation");
 
 const router = express.Router();
@@ -71,7 +72,7 @@ router.get("/", validatePagination, async (req, res) => {
   try {
     const {
       page = 1,
-      limit = 20,
+      limit = 200,
       categoria_id,
       precio_min,
       precio_max,
@@ -326,11 +327,13 @@ router.post(
 
       const pool = await getPool();
 
+      
+
       const checkProduct = await pool
         .request()
         .input("vendedorId", sql.Int, vendedorId)
         .query(
-          "SELECT id FROM productos WHERE vendedor_id = @vendedorId AND is_active = 1"
+          "SELECT id FROM productos WHERE vendedor_id = @vendedorId"
         );
 
       if (checkProduct.recordset.length > 0) {
@@ -420,9 +423,7 @@ router.post(
   }
 );
 
-// En tu archivo de rutas (ej: routes/products.js o server.js)
-
-router.patch("/:id/status", async (req, res) => {
+router.patch("/:id/status", authenticateToken, canModifyProduct, async (req, res) => {
   try {
     const { id } = req.params;
     const { isActive } = req.body;
@@ -465,6 +466,7 @@ router.patch("/:id/status", async (req, res) => {
         } correctamente`,
       data: { id, isActive },
     });
+    
   } catch (error) {
     console.error("Error al actualizar estado del producto:", error);
     res.status(500).json({
@@ -474,7 +476,6 @@ router.patch("/:id/status", async (req, res) => {
   }
 });
 
-// PUT /api/products/:id - Actualizar producto
 // PUT /api/products/:id - Actualizar producto
 router.put(
   "/:id",
@@ -620,13 +621,31 @@ router.delete("/:id", authenticateToken, canModifyProduct, async (req, res) => {
   }
 });
 
-// GET /api/products/user/:userId - Obtener productos de un usuario específico
-router.get("/user/:userId", validateId, async (req, res) => {
+// GET /api/products/user/:userIdInstitucional - Obtener productos de un usuario específico
+router.get("/user/:userIdInstitucional", async (req, res) => {
   try {
-    const userId = req.params.userId;
+    const userIdInstitucional = req.params.userIdInstitucional;
 
     const pool = await getPool();
-    const result = await pool.request().input("userId", sql.Int, userId).query(`
+    
+    // Primero obtener el ID numérico del usuario
+    const userResult = await pool.request()
+      .input("idInstitucional", sql.NVarChar(50), userIdInstitucional)
+      .query("SELECT id FROM usuarios WHERE id_institucional = @idInstitucional");
+    
+    if (userResult.recordset.length === 0) {
+      return res.json({
+        success: true,
+        data: { products: [] }
+      });
+    }
+    
+    const userId = userResult.recordset[0].id;
+    
+    // Ahora buscar productos (activos E inactivos)
+    const result = await pool.request()
+      .input("userId", sql.Int, userId)
+      .query(`
         SELECT 
           p.id,
           p.titulo,
@@ -638,12 +657,21 @@ router.get("/user/:userId", validateId, async (req, res) => {
           p.created_at,
           c.nombre as categoria_nombre,
           c.icono as categoria_icono,
+          c.id as categoria_id,
           (SELECT TOP 1 imagen_url FROM producto_imagenes WHERE producto_id = p.id AND is_principal = 1) as imagen_principal
         FROM productos p
         JOIN categorias c ON p.categoria_id = c.id
         WHERE p.vendedor_id = @userId
         ORDER BY p.created_at DESC
       `);
+
+    // Obtener todas las imágenes para cada producto
+    for (let product of result.recordset) {
+      const imgResult = await pool.request()
+        .input("productoId", sql.Int, product.id)
+        .query("SELECT imagen_url FROM producto_imagenes WHERE producto_id = @productoId ORDER BY orden");
+      product.imagenes = imgResult.recordset.map((img) => img.imagen_url);
+    }
 
     res.json({
       success: true,
@@ -657,5 +685,140 @@ router.get("/user/:userId", validateId, async (req, res) => {
     });
   }
 });
+
+//Apelaciones
+// POST /api/products/:id/appeal - Enviar apelación de producto inhabilitado
+router.post('/:id/appeal', 
+  authenticateToken, 
+  canModifyProduct,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { mensaje } = req.body;
+      
+      if (!mensaje || mensaje.trim().length < 20) {
+        return res.status(400).json({
+          success: false,
+          message: 'El mensaje de apelación debe tener al menos 20 caracteres'
+        });
+      }
+      
+      const pool = await getPool();
+      
+      // Verificar que el producto existe y pertenece al vendedor
+      const product = await pool.request()
+        .input('productId', sql.Int, id)
+        .input('vendedorId', sql.Int, req.user.id)
+        .query('SELECT id, is_active FROM productos WHERE id = @productId AND vendedor_id = @vendedorId');
+      
+      if (product.recordset.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Producto no encontrado'
+        });
+      }
+      
+      // Verificar que el producto está inhabilitado
+      if (product.recordset[0].is_active === 1) {
+        return res.status(400).json({
+          success: false,
+          message: 'El producto ya está activo'
+        });
+      }
+      
+      // Verificar que existe una inhabilitación
+      const inhab = await pool.request()
+        .input('producto_id', sql.Int, id)
+        .query(`
+          SELECT id, apelacion_pendiente 
+          FROM inhabilitaciones_productos 
+          WHERE producto_id = @producto_id 
+          ORDER BY created_at DESC
+        `);
+      
+      if (inhab.recordset.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'No se encontró registro de inhabilitación'
+        });
+      }
+      
+      // Verificar que no haya una apelación pendiente
+      if (inhab.recordset[0].apelacion_pendiente === 1) {
+        return res.status(400).json({
+          success: false,
+          message: 'Ya tienes una apelación pendiente para este producto'
+        });
+      }
+      
+      // Registrar apelación usando el stored procedure
+      await pool.request()
+        .input('producto_id', sql.Int, id)
+        .input('mensaje_apelacion', sql.NVarChar(1000), mensaje.trim())
+        .execute('sp_apelar_inhabilitacion');
+      
+      res.json({
+        success: true,
+        message: 'Apelación enviada exitosamente. Un administrador la revisará pronto.'
+      });
+    } catch (error) {
+      console.error('Error al enviar apelación:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al enviar apelación'
+      });
+    }
+  }
+);
+
+// GET /api/products/:id/disability-status - Obtener estado de inhabilitación
+router.get('/:id/disability-status',
+  authenticateToken,
+  canModifyProduct,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const pool = await getPool();
+      
+      const result = await pool.request()
+        .input('producto_id', sql.Int, id)
+        .query(`
+          SELECT TOP 1
+            id,
+            motivo,
+            feedback,
+            apelacion_pendiente,
+            apelacion_mensaje,
+            apelacion_fecha,
+            created_at
+          FROM inhabilitaciones_productos
+          WHERE producto_id = @producto_id
+          ORDER BY created_at DESC
+        `);
+      
+      if (result.recordset.length === 0) {
+        return res.json({
+          success: true,
+          data: { isDisabled: false }
+        });
+      }
+      
+      res.json({
+        success: true,
+        data: {
+          isDisabled: true,
+          ...result.recordset[0]
+        }
+      });
+    } catch (error) {
+      console.error('Error al obtener estado de inhabilitación:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al obtener estado'
+      });
+    }
+  }
+);
+
 
 module.exports = router;

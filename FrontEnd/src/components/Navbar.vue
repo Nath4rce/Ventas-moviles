@@ -152,7 +152,7 @@
 </template>
 
 <script>
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useNotificationsStore } from '../stores/notifications'
@@ -171,10 +171,21 @@ export default {
       return productsStore.userProducts(authStore.user?.id_institucional) || []
     })
 
-    // Verificación si el usuario tiene productos
+    // Verificación si el usuario tiene productos (activos O inactivos)
     const hasProducts = computed(() => {
-      return userProducts.value.length > 0
+      const products = productsStore.userProducts(authStore.user?.id_institucional)
+      console.log('🔍 Navbar - Productos del vendedor:', products)
+      console.log('🔍 Navbar - Tiene productos:', products && products.length > 0)
+      return products && products.length > 0
     })
+
+    watch(
+      () => productsStore.products,
+      () => {
+        console.log('🔄 Productos actualizados en store')
+      },
+      { deep: true }
+    )
 
     // Notificaciones recientes (últimas 5 no leídas)
     const recentNotifications = computed(() => {
@@ -263,6 +274,15 @@ export default {
       authStore.initAuth()
       if (authStore.isAuthenticated) {
         await loadNotifications()
+
+        //Si es vendedor, cargar sus productos primero
+        if (authStore.isSeller && authStore.user?.id_institucional) {
+          console.log('🔄 Navbar - Cargando productos del vendedor:', authStore.user.id_institucional)
+          await productsStore.fetchUserProducts(authStore.user.id_institucional)
+        }
+        console.log('✅ Navbar - Productos totales en store:', productsStore.products.length)
+        console.log('✅ Navbar - Productos del usuario:', userProducts.value)
+
         await productsStore.fetchProducts()
         // Iniciar polling cada 30 segundos
         notificationsStore.startPolling(30000)

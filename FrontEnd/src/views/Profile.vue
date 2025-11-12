@@ -33,8 +33,9 @@
             <div class="card-body text-center">
               <!-- Avatar -->
               <div class="mb-3">
-                <img :src="getAvatarUrl(authStore.user)" :alt="authStore.user?.nombre" class="rounded-circle border border-3 border-primary"
-                width="120" height="120" style="object-fit: cover;">
+                <img :src="getAvatarUrl(authStore.user)" :alt="authStore.user?.nombre"
+                  class="rounded-circle border border-3 border-primary" width="120" height="120"
+                  style="object-fit: cover;">
               </div>
 
               <!-- Información básica -->
@@ -364,7 +365,16 @@ export default {
     onMounted(async () => {
       authStore.initAuth()
       if (authStore.isAuthenticated) {
+
+        // Si es vendedor, cargar sus productos
+        if (authStore.isSeller && authStore.user?.id_institucional) {
+          await productsStore.fetchUserProducts(authStore.user.id_institucional)
+        }
         await productsStore.fetchProducts()
+        console.log('🔍 Profile - Usuario autenticado:', authStore.user?.id_institucional)
+        console.log('🔍 Profile - Todos los productos:', productsStore.products)
+        console.log('🔍 Profile - Productos del usuario:', userProducts.value)
+        console.log('🔍 Profile - hasProducts:', hasProducts.value)
       }
     })
 

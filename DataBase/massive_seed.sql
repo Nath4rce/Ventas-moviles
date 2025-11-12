@@ -68,23 +68,23 @@ INSERT INTO usuarios (id_institucional, email, password_hash, nombre, rol, telef
 
 -- Vendedor activo con producto activo (caso normal)
 INSERT INTO usuarios (id_institucional, email, password_hash, nombre, rol, telefono, avatar_url, is_active) VALUES
-('000111111', 'vendedor.activo@upb.edu.co', '$2a$12$YCrWylKEeoKWtM3qFg0ri.q80UZEUHYh.wUgcgNNAPJJDmr8QuQfG', 'Pedro Vendedor Normal', 'seller', '3009876543', 'https://api.dicebear.com/7.x/avataaars/svg?seed=VendedorActivo', 1);
+('000111111', 'vendedor.activo@upb.edu.co', '$2a$12$YCrWylKEeoKWtM3qFg0ri.q80UZEUHYh.wUgcgNNAPJJDmr8QuQfG', 'Pedro Amoli', 'seller', '3009876543', 'https://api.dicebear.com/7.x/avataaars/svg?seed=VendedorActivo', 1);
 
 -- Vendedor con producto inactivo (caso especial)
 INSERT INTO usuarios (id_institucional, email, password_hash, nombre, rol, telefono, avatar_url, is_active) VALUES
-('000111112', 'vendedor.inactivo@upb.edu.co', '$2a$12$YCrWylKEeoKWtM3qFg0ri.q80UZEUHYh.wUgcgNNAPJJDmr8QuQfG', 'María Vendedora Con Producto Pausado', 'seller', '3009876544', 'https://api.dicebear.com/7.x/avataaars/svg?seed=VendedorInactivo', 1);
+('000111112', 'vendedor.inactivo@upb.edu.co', '$2a$12$YCrWylKEeoKWtM3qFg0ri.q80UZEUHYh.wUgcgNNAPJJDmr8QuQfG', 'María Nadal', 'seller', '3009876544', 'https://api.dicebear.com/7.x/avataaars/svg?seed=VendedorInactivo', 1);
 
 -- Usuario inactivo (cuenta suspendida)
 INSERT INTO usuarios (id_institucional, email, password_hash, nombre, rol, telefono, avatar_url, is_active) VALUES
-('000111113', 'usuario.suspendido@upb.edu.co', '$2a$12$Sbouw.tNIzAdkZwf.k2et.lCogg4MSe5rKWlg0Mb3.NxMWYJ7lZya', 'Carlos Usuario Suspendido', 'buyer', '3009876545', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Suspendido', 0);
+('000111113', 'usuario.suspendido@upb.edu.co', '$2a$12$Sbouw.tNIzAdkZwf.k2et.lCogg4MSe5rKWlg0Mb3.NxMWYJ7lZya', 'Carlos Malon', 'buyer', '3009876545', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Suspendido', 0);
 
 -- Usuario con notificación dirigida
 INSERT INTO usuarios (id_institucional, email, password_hash, nombre, rol, telefono, avatar_url, is_active) VALUES
-('000111114', 'usuario.notificado@upb.edu.co', '$2a$12$Sbouw.tNIzAdkZwf.k2et.lCogg4MSe5rKWlg0Mb3.NxMWYJ7lZya', 'Laura Estudiante VIP', 'buyer', '3009876546', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Notificado', 1);
+('000111114', 'usuario.notificado@upb.edu.co', '$2a$12$Sbouw.tNIzAdkZwf.k2et.lCogg4MSe5rKWlg0Mb3.NxMWYJ7lZya', 'Laura Vitaly', 'buyer', '3009876546', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Notificado', 1);
 
 -- Comprador normal
 INSERT INTO usuarios (id_institucional, email, password_hash, nombre, rol, telefono, avatar_url, is_active) VALUES
-('000111115', 'comprador.normal@upb.edu.co', '$2a$12$Sbouw.tNIzAdkZwf.k2et.lCogg4MSe5rKWlg0Mb3.NxMWYJ7lZya', 'Jorge Estudiante Comprador', 'buyer', '3009876547', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Comprador', 1);
+('000111115', 'comprador.normal@upb.edu.co', '$2a$12$Sbouw.tNIzAdkZwf.k2et.lCogg4MSe5rKWlg0Mb3.NxMWYJ7lZya', 'Jorge Contreras', 'buyer', '3009876547', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Comprador', 1);
 GO
 
 -- =============================================

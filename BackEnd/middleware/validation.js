@@ -141,6 +141,14 @@ const validateId = [
   handleValidationErrors
 ];
 
+const validateUserIdParam = [
+  param('userId')
+    .isInt({ min: 1 })
+    .withMessage('ID debe ser un número entero positivo')
+    .toInt(),
+  handleValidationErrors
+]
+
 const validateIdParam = (paramName = 'id') => [
   param(paramName)
     .isInt({ min: 1 })
@@ -162,6 +170,51 @@ const validatePagination = [
   handleValidationErrors
 ];
 
+// Validación para sancionar usuario
+const validateSancionUsuario = [
+  body('usuario_id').isInt().withMessage('ID de usuario inválido'),
+  body('motivo').isIn([
+    'venta_sin_autorizacion',
+    'producto_no_autorizado', 
+    'venta_estacionaria',
+    'incumplimiento_horario',
+    'recipiente_no_conforme',
+    'productos_prohibidos',
+    'publicidad_no_autorizada',
+    'subarrendamiento',
+    'otro'
+  ]).withMessage('Motivo de sanción inválido'),
+  body('descripcion').trim().isLength({ min: 10, max: 1000 }).withMessage('Descripción debe tener entre 10 y 1000 caracteres'),
+  body('tipo_suspension').isIn(['temporal', 'permanente']).withMessage('Tipo de suspensión inválido'),
+  body('dias_suspension').optional().isInt({ min: 1, max: 365 }).withMessage('Días de suspensión inválidos'),
+  body('fecha_fin').optional().isISO8601().withMessage('Fecha de fin inválida'),
+  handleValidationErrors
+];
+
+// Validación para inhabilitar producto
+const validateInhabilitarProducto = [
+  body('producto_id').isInt().withMessage('ID de producto inválido'),
+  body('motivo').isIn([
+    'producto_prohibido',
+    'informacion_incorrecta',
+    'imagenes_inadecuadas',
+    'precio_no_conforme',
+    'categoria_incorrecta',
+    'productos_vencidos',
+    'recipiente_no_conforme',
+    'otro'
+  ]).withMessage('Motivo de inhabilitación inválido'),
+  body('feedback').trim().isLength({ min: 10, max: 1000 }).withMessage('Feedback debe tener entre 10 y 1000 caracteres'),
+  handleValidationErrors
+];
+
+// Validación para apelar inhabilitación
+const validateApelacion = [
+  body('producto_id').isInt().withMessage('ID de producto inválido'),
+  body('mensaje').trim().isLength({ min: 20, max: 1000 }).withMessage('Mensaje debe tener entre 20 y 1000 caracteres'),
+  handleValidationErrors
+];
+
 module.exports = {
   handleValidationErrors,
   validateLogin,
@@ -172,5 +225,9 @@ module.exports = {
   validateUser,
   validateId,
   validateIdParam,
-  validatePagination
+  validatePagination,
+  validateSancionUsuario,
+  validateInhabilitarProducto,
+  validateApelacion,
+  validateUserIdParam
 };

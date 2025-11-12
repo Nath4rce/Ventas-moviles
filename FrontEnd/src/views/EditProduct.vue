@@ -9,6 +9,35 @@
                 <i class="fas fa-edit me-2"></i>
                 Editar Producto
               </h2>
+              <!-- Alerta de producto inhabilitado -->
+              <div v-if="disabilityStatus?.isDisabled" class="alert alert-warning" role="alert">
+                <h5 class="alert-heading">
+                  <i class="fas fa-exclamation-triangle me-2"></i>
+                  Producto Inhabilitado
+                </h5>
+                <p class="mb-2">
+                  <strong>Motivo:</strong> {{ disabilityStatus.feedback }}
+                </p>
+                <p class="mb-2">
+                  <strong>Fecha:</strong> {{ new Date(disabilityStatus.created_at).toLocaleDateString('es-ES') }}
+                </p>
+
+                <hr>
+
+                <p v-if="disabilityStatus.apelacion_pendiente" class="mb-0">
+                  <i class="fas fa-info-circle me-2"></i>
+                  <strong>Estado:</strong> Tienes una apelación pendiente de revisión.
+                  <br>
+                  <small class="text-muted">
+                    Enviada el {{ new Date(disabilityStatus.apelacion_fecha).toLocaleDateString('es-ES') }}
+                  </small>
+                </p>
+
+                <p v-else class="mb-0">
+                  <i class="fas fa-edit me-2"></i>
+                  Realiza las correcciones necesarias y solicita una apelación cuando estés listo.
+                </p>
+              </div>
               <p class="text-muted mb-0">Actualiza la información de tu producto</p>
             </div>
             <router-link to="/profile" class="btn btn-outline-secondary">
@@ -66,42 +95,27 @@
                   </label>
                   <div class="input-group">
                     <span class="input-group-text">$</span>
-                    <input 
-                      type="number" 
-                      class="form-control" 
-                      id="price" 
-                      v-model.number="form.price" 
-                      placeholder="0"
-                      min="50" 
-                      step="50" 
-                      max="300000"
-                      required 
-                      :class="{ 'is-invalid': errors.price }"
-                      @input="validatePrice"
-                    >
+                    <input type="number" class="form-control" id="price" v-model.number="form.price" placeholder="0"
+                      min="50" step="50" max="300000" required :class="{ 'is-invalid': errors.price }"
+                      @input="validatePrice">
                   </div>
                   <div v-if="errors.price" class="invalid-feedback">
                     {{ errors.price }}
                   </div>
                 </div>
                 <div class="form-text">
-                    El precio debe ser múltiplo de 50 (ej: 50, 100, 150, etc.) y máximo $300.000
+                  El precio debe ser múltiplo de 50 (ej: 50, 100, 150, etc.) y máximo $300.000
                 </div>
                 <!-- Selector rápido de precios comunes -->
                 <div class="mt-3">
                   <label class="form-label fw-semibold small">
                     <i class="fas fa-bolt me-1"></i>
-                      Precios comunes:
+                    Precios comunes:
                   </label>
                   <div class="d-flex flex-wrap gap-2">
-                     <button 
-                      type="button" 
-                      v-for="commonPrice in commonPrices" 
-                      :key="commonPrice"
-                      class="btn btn-outline-primary btn-sm"
-                      @click="setCommonPrice(commonPrice)"
-                    >
-                       ${{ formatPrice(commonPrice) }}
+                    <button type="button" v-for="commonPrice in commonPrices" :key="commonPrice"
+                      class="btn btn-outline-primary btn-sm" @click="setCommonPrice(commonPrice)">
+                      ${{ formatPrice(commonPrice) }}
                     </button>
                   </div>
                 </div>
@@ -170,11 +184,28 @@
                 </div>
 
                 <div class="d-flex gap-2">
-                  <button type="submit" class="btn btn-primary" :disabled="submitting || deleting">
+                  <!-- Si el producto está inhabilitado -->
+                  <template v-if="disabilityStatus?.isDisabled">
+                    <!-- Si hay apelación pendiente -->
+                    <button v-if="disabilityStatus.apelacion_pendiente" type="button" class="btn btn-info" disabled>
+                      <i class="fas fa-clock me-2"></i>
+                      Apelación Pendiente
+                    </button>
+
+                    <!-- Si NO hay apelación pendiente, mostrar botón para apelar -->
+                    <button v-else type="button" class="btn btn-warning" @click="showAppealModal = true">
+                      <i class="fas fa-gavel me-2"></i>
+                      Solicitar Apelación
+                    </button>
+                  </template>
+
+                  <!-- Si el producto está activo o no inhabilitado, mostrar botón normal -->
+                  <button v-else type="submit" class="btn btn-primary" :disabled="submitting || deleting">
                     <i v-if="submitting" class="fas fa-spinner fa-spin me-2"></i>
                     <i v-else class="fas fa-save me-2"></i>
                     {{ submitting ? 'Guardando...' : 'Guardar Cambios' }}
                   </button>
+
                   <button type="button" class="btn btn-outline-secondary" @click="handleCancel"
                     :disabled="submitting || deleting">
                     <i class="fas fa-times me-2"></i>
@@ -325,18 +356,77 @@
             </div>
             <div class="card-body">
               <p class="text-muted small mb-3">
-                Una vez eliminado, no podrás recuperar este producto.
+                {{ product?.isActive
+                  ? 'Una vez desactivado, el producto no será visible en la plataforma.'
+                  : 'Activa tu producto para que sea visible nuevamente.'
+                }}
               </p>
-              <button type="button" class="btn btn-danger w-100" @click="deleteProduct"
-                :disabled="submitting || deleting">
-                <i class="fas fa-trash me-2"></i>
-                Eliminar Producto
+              <button type="button" class="btn w-100" :class="product?.isActive ? 'btn-danger' : 'btn-success'"
+                @click="deleteProduct" :disabled="submitting || deleting">
+                <i :class="product?.isActive ? 'fas fa-toggle-off' : 'fas fa-toggle-on'" class="me-2"></i>
+                {{ product?.isActive ? 'Desactivar Producto' : 'Activar Producto' }}
               </button>
             </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Apelación -->
+    <div v-if="showAppealModal" class="modal show d-block" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header bg-warning">
+            <h5 class="modal-title">
+              <i class="fas fa-gavel me-2"></i>
+              Solicitar Apelación
+            </h5>
+            <button type="button" class="btn-close" @click="showAppealModal = false"></button>
+          </div>
+
+          <div class="modal-body">
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle me-2"></i>
+              Explica qué cambios realizaste en tu producto para cumplir con las normativas.
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">
+                Mensaje de Apelación <span class="text-danger">*</span>
+              </label>
+              <textarea v-model="appealMessage" class="form-control" rows="6"
+                placeholder="Describe los cambios que realizaste para cumplir con las normativas de la universidad..."
+                maxlength="1000" required></textarea>
+              <small class="text-muted">
+                {{ appealMessage.length }}/1000 caracteres (mínimo 20)
+              </small>
+            </div>
+
+            <div class="alert alert-warning mb-0">
+              <strong>Importante:</strong> Un administrador revisará tu apelación y decidirá si reactivar tu producto.
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="showAppealModal = false" :disabled="sendingAppeal">
+              Cancelar
+            </button>
+            <button type="button" class="btn btn-warning" @click="submitAppeal"
+              :disabled="sendingAppeal || appealMessage.trim().length < 20">
+              <i v-if="sendingAppeal" class="fas fa-spinner fa-spin me-2"></i>
+              <i v-else class="fas fa-paper-plane me-2"></i>
+              {{ sendingAppeal ? 'Enviando...' : 'Enviar Apelación' }}
+            </button>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Overlay para modal -->
+    <div v-if="showAppealModal" class="modal-backdrop show"></div>
+
+
   </div>
 </template>
 
@@ -358,6 +448,11 @@ export default {
     const productId = route.params.id
     const product = computed(() => productsStore.getProductById(productId))
 
+    const disabilityStatus = ref(null)
+    const showAppealModal = ref(false)
+    const appealMessage = ref('')
+    const sendingAppeal = ref(false)
+
     const form = reactive({
       title: '',
       category: '',
@@ -371,7 +466,7 @@ export default {
     const submitting = ref(false)
     const deleting = ref(false)
     const fileInput = ref(null)
-    
+
     // Precios comunes para selección rápida
     const commonPrices = [2500, 5000, 10000, 15000, 25000, 30000]
 
@@ -412,18 +507,30 @@ export default {
       }
     }
 
-        // Función para validar el precio en tiempo real
+    // Cargar estado de inhabilitación
+    const loadDisabilityStatus = async () => {
+      if (!productId.value) return
+
+      try {
+        const status = await productsStore.getDisabilityStatus(productId.value)
+        disabilityStatus.value = status
+      } catch (error) {
+        console.error('Error al cargar estado de inhabilitación:', error)
+      }
+    }
+
+    // Función para validar el precio en tiempo real
     const validatePrice = () => {
       if (form.price && (form.price < 50 || form.price > 300000)) {
         errors.price = 'El precio debe estar entre $50 y $300.000 COP'
         return false
       }
-      
+
       if (form.price && form.price % 50 !== 0) {
         errors.price = 'El precio debe ser múltiplo de 50 (ej: 50, 100, 150, etc.)'
         return false
       }
-      
+
       delete errors.price
       return true
     }
@@ -480,7 +587,7 @@ export default {
 
       return isValid
     }
- 
+    // Agregar imagen
     const addImage = () => {
       if (form.images.length < 4) {
         const placeholderImages = [
@@ -580,10 +687,6 @@ export default {
           isActive: form.isActive,
           images: form.images.filter(img => !img.startsWith('blob:'))
         }
-
-        console.log('📦 form.category:', form.category)
-        console.log('📦 productData a enviar:', productData)
-
         await productsStore.updateProduct(productId, productData)
 
         await Swal.fire({
@@ -594,6 +697,11 @@ export default {
           timer: 1500,
           showConfirmButton: false
         })
+
+        //Recargar productos del usuario
+        if (authStore.user?.id_institucional) {
+          await productsStore.fetchUserProducts(authStore.user.id_institucional)
+        }
 
         router.push('/profile')
       } catch (error) {
@@ -628,63 +736,134 @@ export default {
       }
     }
 
-    // Eliminar producto
+    // Deshabilitar/Habilitar producto
     const deleteProduct = async () => {
       if (submitting.value) {
-        alert('Espera a que se complete el guardado antes de eliminar')
+        await Swal.fire({
+          title: 'Espera',
+          text: 'Hay una operación en curso',
+          icon: 'warning',
+          confirmButtonColor: '#0d6efd'
+        })
         return
       }
+
+      const currentStatus = product.value.isActive
+      const action = currentStatus ? 'desactivar' : 'activar'
+      const actionPast = currentStatus ? 'desactivado' : 'activado'
 
       const result = await Swal.fire({
-        title: '¿Eliminar producto?',
-        text: `¿Estás seguro de que quieres eliminar el producto?. Esta acción no se puede deshacer.`,
-        icon: 'warning',
+        title: `¿${action.charAt(0).toUpperCase() + action.slice(1)} producto?`,
+        html: currentStatus
+          ? 'El producto dejará de ser visible para otros usuarios.<br><small class="text-muted">Podrás reactivarlo en cualquier momento.</small>'
+          : 'El producto volverá a ser visible para otros usuarios.',
+        icon: 'question',
         showCancelButton: true,
-        confirmButtonText: 'Sí, eliminar',
+        confirmButtonText: `Sí, ${action}`,
         cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#dc3545',
+        confirmButtonColor: currentStatus ? '#dc3545' : '#198753',
         cancelButtonColor: '#6c757d',
-        reverseButtons: true,
+        reverseButtons: true
       })
 
-      if (!result.isConfirmed) {
-        return
-      }
+      if (!result.isConfirmed) return
 
       deleting.value = true
 
       try {
-        Swal.fire({
-          title: 'Eliminando producto...',
-          text: 'Espera un momento por favor',
-          allowOutsideClick: false,
-          didOpen: () => {
-            Swal.showLoading()
+        //CONVERTIR productId a número entero
+        const numericProductId = parseInt(productId, 10)
+
+        console.log('🔍 Intentando cambiar estado:', {
+          productId: numericProductId,
+          currentStatus,
+          newStatus: !currentStatus
+        })
+
+        const response = await productsStore.toggleProductStatus(numericProductId, currentStatus)
+
+        if (response.success) {
+          await Swal.fire({
+            title: `¡Producto ${actionPast}!`,
+            text: response.message,
+            icon: 'success',
+            confirmButtonColor: '#198754',
+            timer: 1500,
+            showConfirmButton: false
+          })
+
+          if (authStore.user?.id_institucional) {
+            await productsStore.fetchUserProducts(authStore.user.id_institucional)
           }
-        })
 
-        await productsStore.deleteProduct(productId)
+          // Actualizar el estado local del producto
+          if (product.value) {
+            product.value.isActive = !currentStatus
+            form.isActive = !currentStatus
+          }
 
-        await Swal.fire({
-          title: '¡Producto eliminado!',
-          text: 'El producto ha sido eliminado exitosamente',
-          icon: 'success',
-          confirmButtonColor: '#198754',
-          timer: 1500,
-          showConfirmButton: false
-        })
+          // Recargar productos
+          await productsStore.fetchProducts()
 
-        router.push('/profile')
+          router.push('/profile')
+        } else {
+          throw new Error(response.message)
+        }
       } catch (error) {
-        console.error('Error al eliminar producto:', error)
+        console.error('Error al cambiar estado del producto:', error)
         await Swal.fire({
           title: 'Error',
-          text: 'Error al eliminar el producto. Por favor intenta de nuevo.',
+          text: error.message || `Error al ${action} el producto`,
           icon: 'error',
           confirmButtonColor: '#dc3545'
         })
       } finally {
         deleting.value = false
+      }
+    }
+
+
+
+    // Enviar apelación
+    const submitAppeal = async () => {
+      if (appealMessage.value.trim().length < 20) {
+        Swal.fire({
+          title: 'Mensaje muy corto',
+          text: 'La apelación debe tener al menos 20 caracteres',
+          icon: 'warning',
+          confirmButtonColor: '#0d6efd'
+        })
+        return
+      }
+
+      sendingAppeal.value = true
+
+      try {
+        const response = await productsStore.sendAppeal(productId, appealMessage.value)
+
+        if (response.success) {
+          showAppealModal.value = false
+          appealMessage.value = ''
+
+          Swal.fire({
+            title: '¡Apelación enviada!',
+            text: response.message,
+            icon: 'success',
+            confirmButtonColor: '#0d6efd'
+          })
+
+          // Recargar estado
+          await loadDisabilityStatus()
+        }
+      } catch (error) {
+        Swal.fire({
+          title: 'Error',
+          text: error.response?.data?.message || 'No se pudo enviar la apelación',
+          icon: 'error',
+          confirmButtonColor: '#dc3545'
+        })
+      } finally {
+        sendingAppeal.value = false
       }
     }
 
@@ -713,15 +892,10 @@ export default {
     //await authStore.initializeUserSession()
     onMounted(async () => {
       try {
-        //console.log('🔍 Métodos disponibles en authStore:', Object.keys(authStore))
-        //console.log('🔍 Usuario actual:', authStore.user)
-        // 1. Verificar autenticación
-        if (authStore.isAuthenticated) {
-          await authStore.initAuth() // o el método que uses para cargar el usuario
-        }
 
-        // Verificar que el usuario esté cargado
-        //console.log('👤 Usuario cargado:', authStore.user)
+        if (authStore.isAuthenticated) {
+          await authStore.initAuth()
+        }
 
         if (!authStore.user) {
           await Swal.fire({
@@ -749,9 +923,14 @@ export default {
         await productsStore.fetchCategories()
         //console.log('📦 Categorías cargadas:', productsStore.categories)
 
+        // Cargar productos del usuario (incluyendo inactivos)
+        if (authStore.user?.id_institucional) {
+          await productsStore.fetchUserProducts(authStore.user.id_institucional)
+        }
+
+        // También cargar productos generales
         await productsStore.fetchProducts()
         //console.log('🔍 Producto encontrado:', product.value)
-
         // 4. Verificar permisos
         const productSellerId = String(product.value.sellerId)
         const userIdInstitucional = String(authStore.user?.id_institucional)
@@ -769,6 +948,8 @@ export default {
           router.push('/profile')
           return
         }
+
+        await loadDisabilityStatus()
 
         // Si todo está bien, cargar los datos del producto en el formulario
         loadProductData()
@@ -804,7 +985,13 @@ export default {
       setCommonPrice,
       formatPrice,
       formatDate,
-      getCategoryName
+      getCategoryName,
+      disabilityStatus,
+      showAppealModal,
+      appealMessage,
+      sendingAppeal,
+      submitAppeal,
+      loadDisabilityStatus
     }
   }
 }
