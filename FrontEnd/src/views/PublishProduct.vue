@@ -42,7 +42,7 @@
               </h5>
             </div>
             <div class="card-body">
-              <form @submit.prevent="handleSubmit">
+              <form @submit.prevent="handleSubmit" novalidate>
                 <!-- Título -->
                 <div class="mb-4">
                   <label for="title" class="form-label fw-semibold">
@@ -63,7 +63,7 @@
                     Categoría *
                   </label>
                   <select class="form-select" id="category" v-model="form.category" required
-                    :class="{ 'is-invalid': errors.category }" @change="updateCategoryImage">
+                    :class="{ 'is-invalid': errors.category }">
                     <option value="">Selecciona una categoría</option>
                     <option v-for="cat in productsStore.categories" :key="cat.id" :value="cat.id">
                       {{ cat.nombre }}
@@ -90,11 +90,12 @@
                     {{ errors.price }}
                   </div>
                 </div>
-                <div class="form-text">
-                  El precio debe ser múltiplo de 50 (ej: 50, 100, 150, etc.) y máximo $300.000
+                <div class="form-text mb-3">
+                    El precio debe ser múltiplo de 50 (ej: 50, 100, 150, etc.) y máximo $300.000
                 </div>
+
                 <!-- Selector rápido de precios comunes -->
-                <div class="mt-3">
+                <div class="mt-3 mb-3">
                   <label class="form-label fw-semibold small">
                     <i class="fas fa-bolt me-1"></i>
                     Precios comunes:
@@ -124,50 +125,43 @@
                   </div>
                 </div>
 
-                <!-- Imágenes -->
+                <!-- Imágenes (OPCIÓN A: SOLO imágenes reales subidas por el vendedor) -->
                 <div class="mb-4">
                   <label class="form-label fw-semibold">
                     <i class="fas fa-images me-2"></i>
-                    Imágenes del Producto
+                    Imágenes del Producto *
                   </label>
-                  <div class="image-upload-area">
-                    <div class="row g-3">
-                      <!-- Vista previa de la imagen de categoría -->
-                      <div v-if="categoryImage" class="col-12">
-                        <div class="alert alert-info">
-                          <i class="fas fa-info-circle me-2"></i>
-                          Se usará automáticamente la imagen de la categoría seleccionada
-                        </div>
-                        <div class="text-center">
-                          <img :src="categoryImage" alt="Imagen de categoría" class="img-thumbnail category-preview">
-                          <p class="text-muted small mt-2">Imagen representativa de la categoría</p>
-                        </div>
-                      </div>
 
-                      <!-- Espacio para imágenes adicionales (opcional) -->
-                      <div v-for="(image, index) in form.images" :key="index" class="col-6 col-md-3">
+                  <div class="image-upload-area mb-3">
+                    <div class="row g-3">
+                      <div v-for="(img, idx) in form.images" :key="idx" class="col-6 col-md-3">
                         <div class="image-preview">
-                          <img :src="image" :alt="`Imagen ${index + 1}`" class="img-thumbnail"
-                            @error="handleImageError">
-                          <button type="button" class="btn btn-sm btn-danger remove-image" @click="removeImage(index)">
+                          <img :src="img.url" :alt="`Imagen ${idx+1}`" class="img-thumbnail" @error="handleImageError">
+                          <button type="button" class="btn btn-sm btn-danger remove-image" @click="removeImage(idx)" :disabled="img.uploading">
                             <i class="fas fa-times"></i>
                           </button>
+
+                          <div v-if="img.uploading" class="mt-2 text-center small">
+                            <i class="fas fa-spinner fa-spin me-1"></i> Subiendo...
+                          </div>
                         </div>
                       </div>
 
-                      <!-- Opción para agregar imágenes adicionales -->
-                      <div v-if="form.images.length < 4" class="col-6 col-md-3">
-                        <div class="image-upload-placeholder" @click="addImage">
+                      <!-- Upload placeholder / botón -->
+                      <div v-if="form.images.length < maxImages" class="col-6 col-md-3">
+                        <div class="image-upload-placeholder" @click="openFileDialog">
                           <i class="fas fa-plus"></i>
-                          <span>Imagen Adicional</span>
+                          <span>Agregar Imagen</span>
+                          <small class="d-block mt-1 text-muted">Máx {{ maxImages }} imágenes</small>
                         </div>
+
+                        <input ref="fileInput" type="file" accept="image/*" class="d-none" @change="onFileChange">
                       </div>
                     </div>
                   </div>
-                  <div class="form-text">
-                    La imagen de la categoría se asignará automáticamente. Puedes agregar hasta 3 imágenes adicionales
-                    opcionales.
-                  </div>
+
+                  <div v-if="errors.images" class="invalid-feedback d-block">{{ errors.images }}</div>
+                  <div class="form-text">Sube imágenes reales desde tu computadora. La primera será la principal.</div>
                 </div>
 
                 <!-- Botones -->
@@ -177,7 +171,7 @@
                     <i v-else class="fas fa-paper-plane me-2"></i>
                     {{ submitting ? 'Publicando...' : 'Publicar Producto' }}
                   </button>
-                  <button type="button" class="btn btn-outline-secondary" @click="resetForm">
+                  <button type="button" class="btn btn-outline-secondary" @click="resetForm" :disabled="submitting">
                     <i class="fas fa-undo me-2"></i>
                     Limpiar
                   </button>
@@ -215,10 +209,6 @@
                   <i class="fas fa-check text-success me-2"></i>
                   Responde rápidamente a los compradores
                 </li>
-                <li>
-                  <i class="fas fa-check text-success me-2"></i>
-                  Mantén tu producto actualizado
-                </li>
               </ul>
             </div>
           </div>
@@ -254,8 +244,16 @@
 </template>
 
 <script>
+/*
+  PublishProduct.vue (OPCIÓN A)
+  - Subida real de imágenes a /api/uploads (form-data field: 'image')
+  - Almacena en form.images: [{ url, public_id, uploading }]
+  - Envía al backend las URLs cuando crea el producto.
+*/
+
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 import { useAuthStore } from '../stores/auth'
 import { useProductsStore } from '../stores/products'
 import { useNotificacion } from '../utils/useNotificacion'
@@ -273,149 +271,185 @@ export default {
       category: '',
       price: 0,
       description: '',
-      images: []
+      images: [] // array de objetos { url, public_id, uploading }
     })
 
     const errors = reactive({})
     const submitting = ref(false)
-    const categoryImage = ref('')
-
-    // Precios comunes para selección rápida
+    const maxImages = 4
     const commonPrices = [2500, 5000, 10000, 15000, 25000, 30000]
 
-    // URLs de imágenes por categoría
-    const categoryImages = {
-      'Accesorios': 'https://th.bing.com/th/id/R.a3916e476caed05ec0737d4302929140?rik=cac5ieaeglnjwQ&riu=http%3a%2f%2fst.depositphotos.com%2f1007989%2f2098%2fi%2f950%2fdepositphotos_20980957-stock-photo-fashion-accessories-silhouette.jpg&ehk=M2fzg5DuXXJVcFJx2NmLwR7BMXsz%2bjhNKIXHaGPlYTM%3d&risl=&pid=ImgRaw&r=0',
-      'Alimentos': 'https://img.freepik.com/vector-premium/siluetas-alimentos-deliciosos-designs-criativos-e-graficos-arte-culinaria-para-restaurantes-e-receitas_528469-36589.jpg',
-      'Papelería': 'https://static.vecteezy.com/system/resources/previews/025/556/937/original/notebook-flat-silhouette-on-white-background-office-supply-icons-stationery-symbols-item-for-office-school-concept-vector.jpg'
-    }
-
-    // Verificar si ya tiene un producto activo
     const currentProduct = computed(() => {
       return productsStore.products.find(product =>
         product.sellerId === authStore.user?.id && product.isActive
       )
     })
 
-    // Función para validar el precio en tiempo real
     const validatePrice = () => {
       if (form.price && (form.price < 50 || form.price > 300000)) {
         errors.price = 'El precio debe estar entre $50 y $300.000'
         return false
       }
-
       if (form.price && form.price % 50 !== 0) {
         errors.price = 'El precio debe ser múltiplo de 50 (ej: 50, 100, 150, etc.)'
         return false
       }
-
       delete errors.price
       return true
     }
 
-    // Función para establecer precios comunes
-    const setCommonPrice = (price) => {
-      form.price = price
+    const setCommonPrice = (p) => {
+      form.price = p
       validatePrice()
     }
 
-    // Función para formatear precio
-    const formatPrice = (price) => {
-      return new Intl.NumberFormat('es-CO').format(price || 0)
-    }
+    const formatPrice = (price) => new Intl.NumberFormat('es-CO').format(price || 0)
 
-    // Función para actualizar la imagen según la categoría seleccionada
-    const updateCategoryImage = () => {
-      if (form.category) {
-        const category = productsStore.categories.find(cat => cat.id === form.category)
-        if (category && categoryImages[category.nombre]) {
-          categoryImage.value = categoryImages[category.nombre]
-          // Limpiar imágenes adicionales y agregar la imagen de categoría como principal
-          form.images = [categoryImages[category.nombre]]
-        }
-      } else {
-        categoryImage.value = ''
-        form.images = []
-      }
-    }
-
+    // Validaciones generales del formulario
     const validateForm = () => {
-      // Limpiar errores anteriores
-      Object.keys(errors).forEach(key => errors[key] = '')
+      // limpiar errores
+      Object.keys(errors).forEach(k => delete errors[k])
 
-      let isValid = true
-
-      // Validar título
-      if (!form.title.trim()) {
+      let ok = true
+      if (!form.title || !form.title.trim()) {
         errors.title = 'El título es requerido'
-        isValid = false
+        ok = false
       } else if (form.title.trim().length < 5) {
         errors.title = 'El título debe tener al menos 5 caracteres'
-        isValid = false
+        ok = false
       }
 
-      // Validar categoría
       if (!form.category) {
         errors.category = 'La categoría es requerida'
-        isValid = false
+        ok = false
       }
 
-      // Validar precio
       if (!form.price || form.price <= 0) {
         errors.price = 'El precio debe ser mayor a 0'
-        isValid = false
+        ok = false
       } else if (!validatePrice()) {
-        isValid = false
+        ok = false
       }
 
-      // Validar descripción
-      if (!form.description.trim()) {
-        errors.description = 'La descripción es requerida'
-        isValid = false
-      } else if (form.description.trim().length < 20) {
+      if (!form.description || form.description.trim().length < 20) {
         errors.description = 'La descripción debe tener al menos 20 caracteres'
-        isValid = false
+        ok = false
       }
 
-      return isValid
+      // Al menos 1 imagen
+      if (!form.images || form.images.length === 0) {
+        errors.images = 'Debes subir al menos una imagen'
+        ok = false
+      }
+
+      // Asegurar que no haya imágenes en proceso de subida
+      const uploading = form.images.some(i => i.uploading)
+      if (uploading) {
+        errors.images = 'Espera a que terminen de subirse las imágenes'
+        ok = false
+      }
+
+      return ok
     }
 
-    const addImage = () => {
-      if (form.images.length < 4) {
-        // En una implementación real, aquí se abriría un modal para subir imágenes
-        // Por ahora, agregamos imágenes de placeholder para adicionales
-        const placeholderImages = [
-          'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300&h=200&fit=crop&crop=center',
-          'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=300&h=200&fit=crop&crop=center',
-          'https://images.unsplash.com/photo-1556742111-a301076d9d18?w=300&h=200&fit=crop&crop=center'
-        ]
-        form.images.push(placeholderImages[form.images.length - 1] || placeholderImages[0])
+    // file input ref
+    const fileInput = ref(null)
+
+    const openFileDialog = () => {
+      if (form.images.length >= maxImages) return
+      fileInput.value?.click()
+    }
+
+    // Cargar imagen al backend (/api/uploads)
+    const uploadImage = async (file) => {
+      // Evitar exceder el máximo
+      if (form.images.length >= maxImages) {
+        notificacion.warning(`Máximo ${maxImages} imágenes`)
+        return
+      }
+
+      // Añadir placeholder local con estado uploading
+      const tempObj = {
+        url: URL.createObjectURL(file),
+        public_id: null,
+        uploading: true
+      }
+      form.images.push(tempObj)
+      const idx = form.images.length - 1
+
+      try {
+        const fd = new FormData()
+        fd.append('image', file)
+
+        // Ajusta la baseURL si tu API está en otro puerto/dominio (axios base config)
+        const res = await axios.post('/api/uploads', fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          timeout: 120000
+        })
+
+        // Reemplazar temporales
+        form.images[idx].url = res.data.url
+        form.images[idx].public_id = res.data.public_id || null
+        form.images[idx].uploading = false
+
+        notificacion.success('Imagen subida')
+      } catch (err) {
+        console.error('Upload error:', err)
+        // revocar objectURL si existe
+        try { URL.revokeObjectURL(tempObj.url) } catch(e){}
+
+        // eliminar de la lista
+        form.images.splice(idx, 1)
+
+        notificacion.error(err.response?.data?.message || 'Error subiendo la imagen')
       }
     }
 
-    const removeImage = (index) => {
-      // No permitir eliminar la imagen de categoría (primera imagen)
-      if (index > 0) {
-        form.images.splice(index, 1)
-      } else {
-        notificacion.warning('No puedes eliminar la imagen de categoría principal')
+    const onFileChange = async (e) => {
+      const files = Array.from(e.target.files || [])
+      if (!files.length) return
+      // si excede, cortar
+      const available = maxImages - form.images.length
+      const toUpload = files.slice(0, available)
+      for (const f of toUpload) {
+        // validación tipo y tamaño (ej: <= 5MB)
+        if (!f.type.startsWith('image/')) {
+          notificacion.warning('Solo se permiten archivos de imagen')
+          continue
+        }
+        if (f.size > 5 * 1024 * 1024) {
+          notificacion.warning('Imagen demasiado grande (máx 5 MB)')
+          continue
+        }
+        await uploadImage(f)
       }
+      e.target.value = '' // limpiar input
     }
 
-    const handleImageError = (event) => {
-      // Crear una imagen de fallback con SVG
-      const fallbackSvg = `data:image/svg+xml,${encodeURIComponent(`
-        <svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200">
-          <rect width="300" height="200" fill="#fef2f2"/>
-          <rect x="50" y="50" width="200" height="100" fill="#dc2626" opacity="0.1" rx="10"/>
-          <circle cx="120" cy="80" r="20" fill="#dc2626" opacity="0.3"/>
-          <rect x="110" y="95" width="20" height="10" fill="#dc2626" opacity="0.3" rx="2"/>
-          <text x="150" y="140" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#dc2626">
-            Error al cargar
-          </text>
-        </svg>
-      `)}`
-      event.target.src = fallbackSvg
+    const removeImage = async (index) => {
+      const img = form.images[index]
+      if (!img) return
+
+      // Si imagen tiene public_id, eliminar de Cloudinary
+      if (img.public_id) {
+        try {
+          await axios.delete(`/api/uploads/${encodeURIComponent(img.public_id)}`)
+        } catch (err) {
+          console.warn('No se pudo eliminar en Cloudinary (igual se eliminará local):', err?.response?.data || err.message)
+          // no abortar el flujo; seguir con eliminación local
+        }
+      }
+
+      // revocar objectURL si era blob
+      try { if (img.url && img.url.startsWith('blob:')) URL.revokeObjectURL(img.url) } catch(e){}
+
+      form.images.splice(index, 1)
+      notificacion.info('Imagen eliminada')
+    }
+
+    const handleImageError = (ev) => {
+      // fallback simple
+      ev.target.src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200"><rect width="100%" height="100%" fill="#eee"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#666">Error al cargar</text></svg>')}`
     }
 
     const resetForm = () => {
@@ -423,9 +457,10 @@ export default {
       form.category = ''
       form.price = 0
       form.description = ''
+      // revocar objectURLs
+      form.images.forEach(i => { try { if (i.url && i.url.startsWith('blob:')) URL.revokeObjectURL(i.url) } catch(e){} })
       form.images = []
-      categoryImage.value = ''
-      Object.keys(errors).forEach(key => errors[key] = '')
+      Object.keys(errors).forEach(k => delete errors[k])
     }
 
     const deactivateCurrentProduct = () => {
@@ -450,7 +485,18 @@ export default {
         return
       }
 
-      // Verificar si ya tiene un producto activo
+      const existingProducts = productsStore.userProducts(authStore.user?.id_institucional)
+      if (existingProducts && existingProducts.length > 0) {
+        Swal.fire({
+          title: 'Ya tienes un producto',
+          text: 'Solo puedes tener un producto publicado. Edita el existente.',
+          icon: 'warning',
+          confirmButtonColor: '#0d6efd'
+        })
+        router.push(`/edit-product/${existingProducts[0].id}`)
+        return
+      }
+
       if (currentProduct.value) {
         notificacion.warning('Ya tienes un producto activo. Debes desactivarlo primero.')
         return
@@ -459,50 +505,62 @@ export default {
       submitting.value = true
 
       try {
-        const productData = {
-          title: form.title.trim(),
-          categoria_id: form.category,
-          price: form.price,
-          description: form.description.trim(),
-          images: form.images,
-          sellerId: authStore.user.id,
-          sellerName: authStore.user.name
-        }
+        const payload = {
+        title: form.title.trim(),
+        categoria_id: form.category,
+        price: form.price,
+        description: form.description.trim(),
+        images: form.images.map(i => ({
+          url: i.url,
+          public_id: i.public_id
+        })),
+        sellerId: authStore.user.id,
+        sellerName: authStore.user.name
+      }
 
-        const newProduct = await productsStore.addProduct(productData)
+        // productsStore.addProduct debe estar preparado para este payload
+        await productsStore.addProduct(payload)
 
         notificacion.success('Producto publicado exitosamente')
-        router.push(`/product/${newProduct.id}`)
-      } catch (error) {
-        notificacion.error('Error al publicar el producto')
+        // si productsStore.addProduct devuelve el producto con id:
+        router.push('/profile')
+      } catch (err) {
+        console.error('Error publicando producto:', err)
+        notificacion.error(err.response?.data?.message || 'Error al publicar el producto')
       } finally {
         submitting.value = false
       }
     }
 
+    // Carga inicial
     onMounted(async () => {
-      authStore.initAuth()
-      await productsStore.fetchCategories()
+      try {
+        await productsStore.fetchCategories()
+        authStore.initAuth && authStore.initAuth()
+      } catch (err) {
+        console.warn('Error en onMounted:', err)
+      }
     })
 
     return {
       form,
       errors,
       submitting,
-      currentProduct,
-      categoryImage,
-      commonPrices,
       productsStore,
-      updateCategoryImage,
-      addImage,
+      commonPrices,
+      maxImages,
+      currentProduct,
+      fileInput,
+      openFileDialog,
+      onFileChange,
       removeImage,
       handleImageError,
       resetForm,
       deactivateCurrentProduct,
-      handleSubmit,
-      validatePrice,
       setCommonPrice,
-      formatPrice
+      formatPrice,
+      validatePrice,
+      handleSubmit
     }
   }
 }
@@ -516,11 +574,6 @@ export default {
   transition: all 0.3s ease;
 }
 
-.image-upload-area:hover {
-  border-color: var(--primary-color);
-  background-color: #f8f9fa;
-}
-
 .image-preview {
   position: relative;
 }
@@ -530,12 +583,6 @@ export default {
   height: 120px;
   object-fit: cover;
   border-radius: 8px;
-}
-
-.category-preview {
-  max-width: 200px;
-  height: auto;
-  margin: 0 auto;
 }
 
 .remove-image {
@@ -600,10 +647,6 @@ export default {
   .image-preview img,
   .image-upload-placeholder {
     height: 100px;
-  }
-
-  .category-preview {
-    max-width: 150px;
   }
 
   .d-flex.gap-2 {

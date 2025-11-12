@@ -376,11 +376,12 @@ router.post(
           await pool
             .request()
             .input("productoId", sql.Int, productId)
-            .input("imagenUrl", sql.NVarChar(500), imagenes[i])
+            .input("imagenUrl", sql.NVarChar(500), imagenes[i].url)
+            .input("publicId", sql.NVarChar(200), imagenes[i].public_id)
             .input("orden", sql.Int, i + 1)
             .input("isPrincipal", sql.Bit, i === 0 ? 1 : 0)
             .query(
-              "INSERT INTO producto_imagenes (producto_id, imagen_url, orden, is_principal) VALUES (@productoId, @imagenUrl, @orden, @isPrincipal)"
+              "INSERT INTO producto_imagenes (producto_id, imagen_url, public_id, orden, is_principal) VALUES (@productoId, @imagenUrl, @publicId, @orden, @isPrincipal)"
             );
         }
       }
@@ -489,6 +490,16 @@ router.put(
 
       const pool = await getPool();
 
+      // Obtener imágenes viejas ANTES de actualizar
+      const oldImagesResult = await pool
+        .request()
+        .input("productId", sql.Int, productId)
+        .query("SELECT public_id FROM producto_imagenes WHERE producto_id = @productId");
+
+      const oldPublicIds = oldImagesResult.recordset
+        .map(img => img.public_id)
+        .filter(Boolean); // Filtrar nulls
+
       // Verificar que la categoría existe (si se proporciona)
       if (categoria_id) {
         const checkCategory = await pool
@@ -567,17 +578,30 @@ router.put(
           .query(
             "DELETE FROM producto_imagenes WHERE producto_id = @productId"
           );
+        
+        // Eliminar imágenes viejas de Cloudinary
+        const cloudinary = require('../config/cloudinary');
+        for (const oldPublicId of oldPublicIds) {
+          try {
+            await cloudinary.uploader.destroy(oldPublicId);
+            console.log(`✅ Imagen eliminada de Cloudinary: ${oldPublicId}`);
+          } catch (err) {
+            console.warn(`⚠️ No se pudo eliminar imagen: ${oldPublicId}`, err.message);
+            // No abortar el proceso si falla la eliminación
+          }
+        }
 
         // Insertar nuevas imágenes
         for (let i = 0; i < imagenes.length; i++) {
           await pool
             .request()
             .input("productId", sql.Int, productId)
-            .input("imagenUrl", sql.NVarChar(500), imagenes[i])
+            .input("imagenUrl", sql.NVarChar(500), imagenes[i].url)
+            .input("publicId", sql.NVarChar(200), imagenes[i].public_id)
             .input("orden", sql.Int, i + 1)
             .input("isPrincipal", sql.Bit, i === 0 ? 1 : 0)
             .query(
-              "INSERT INTO producto_imagenes (producto_id, imagen_url, orden, is_principal) VALUES (@productId, @imagenUrl, @orden, @isPrincipal)"
+              "INSERT INTO producto_imagenes (producto_id, imagen_url, public_id, orden, is_principal) VALUES (@productId, @imagenUrl, @publicId, @orden, @isPrincipal)"
             );
         }
       }
@@ -603,10 +627,33 @@ router.delete("/:id", authenticateToken, canModifyProduct, async (req, res) => {
 
     // Desactivar producto en lugar de eliminarlo
     const pool = await getPool();
+
+    // Obtener imágenes antes de desactivar
+    const imagesResult = await pool
+      .request()
+      .input("productId", sql.Int, productId)
+      .query("SELECT public_id FROM producto_imagenes WHERE producto_id = @productId");
+
+    const publicIds = imagesResult.recordset
+      .map(img => img.public_id)
+      .filter(Boolean);
+
+    // Desactivar el producto
     await pool
       .request()
       .input("productId", sql.Int, productId)
       .query("UPDATE productos SET is_active = 0 WHERE id = @productId");
+    
+    // Eliminar imágenes de Cloudinary
+    const cloudinary = require('../config/cloudinary');
+    for (const publicId of publicIds) {
+      try {
+        await cloudinary.uploader.destroy(publicId);
+        console.log(`✅ Imagen eliminada: ${publicId}`);
+      } catch (err) {
+        console.warn(`⚠️ Error eliminando imagen: ${publicId}`, err.message);
+      }
+    }
 
     res.json({
       success: true,

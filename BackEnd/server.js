@@ -26,10 +26,23 @@ const limiter = rateLimit({
     max: process.env.RATE_LIMIT_MAX_REQUESTS || 100,
     message: 'Demasiadas peticiones desde esta IP, intenta de nuevo más tarde.'
 });
-app.use('/api/', limiter);
 
+// Rate limiting más permisivo para uploads
+const uploadLimiter = rateLimit({
+    windowMs: (process.env.RATE_LIMIT_WINDOW || 15) * 60 * 1000,
+    max: process.env.RATE_LIMIT_MAX_REQUESTS || 100,
+    message: 'Demasiadas subidas de imágenes. Espera unos minutos.'
+});
 
-app.use(limiter);
+// ✅ Aplicar rate limiters de forma selectiva
+app.use('/api/', (req, res, next) => {
+    // Si la ruta es para uploads, usar el limiter específico
+    if (req.path.startsWith('/uploads')) {
+        return uploadLimiter(req, res, next);
+    }
+    // Para todas las demás rutas, usar el limiter general
+    limiter(req, res, next);
+});
 
 // Middleware para parsing de JSON
 app.use(express.json({ limit: '10mb' }));
@@ -47,6 +60,7 @@ const productRoutes = require('./routes/products');
 const reviewRoutes = require('./routes/reviews');
 const notificationRoutes = require('./routes/notifications');
 const adminRoutes = require('./routes/admin');
+const uploadRoutes = require('./routes/uploads');
 
 // Rutas de la API
 app.use('/api/auth', authRoutes);
@@ -54,6 +68,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/uploads', uploadRoutes);
 
 // Health check
 app.get('/health', async (req, res) => {

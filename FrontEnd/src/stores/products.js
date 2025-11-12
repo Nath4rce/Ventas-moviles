@@ -439,7 +439,10 @@ export const useProductsStore = defineStore("products", {
           precio: Number(productData.price),
           categoria_id: Number(productData.categoria_id),
           is_active: productData.isActive,
-          imagenes: productData.images,
+          imagenes: productData.images.map(img => ({
+            url: img.url,
+            public_id: img.public_id
+          }))
         };
 
         console.log(`➡️ Enviando actualización para producto ${id}:`, payload);
@@ -453,14 +456,25 @@ export const useProductsStore = defineStore("products", {
         console.log('📥 Respuesta del servidor:', response.data);  // TEMPORAL PARA DEBUG
 
         if (response.data.success) {
-          // Recargar los productos para obtener los datos actualizados
-          await this.fetchProducts();
-          return response.data;  // ✅ Solo devolver response.data
+
+      // ✅ Actualizar localmente sin recargar todo
+          const index = this.products.findIndex(p => p.id === id);
+          if (index !== -1) {
+            this.products[index] = {
+              ...this.products[index],
+              title: payload.titulo,
+              description: payload.descripcion,
+              price: payload.precio,
+              images: payload.imagenes,
+              isActive: payload.is_active
+            };
+          }
+
+          return response.data;
         } else {
-          throw new Error(
-            response.data.message || "Error desconocido al actualizar."
-          );
+          throw new Error(response.data.message);
         }
+
       } catch (error) {
         console.error(
           "Error updating product:",
