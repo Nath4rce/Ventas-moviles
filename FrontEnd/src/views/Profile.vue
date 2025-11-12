@@ -371,10 +371,6 @@ export default {
           await productsStore.fetchUserProducts(authStore.user.id_institucional)
         }
         await productsStore.fetchProducts()
-        console.log('🔍 Profile - Usuario autenticado:', authStore.user?.id_institucional)
-        console.log('🔍 Profile - Todos los productos:', productsStore.products)
-        console.log('🔍 Profile - Productos del usuario:', userProducts.value)
-        console.log('🔍 Profile - hasProducts:', hasProducts.value)
       }
     })
 

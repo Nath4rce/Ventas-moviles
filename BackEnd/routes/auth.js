@@ -26,11 +26,51 @@ router.post('/login', validateLogin, async (req, res) => {
     const user = result.recordset[0];
 
     if (!user.is_active) {
-      return res.status(401).json({
-        success: false,
-        message: 'Usuario inactivo. Contacta al administrador.'
-      });
+      // Obtener información de la sanción activa
+      try {
+        const sancionResult = await pool.request()
+          .input('usuarioId', sql.Int, user.id)
+          .query(`
+        SELECT TOP 1
+          motivo,
+          descripcion,
+          tipo_suspension,
+          fecha_inicio,
+          fecha_fin,
+          dias_suspension
+        FROM sanciones_usuarios
+        WHERE usuario_id = @usuarioId 
+          AND esta_activa = 1
+        ORDER BY created_at DESC
+      `);
+
+        let sancionInfo = null;
+        if (sancionResult.recordset.length > 0) {
+          const sancion = sancionResult.recordset[0];
+          sancionInfo = {
+            motivo: sancion.motivo,
+            descripcion: sancion.descripcion,
+            tipo: sancion.tipo_suspension,
+            fechaInicio: sancion.fecha_inicio,
+            fechaFin: sancion.fecha_fin,
+            diasSuspension: sancion.dias_suspension
+          };
+        }
+
+        return res.status(403).json({
+          success: false,
+          message: 'Usuario inactivo',
+          sancion: sancionInfo
+        });
+      } catch (error) {
+        console.error('Error al obtener sanción:', error);
+        return res.status(403).json({
+          success: false,
+          message: 'Usuario inactivo. Contacta al administrador.'
+        });
+      }
     }
+
 
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {

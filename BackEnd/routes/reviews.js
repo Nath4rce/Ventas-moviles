@@ -129,35 +129,74 @@ router.post('/', authenticateToken, requireBuyer, validateReview, async (req, re
   }
 });
 
-// PUT /api/reviews/:id - Actualizar reseña
-router.put('/:id', authenticateToken, validateReview, async (req, res) => {
+// PUT /api/reviews/:id - Editar una reseña existente
+router.put('/:id', authenticateToken, async (req, res) => {
   try {
-    const reviewId = req.params.id;
+    const { id } = req.params;
     const { rating, comentario } = req.body;
-    const usuarioId = req.user.id;
+    const userId = req.user.id;
 
-    // Verificar que la reseña existe y pertenece al usuario
-    const pool = await getPool();
-    const reviewResult = await pool.request()
-      .input('reviewId', sql.Int, reviewId)
-      .input('usuarioId', sql.Int, usuarioId)
-      .query('SELECT id, producto_id FROM resenas WHERE id = @reviewId AND usuario_id = @usuarioId');
-
-    if (reviewResult.recordset.length === 0) {
-      return res.status(404).json({
+    // Validar rating
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({
         success: false,
-        message: 'Reseña no encontrada o no tienes permisos para modificarla'
+        message: 'El rating debe estar entre 1 y 5'
       });
     }
 
-    // Actualizar reseña
-    await pool.request()
-      .input('reviewId', sql.Int, reviewId)
-      .input('rating', sql.Int, rating)
-      .input('comentario', sql.NVarChar(1000), comentario)
-      .query('UPDATE resenas SET rating = @rating, comentario = @comentario, updated_at = GETDATE() WHERE id = @reviewId');
+    const pool = await getPool();
 
-    // El trigger se encarga de actualizar el rating del producto automáticamente
+    // Verificar que la reseña existe y pertenece al usuario
+    const reviewCheck = await pool.request()
+      .input('reviewId', sql.Int, id)
+      .input('userId', sql.Int, userId)
+      .query('SELECT id, producto_id FROM resenas WHERE id = @reviewId AND usuario_id = @userId');
+
+    if (reviewCheck.recordset.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Reseña no encontrada o no tienes permiso para editarla'
+      });
+    }
+
+    const productoId = reviewCheck.recordset[0].producto_id;
+
+    // Actualizar la reseña
+    await pool.request()
+      .input('reviewId', sql.Int, id)
+      .input('rating', sql.Int, rating)
+      .input('comentario', sql.NVarChar(1000), comentario || null)
+      .query(`
+        UPDATE resenas 
+        SET rating = @rating, 
+            comentario = @comentario, 
+            updated_at = GETDATE() 
+        WHERE id = @reviewId
+      `);
+
+    // Recalcular rating del producto
+    const ratingResult = await pool.request()
+      .input('productoId', sql.Int, productoId)
+      .query(`
+        SELECT 
+          AVG(CAST(rating AS FLOAT)) as promedio,
+          COUNT(*) as total
+        FROM resenas 
+        WHERE producto_id = @productoId
+      `);
+
+    const { promedio, total } = ratingResult.recordset[0];
+
+    await pool.request()
+      .input('productoId', sql.Int, productoId)
+      .input('promedio', sql.Decimal(3, 2), promedio || 0)
+      .input('total', sql.Int, total)
+      .query(`
+        UPDATE productos 
+        SET rating_promedio = @promedio, 
+            total_resenas = @total 
+        WHERE id = @productoId
+      `);
 
     res.json({
       success: true,
@@ -173,33 +212,58 @@ router.put('/:id', authenticateToken, validateReview, async (req, res) => {
   }
 });
 
-// DELETE /api/reviews/:id - Eliminar reseña
+// DELETE /api/reviews/:id - Eliminar una reseña
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
-    const reviewId = req.params.id;
-    const usuarioId = req.user.id;
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const pool = await getPool();
 
     // Verificar que la reseña existe y pertenece al usuario
-    const pool = await getPool();
-    const reviewResult = await pool.request()
-      .input('reviewId', sql.Int, reviewId)
-      .input('usuarioId', sql.Int, usuarioId)
-      .query('SELECT id, producto_id FROM resenas WHERE id = @reviewId AND usuario_id = @usuarioId');
+    const reviewCheck = await pool.request()
+      .input('reviewId', sql.Int, id)
+      .input('userId', sql.Int, userId)
+      .query('SELECT producto_id FROM resenas WHERE id = @reviewId AND usuario_id = @userId');
 
-
-    if (reviewResult.recordset.length === 0) {
+    if (reviewCheck.recordset.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'Reseña no encontrada o no tienes permisos para eliminarla'
+        message: 'Reseña no encontrada o no tienes permiso para eliminarla'
       });
     }
 
-    // Eliminar reseña
+    const productoId = reviewCheck.recordset[0].producto_id;
+
+    // Eliminar la reseña
     await pool.request()
-      .input('reviewId', sql.Int, reviewId)
+      .input('reviewId', sql.Int, id)
       .query('DELETE FROM resenas WHERE id = @reviewId');
 
-    // El trigger se encarga de actualizar el rating del producto automáticamente
+    // Recalcular rating del producto
+    const ratingResult = await pool.request()
+      .input('productoId', sql.Int, productoId)
+      .query(`
+        SELECT 
+          AVG(CAST(rating AS FLOAT)) as promedio,
+          COUNT(*) as total
+        FROM resenas 
+        WHERE producto_id = @productoId
+      `);
+
+    const promedio = ratingResult.recordset[0]?.promedio || 0;
+    const total = ratingResult.recordset[0]?.total || 0;
+
+    await pool.request()
+      .input('productoId', sql.Int, productoId)
+      .input('promedio', sql.Decimal(3, 2), promedio)
+      .input('total', sql.Int, total)
+      .query(`
+        UPDATE productos 
+        SET rating_promedio = @promedio, 
+            total_resenas = @total 
+        WHERE id = @productoId
+      `);
 
     res.json({
       success: true,
@@ -214,6 +278,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     });
   }
 });
+
 
 // GET /api/reviews/user/:userId - Obtener reseñas de un usuario
 router.get('/user/:userId', validateId, async (req, res) => {

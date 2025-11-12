@@ -78,6 +78,34 @@ INSERT INTO usuarios (id_institucional, email, password_hash, nombre, rol, telef
 INSERT INTO usuarios (id_institucional, email, password_hash, nombre, rol, telefono, avatar_url, is_active) VALUES
 ('000111113', 'usuario.suspendido@upb.edu.co', '$2a$12$Sbouw.tNIzAdkZwf.k2et.lCogg4MSe5rKWlg0Mb3.NxMWYJ7lZya', 'Carlos Malon', 'buyer', '3009876545', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Suspendido', 0);
 
+-- Sanción para usuario suspendido (temporal - 7 días)
+INSERT INTO sanciones_usuarios (
+  usuario_id, 
+  motivo, 
+  descripcion, 
+  tipo_suspension, 
+  fecha_inicio, 
+  fecha_fin, 
+  dias_suspension, 
+  sancionado_por, 
+  notificacion_enviada, 
+  esta_activa,
+  created_at
+) VALUES (
+  (SELECT id FROM usuarios WHERE id_institucional = '000111113'),
+  'productos_prohibidos',
+  'El usuario intentó vender productos prohibidos según el artículo 16 del reglamento de ventas móviles. Específicamente, intentó comercializar bebidas alcohólicas en las instalaciones de la universidad.',
+  'temporal',
+  GETDATE(),
+  DATEADD(day, 7, GETDATE()),
+  7,
+  (SELECT id FROM usuarios WHERE id_institucional = '000000001'), -- ID del admin
+  1,
+  1,
+  GETDATE()
+);
+
+
 -- Usuario con notificación dirigida
 INSERT INTO usuarios (id_institucional, email, password_hash, nombre, rol, telefono, avatar_url, is_active) VALUES
 ('000111114', 'usuario.notificado@upb.edu.co', '$2a$12$Sbouw.tNIzAdkZwf.k2et.lCogg4MSe5rKWlg0Mb3.NxMWYJ7lZya', 'Laura Vitaly', 'buyer', '3009876546', 'https://api.dicebear.com/7.x/avataaars/svg?seed=Notificado', 1);

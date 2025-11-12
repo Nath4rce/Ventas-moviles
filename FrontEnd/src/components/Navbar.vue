@@ -174,15 +174,12 @@ export default {
     // Verificación si el usuario tiene productos (activos O inactivos)
     const hasProducts = computed(() => {
       const products = productsStore.userProducts(authStore.user?.id_institucional)
-      console.log('🔍 Navbar - Productos del vendedor:', products)
-      console.log('🔍 Navbar - Tiene productos:', products && products.length > 0)
       return products && products.length > 0
     })
 
     watch(
       () => productsStore.products,
       () => {
-        console.log('🔄 Productos actualizados en store')
       },
       { deep: true }
     )
@@ -277,11 +274,8 @@ export default {
 
         //Si es vendedor, cargar sus productos primero
         if (authStore.isSeller && authStore.user?.id_institucional) {
-          console.log('🔄 Navbar - Cargando productos del vendedor:', authStore.user.id_institucional)
           await productsStore.fetchUserProducts(authStore.user.id_institucional)
         }
-        console.log('✅ Navbar - Productos totales en store:', productsStore.products.length)
-        console.log('✅ Navbar - Productos del usuario:', userProducts.value)
 
         await productsStore.fetchProducts()
         // Iniciar polling cada 30 segundos

@@ -64,12 +64,6 @@ export const useProductsStore = defineStore("products", {
         return match
       })
 
-      console.log('🔍 allUserProducts getter:', {
-        userIdInstitucional,
-        products: products,
-        count: products.length
-      })
-
       return products
     },
 
@@ -190,9 +184,6 @@ export const useProductsStore = defineStore("products", {
             // Combinar: productos del usuario + otros productos nuevos
             this.products = [...userProducts, ...otherProducts];
 
-            console.log('✅ fetchProducts - Productos preservados del usuario:', userProducts.length);
-            console.log('✅ fetchProducts - Otros productos cargados:', otherProducts.length);
-            console.log('✅ fetchProducts - Total en store:', this.products.length);
           } else {
             // Si no hay usuario autenticado, simplemente reemplazar todo
             this.products = newProducts;
@@ -217,11 +208,8 @@ export const useProductsStore = defineStore("products", {
       this.error = null;
 
       try {
-        console.log('📦 Cargando productos del usuario:', userIdInstitucional);
 
         const response = await axios.get(`${API_URL}/products/user/${userIdInstitucional}`);
-
-        console.log('📦 Respuesta del servidor:', response.data);
 
         if (response.data.success) {
           const userProducts = response.data.data.products.map((p) => ({
@@ -242,15 +230,11 @@ export const useProductsStore = defineStore("products", {
             createdAt: p.created_at,
           }));
 
-          console.log('✅ Productos mapeados:', userProducts);
-
           // Eliminar productos antiguos de este usuario del state
           this.products = this.products.filter(p => p.sellerId !== userIdInstitucional);
 
           // Agregar los productos del usuario (activos e inactivos)
           this.products.push(...userProducts);
-
-          console.log('✅ State actualizado. Total productos:', this.products.length);
 
           return userProducts;
         }
@@ -264,14 +248,12 @@ export const useProductsStore = defineStore("products", {
 
     async fetchProductReviews(productId) {
       try {
-        //console.log('Fetching reviews for product:', productId)
         const id = parseInt(productId, 10);
         if (isNaN(id)) {
           console.error("Invalid product ID");
           return;
         }
         const response = await axios.get(`${API_URL}/reviews/product/${id}`);
-        //console.log('Reviews response:', response.data)
         if (response.data.success) {
           this.reviews = response.data.data.reviews.map((r) => ({
             id: r.id,
@@ -282,7 +264,6 @@ export const useProductsStore = defineStore("products", {
             comment: r.comentario,
             createdAt: r.created_at,
           }));
-          //console.log('Mapped reviews:', this.reviews)
         }
       } catch (error) {
         console.error("Error fetching reviews:", error);
@@ -324,7 +305,6 @@ export const useProductsStore = defineStore("products", {
           payload.imagenes = productData.images;
         }
 
-        console.log("➡️ Enviando producto:", payload);
 
         const response = await axios.post(`${API_URL}/products`, payload, {
           headers: {
@@ -361,6 +341,51 @@ export const useProductsStore = defineStore("products", {
 
       return newReview;
     },
+
+    // Editar reseña existente
+    async updateReview(reviewId, reviewData) {
+      try {
+        const response = await axios.put(
+          `${API_URL}/reviews/${reviewId}`,
+          reviewData,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        )
+
+        if (response.data.success) {
+          // Recargar reseñas del producto
+          return response.data
+        }
+      } catch (error) {
+        console.error('Error updating review:', error)
+        throw error
+      }
+    },
+
+    // Eliminar reseña
+    async deleteReview(reviewId) {
+      try {
+        const response = await axios.delete(
+          `${API_URL}/reviews/${reviewId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+          }
+        )
+
+        if (response.data.success) {
+          return response.data
+        }
+      } catch (error) {
+        console.error('Error deleting review:', error)
+        throw error
+      }
+    },
+
 
     // Actualizar rating promedio del producto
     updateProductRating(productId) {
@@ -445,19 +470,15 @@ export const useProductsStore = defineStore("products", {
           }))
         };
 
-        console.log(`➡️ Enviando actualización para producto ${id}:`, payload);
-
         const response = await axios.put(`${API_URL}/products/${id}`, payload, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
 
-        console.log('📥 Respuesta del servidor:', response.data);  // TEMPORAL PARA DEBUG
-
         if (response.data.success) {
 
-      // ✅ Actualizar localmente sin recargar todo
+          // ✅ Actualizar localmente sin recargar todo
           const index = this.products.findIndex(p => p.id === id);
           if (index !== -1) {
             this.products[index] = {

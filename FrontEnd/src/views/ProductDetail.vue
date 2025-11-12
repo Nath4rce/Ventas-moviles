@@ -57,15 +57,9 @@
             <div v-if="product.images.length > 1" class="thumbnails mt-3">
               <div class="row g-2">
                 <div v-for="(image, index) in product.images" :key="index" class="col-3">
-                  <img 
-                    :src="image" 
-                    :alt="`Imagen ${index + 1}`" 
-                    class="img-thumbnail thumbnail"
-                    :class="{ active: index === 0 }" 
-                    data-bs-target="#productCarousel" 
-                    :data-bs-slide-to="index"
-                    @error="handleImageError"
-                  >
+                  <img :src="image" :alt="`Imagen ${index + 1}`" class="img-thumbnail thumbnail"
+                    :class="{ active: index === 0 }" data-bs-target="#productCarousel" :data-bs-slide-to="index"
+                    @error="handleImageError">
                 </div>
               </div>
             </div>
@@ -163,8 +157,8 @@
                 </h4>
               </div>
               <div class="card-body">
-                <!-- Formulario de nueva reseña -->
-                <div v-if="canLeaveReview" class="new-review-form mb-4">
+                <!-- Formulario de nueva reseña (solo si NO tiene reseña) -->
+                <div v-if="canLeaveReview && !userHasReview" class="new-review-form mb-4">
                   <h5 class="fw-bold mb-3">Deja tu reseña</h5>
                   <form @submit.prevent="submitReview">
                     <div class="mb-3">
@@ -183,7 +177,7 @@
                         placeholder="Comparte tu experiencia con este producto..." required></textarea>
                     </div>
 
-                    <button type="submit" class="btn btn-primary" :disabled="submittingReview">
+                    <button type="submit" class="btn btn-primary" :disabled="submittingReview || userHasReview">
                       <i v-if="submittingReview" class="fas fa-spinner fa-spin me-2"></i>
                       <i v-else class="fas fa-paper-plane me-2"></i>
                       {{ submittingReview ? 'Enviando...' : 'Enviar Reseña' }}
@@ -191,10 +185,11 @@
                   </form>
                 </div>
 
-                <!-- Mensaje si no puede dejar reseña -->
-                <div v-else-if="!canLeaveReview && authStore.isAuthenticated" class="alert alert-info">
+                <!-- Mensaje si ya tiene reseña -->
+                <div v-else-if="!canLeaveReview && authStore.isAuthenticated && userHasReview"
+                  class="alert alert-info mb-4">
                   <i class="fas fa-info-circle me-2"></i>
-                  Ya has dejado una reseña para este producto. Solo puedes dejar una reseña por producto.
+                  Ya has dejado una reseña para este producto. Puedes editarla o eliminarla desde abajo.
                 </div>
 
                 <!-- Lista de reseñas -->
@@ -206,18 +201,68 @@
                 <div v-else class="reviews-list">
                   <div v-for="review in reviews" :key="review.id" class="review-item border-bottom py-3">
                     <div class="d-flex justify-content-between align-items-start mb-2">
-                      <div>
-                        <h6 class="fw-bold mb-1">{{ review.userName }}</h6>
-                        <div class="stars">
+                      <div class="flex-grow-1">
+                        <div class="d-flex align-items-center mb-2">
+                          <h6 class="fw-bold mb-0">{{ review.userName }}</h6>
+                          <span v-if="isReviewAuthor(review)" class="badge bg-primary ms-2">Tu reseña</span>
+                        </div>
+                        <div class="stars mb-2">
                           <i v-for="star in 5" :key="star" class="fas fa-star"
                             :class="star <= review.rating ? 'text-warning' : 'text-muted'"></i>
                         </div>
+
+                        <!-- Mostrar comentario o formulario de edición -->
+                        <div v-if="editingReviewId !== review.id">
+                          <p class="text-muted mb-0">{{ review.comment }}</p>
+                        </div>
+                        <div v-else class="edit-review-form mt-2">
+                          <div class="mb-2">
+                            <label class="form-label small fw-semibold">Calificación</label>
+                            <div class="rating-input">
+                              <i v-for="star in 5" :key="star" class="fas fa-star star-input"
+                                :class="star <= editForm.rating ? 'text-warning' : 'text-muted'"
+                                @click="editForm.rating = star"></i>
+                            </div>
+                          </div>
+                          <div class="mb-2">
+                            <textarea class="form-control form-control-sm" v-model="editForm.comment" rows="3"
+                              placeholder="Actualiza tu comentario..." required></textarea>
+                          </div>
+                          <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-primary" @click="saveEditReview"
+                              :disabled="updatingReview">
+                              <i v-if="updatingReview" class="fas fa-spinner fa-spin me-1"></i>
+                              <i v-else class="fas fa-save me-1"></i>
+                              {{ updatingReview ? 'Guardando...' : 'Guardar' }}
+                            </button>
+                            <button type="button" class="btn btn-sm btn-secondary" @click="cancelEdit"
+                              :disabled="updatingReview">
+                              <i class="fas fa-times me-1"></i>
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                      <small class="text-muted">{{ formatDate(review.createdAt) }}</small>
+
+                      <div class="d-flex flex-column align-items-end">
+                        <small class="text-muted mb-2">{{ formatDate(review.createdAt) }}</small>
+
+                        <!-- Botones de editar/eliminar (solo para el autor) -->
+                        <div v-if="isReviewAuthor(review)" class="btn-group btn-group-sm">
+                          <button v-if="editingReviewId !== review.id" type="button" class="btn btn-outline-secondary"
+                            @click="startEdit(review)" title="Editar reseña">
+                            <i class="fas fa-edit"></i>
+                          </button>
+                          <button type="button" class="btn btn-outline-danger" @click="confirmDeleteReview(review.id)"
+                            title="Eliminar reseña" :disabled="editingReviewId === review.id">
+                            <i class="fas fa-trash"></i>
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <p class="text-muted mb-0">{{ review.comment }}</p>
                   </div>
                 </div>
+
               </div>
             </div>
           </div>
@@ -238,6 +283,7 @@ import { useRoute } from 'vue-router'
 import { useProductsStore } from '../stores/products'
 import { useAuthStore } from '../stores/auth'
 import { useNotificacion } from '../utils/useNotificacion'
+import Swal from 'sweetalert2'
 
 export default {
   name: 'ProductDetail',
@@ -257,6 +303,20 @@ export default {
       authStore.isAuthenticated &&
       productsStore.canUserReview(route.params.id, authStore.user?.id)
     )
+
+    const userHasReview = computed(() => {
+      if (!authStore.isAuthenticated || !authStore.user) return false
+      return reviews.value.some(review =>
+        review.userInstitutionalId === authStore.user.id_institucional
+      )
+    })
+
+    const editingReviewId = ref(null)
+    const editForm = reactive({
+      rating: 0,
+      comment: ''
+    })
+    const updatingReview = ref(false)
 
     const newReview = reactive({
       rating: 0,
@@ -309,7 +369,16 @@ export default {
     })
 
     const submitReview = async () => {
-      if (!newReview.rating || !newReview.comment.trim()) return
+      if (!newReview.rating || !newReview.comment.trim()) {
+        notificacion.error('Por favor completa todos los campos')
+        return
+      }
+
+      // Verificar nuevamente si puede dejar reseña (por si acaso)
+      if (!canLeaveReview.value) {
+        notificacion.error('Ya has dejado una reseña para este producto')
+        return
+      }
 
       submittingReview.value = true
 
@@ -318,19 +387,136 @@ export default {
           producto_id: parseInt(route.params.id),
           rating: newReview.rating,
           comentario: newReview.comment.trim()
+        }, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
         })
 
-        // Recargar producto y reviews
+        // Recargar reseñas primero
+        await productsStore.fetchProductReviews(route.params.id)
+
+        // Luego recargar productos para actualizar el rating
         await productsStore.fetchProducts()
 
+        // Limpiar formulario
         newReview.rating = 0
         newReview.comment = ''
-        
+
         notificacion.success('Reseña enviada exitosamente')
       } catch (error) {
-        notificacion.error('Error al enviar la reseña')
+        console.error('Error al enviar reseña:', error)
+
+        // Mostrar mensaje de error específico
+        if (error.response?.status === 400) {
+          notificacion.error(error.response.data.message || 'Ya has dejado una reseña para este producto')
+        } else {
+          notificacion.error('Error al enviar la reseña')
+        }
       } finally {
         submittingReview.value = false
+      }
+    }
+
+    // Verificar si el usuario es autor de una reseña
+    const isReviewAuthor = (review) => {
+      if (!authStore.isAuthenticated || !authStore.user) return false
+      return review.userInstitutionalId === authStore.user.id_institucional
+    }
+
+    // Iniciar edición de reseña
+    const startEdit = (review) => {
+      editingReviewId.value = review.id
+      editForm.rating = review.rating
+      editForm.comment = review.comment
+    }
+
+    // Cancelar edición
+    const cancelEdit = () => {
+      editingReviewId.value = null
+      editForm.rating = 0
+      editForm.comment = ''
+    }
+
+    // Guardar edición de reseña
+    const saveEditReview = async () => {
+      if (!editForm.rating || !editForm.comment.trim()) {
+        notificacion.error('Por favor completa todos los campos')
+        return
+      }
+
+      updatingReview.value = true
+
+      try {
+        const response = await productsStore.updateReview(editingReviewId.value, {
+          rating: editForm.rating,
+          comentario: editForm.comment.trim()
+        })
+
+        if (response.success) {
+          // Recargar reseñas
+          await productsStore.fetchProductReviews(route.params.id)
+
+          // También recargar el producto para actualizar el rating
+          await productsStore.fetchProducts()
+
+          notificacion.success('Reseña actualizada exitosamente')
+          cancelEdit()
+        }
+      } catch (error) {
+        notificacion.error(error.response?.data?.message || 'Error al actualizar la reseña')
+      } finally {
+        updatingReview.value = false
+      }
+    }
+
+    // Confirmar eliminación de reseña
+    // Confirmar eliminación de reseña
+    const confirmDeleteReview = async (reviewId) => {
+      const result = await Swal.fire({
+        title: '¿Eliminar reseña?',
+        text: 'Esta acción no se puede deshacer',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        reverseButtons: true
+      })
+
+      if (!result.isConfirmed) return
+
+      try {
+        // ✅ Agregar headers con token
+        await axios.delete(`${API_URL}/reviews/${reviewId}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        })
+
+        // Recargar reseñas
+        await productsStore.fetchProductReviews(route.params.id)
+
+        // También recargar el producto para actualizar el rating
+        await productsStore.fetchProducts()
+
+        await Swal.fire({
+          title: '¡Eliminada!',
+          text: 'Tu reseña ha sido eliminada',
+          icon: 'success',
+          confirmButtonColor: '#198754',
+          timer: 1500,
+          showConfirmButton: false
+        })
+      } catch (error) {
+        console.error('Error al eliminar reseña:', error)
+        Swal.fire({
+          title: 'Error',
+          text: error.response?.data?.message || 'Error al eliminar la reseña',
+          icon: 'error',
+          confirmButtonColor: '#dc3545'
+        })
       }
     }
 
@@ -354,7 +540,16 @@ export default {
       goToSlide,
       handleImageError,
       submitReview,
-      whatsappLink
+      whatsappLink,
+      editingReviewId,
+      editForm,
+      updatingReview,
+      isReviewAuthor,
+      startEdit,
+      cancelEdit,
+      saveEditReview,
+      confirmDeleteReview,
+      userHasReview
     }
   }
 }
@@ -445,8 +640,49 @@ export default {
   .main-image {
     height: 350px;
   }
+
   .price-section .display-4 {
     font-size: 2.2rem;
+  }
+}
+
+.edit-review-form {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.review-item {
+  transition: background-color 0.2s ease;
+}
+
+.review-item:hover {
+  background-color: #f8f9fa;
+}
+
+.btn-group-sm .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.rating-input .star-input {
+  font-size: 1.2rem;
+}
+
+/* Mobile optimizations */
+@media (max-width: 767px) {
+  .review-item .d-flex {
+    flex-direction: column;
+  }
+
+  .review-item .btn-group {
+    margin-top: 0.5rem;
+    align-self: flex-start;
+  }
+
+  .edit-review-form {
+    padding: 0.75rem;
   }
 }
 </style>

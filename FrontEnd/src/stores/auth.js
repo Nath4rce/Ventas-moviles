@@ -75,13 +75,18 @@ export const useAuthStore = defineStore("auth", {
         console.error("Error en login:", error);
         this.error = error.response?.data?.message || "Error al iniciar sesión";
 
-        return {
-          success: false,
-          message: error.response?.data?.message || "Credenciales incorrectas",
-        };
+        // Si es error 403 con información de sanción, agregar al error
+        if (error.response?.status === 403 && error.response?.data?.sancion) {
+          error.sancionInfo = error.response.data.sancion
+        }
+
+        // 🔴 CAMBIO IMPORTANTE: Hacer throw en lugar de return
+        throw error
+
       } finally {
         this.loading = false;
       }
+
     },
 
     // Registro de nuevo usuario

@@ -485,7 +485,6 @@ export default {
     // Cargar datos del producto
     const loadProductData = () => {
       if (product.value) {
-        console.log('📝 Cargando datos del producto:', product.value) // TEMPORAL PARA DEBUG
 
         form.title = product.value.title || ''
 
@@ -498,8 +497,6 @@ export default {
           )
           form.category = categoryObj ? categoryObj.id : ''
 
-          console.log('🔍 Categoría encontrada:', categoryObj)
-          console.log('🔍 ID asignado a form.category:', form.category)
         } else {
           form.category = ''
         }
@@ -530,7 +527,6 @@ export default {
           form.images = []
         }
 
-        console.log('✅ Formulario cargado:', form) // TEMPORAL PARA DEBUG
       } else {
         console.error('❌ No hay producto para cargar')
       }
@@ -836,12 +832,6 @@ export default {
         //CONVERTIR productId a número entero
         const numericProductId = parseInt(productId, 10)
 
-        console.log('🔍 Intentando cambiar estado:', {
-          productId: numericProductId,
-          currentStatus,
-          newStatus: !currentStatus
-        })
-
         const response = await productsStore.toggleProductStatus(numericProductId, currentStatus)
 
         if (response.success) {
@@ -954,8 +944,6 @@ export default {
     //await authStore.initializeUserSession()
     onMounted(async () => {
       try {
-        //console.log('🔍 Métodos disponibles en authStore:', Object.keys(authStore))
-        //console.log('🔍 Usuario actual:', authStore.user)
         // 1. Verificar autenticación
         if (authStore.isAuthenticated && authStore.initAuth) {
           await authStore.initAuth() // o el método que uses para cargar el usuario
@@ -974,10 +962,8 @@ export default {
 
         // 2. Cargar categorías y productos
         await productsStore.fetchCategories()
-        //console.log('📦 Categorías cargadas:', productsStore.categories)
 
         await productsStore.fetchProducts()
-        //console.log('🔍 Producto encontrado:', product.value)
 
         // 3. ESPERAR un tick para que el computed se actualice
         await new Promise(resolve => setTimeout(resolve, 100))
@@ -996,7 +982,6 @@ export default {
 
         // 2. Cargar categorías y productos
         await productsStore.fetchCategories()
-        //console.log('📦 Categorías cargadas:', productsStore.categories)
 
         // Cargar productos del usuario (incluyendo inactivos)
         if (authStore.user?.id_institucional) {
@@ -1005,13 +990,9 @@ export default {
 
         // También cargar productos generales
         await productsStore.fetchProducts()
-        //console.log('🔍 Producto encontrado:', product.value)
         // 4. Verificar permisos
         const productSellerId = String(product.value.sellerId)
         const userIdInstitucional = String(authStore.user?.id_institucional)
-
-        //console.log('🔍 User ID:', userIdInstitucional)
-        //console.log('🔍 Seller ID:', productSellerId)
 
         if (!userIdInstitucional || productSellerId !== userIdInstitucional) {
           await Swal.fire({
