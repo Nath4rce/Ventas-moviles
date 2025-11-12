@@ -110,6 +110,7 @@ CREATE TABLE producto_imagenes (
     orden INT NOT NULL DEFAULT 0,
     is_principal BIT NOT NULL DEFAULT 0,
     created_at DATETIME2 NOT NULL DEFAULT GETDATE(),
+    public_id NVARCHAR(200), -- ID de la imagen en el servicio de almacenamiento (Cloudinary)
     
     -- Foreign Key
     CONSTRAINT fk_imagenes_producto FOREIGN KEY (producto_id) 

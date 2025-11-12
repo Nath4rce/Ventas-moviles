@@ -57,8 +57,15 @@
             <div v-if="product.images.length > 1" class="thumbnails mt-3">
               <div class="row g-2">
                 <div v-for="(image, index) in product.images" :key="index" class="col-3">
-                  <img :src="image" :alt="`Imagen ${index + 1}`" class="img-thumbnail thumbnail"
-                    :class="{ active: index === 0 }" @click="goToSlide(index)" @error="handleImageError">
+                  <img 
+                    :src="image" 
+                    :alt="`Imagen ${index + 1}`" 
+                    class="img-thumbnail thumbnail"
+                    :class="{ active: index === 0 }" 
+                    data-bs-target="#productCarousel" 
+                    :data-bs-slide-to="index"
+                    @error="handleImageError"
+                  >
                 </div>
               </div>
             </div>
@@ -222,6 +229,7 @@
 
 <script>
 import axios from 'axios'
+import { Carousel } from 'bootstrap'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 

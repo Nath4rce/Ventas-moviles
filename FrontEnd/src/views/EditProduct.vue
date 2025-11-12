@@ -29,7 +29,7 @@
               </h5>
             </div>
             <div class="card-body">
-              <form @submit.prevent="handleSubmit">
+              <form @submit.prevent="handleSubmit" novalidate>
                 <div class="mb-4">
                   <label for="title" class="form-label fw-semibold">
                     <i class="fas fa-tag me-2"></i>
@@ -83,28 +83,29 @@
                   <div v-if="errors.price" class="invalid-feedback">
                     {{ errors.price }}
                   </div>
-                </div>
-                <div class="form-text">
+                  <div class="form-text">
                     El precio debe ser múltiplo de 50 (ej: 50, 100, 150, etc.) y máximo $300.000
+                  </div>
                 </div>
-                <!-- Selector rápido de precios comunes -->
-                <div class="mt-3">
+
+                <div class="mt-3 mb-3">
                   <label class="form-label fw-semibold small">
                     <i class="fas fa-bolt me-1"></i>
-                      Precios comunes:
+                    Precios comunes:
                   </label>
                   <div class="d-flex flex-wrap gap-2">
-                     <button 
+                    <button 
                       type="button" 
                       v-for="commonPrice in commonPrices" 
                       :key="commonPrice"
                       class="btn btn-outline-primary btn-sm"
                       @click="setCommonPrice(commonPrice)"
                     >
-                       ${{ formatPrice(commonPrice) }}
+                      ${{ formatPrice(commonPrice) }}
                     </button>
                   </div>
                 </div>
+
                 <div class="mb-4">
                   <label for="description" class="form-label fw-semibold">
                     <i class="fas fa-align-left me-2"></i>
@@ -134,39 +135,43 @@
                   </div>
                 </div>
 
+                <!-- IMÁGENES - MISMA LÓGICA QUE PublishProduct.vue -->
                 <div class="mb-4">
                   <label class="form-label fw-semibold">
                     <i class="fas fa-images me-2"></i>
                     Imágenes del Producto *
                   </label>
-                  <div class="image-upload-area">
+
+                  <div class="image-upload-area mb-3">
                     <div class="row g-3">
-                      <div v-for="(image, index) in form.images" :key="index" class="col-6 col-md-3">
+                      <div v-for="(img, idx) in form.images" :key="idx" class="col-6 col-md-3">
                         <div class="image-preview">
-                          <img :src="image" :alt="`Imagen ${index + 1}`" class="img-thumbnail"
-                            @error="handleImageError">
-                          <button type="button" class="btn btn-sm btn-danger remove-image" @click="removeImage(index)">
+                          <img :src="img.url" :alt="`Imagen ${idx+1}`" class="img-thumbnail" @error="handleImageError">
+                          <button type="button" class="btn btn-sm btn-danger remove-image" @click="removeImage(idx)" :disabled="img.uploading">
                             <i class="fas fa-times"></i>
                           </button>
+
+                          <div v-if="img.uploading" class="mt-2 text-center small">
+                            <i class="fas fa-spinner fa-spin me-1"></i> Subiendo...
+                          </div>
                         </div>
                       </div>
 
-                      <div v-if="form.images.length < 4" class="col-6 col-md-3">
-                        <input type="file" ref="fileInput" @change="handleImageUpload" accept="image/*" class="d-none">
-
-                        <div class="image-upload-placeholder" @click="addImage">
+                      <!-- Upload placeholder / botón -->
+                      <div v-if="form.images.length < maxImages" class="col-6 col-md-3">
+                        <div class="image-upload-placeholder" @click="openFileDialog">
                           <i class="fas fa-plus"></i>
                           <span>Agregar Imagen</span>
+                          <small class="d-block mt-1 text-muted">Máx {{ maxImages }} imágenes</small>
                         </div>
+
+                        <input ref="fileInput" type="file" accept="image/*" class="d-none" @change="onFileChange">
                       </div>
                     </div>
                   </div>
-                  <div v-if="errors.images" class="invalid-feedback d-block">
-                    {{ errors.images }}
-                  </div>
-                  <div class="form-text">
-                    Puedes subir hasta 4 imágenes. La primera será la imagen principal.
-                  </div>
+
+                  <div v-if="errors.images" class="invalid-feedback d-block">{{ errors.images }}</div>
+                  <div class="form-text">Sube imágenes reales desde tu computadora. La primera será la principal.</div>
                 </div>
 
                 <div class="d-flex gap-2">
@@ -262,7 +267,7 @@
             </div>
             <div class="card-body">
               <div v-if="form.images?.length > 0" class="mb-3">
-                <img :src="form.images[0]" alt="Vista previa" class="img-fluid rounded"
+                <img :src="form.images[0].url" alt="Vista previa" class="img-fluid rounded"
                   style="width: 100%; height: 150px; object-fit: cover;">
               </div>
               <div v-else class="text-center py-4 bg-light rounded mb-3">
@@ -343,6 +348,7 @@
 <script>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import axios from 'axios'
 import { useProductsStore } from '../stores/products'
 import { useAuthStore } from '../stores/auth'
 import Swal from 'sweetalert2'
@@ -371,6 +377,7 @@ export default {
     const submitting = ref(false)
     const deleting = ref(false)
     const fileInput = ref(null)
+    const maxImages = 4
     
     // Precios comunes para selección rápida
     const commonPrices = [2500, 5000, 10000, 15000, 25000, 30000]
@@ -378,7 +385,7 @@ export default {
     // Cargar datos del producto
     const loadProductData = () => {
       if (product.value) {
-        //console.log('📝 Cargando datos del producto:', product.value) // TEMPORAL PARA DEBUG
+        console.log('📝 Cargando datos del producto:', product.value) // TEMPORAL PARA DEBUG
 
         form.title = product.value.title || ''
 
@@ -397,16 +404,33 @@ export default {
           form.category = ''
         }
 
-        form.price = product.value.price || 0
+        form.price = Math.round((product.value.price || 0) / 50) * 50
         form.description = product.value.description || ''
-        form.title = product.value.title
-        form.category = product.value.categoria_id || product.value.category
-        form.price = Math.round(product.value.price / 50) * 50
-        form.description = product.value.description
-        form.isActive = product.value.isActive !== undefined ? product.value.isActive : true
-        form.images = [...(product.value.images || [])]
+        form.isActive = product.value.isActive ?? true
+        
+        // Cargar imágenes existentes en formato { url, public_id, uploading: false }
+        if (product.value.images && Array.isArray(product.value.images)) {
+          form.images = product.value.images.map(img => {
+            if (typeof img === 'string') {
+              // Extraer public_id de la URL de Cloudinary
+              const match = img.match(/\/products\/([^/.]+)/)
+              return {
+                url: img,
+                public_id: match ? `products/${match[1]}` : null,
+                uploading: false
+              }
+            }
+            return {
+              url: img.url || img,
+              public_id: img.public_id || null,
+              uploading: false
+            }
+          })
+        } else {
+          form.images = []
+        }
 
-        //console.log('✅ Formulario cargado:', form) // TEMPORAL PARA DEBUG
+        console.log('✅ Formulario cargado:', form) // TEMPORAL PARA DEBUG
       } else {
         console.error('❌ No hay producto para cargar')
       }
@@ -478,66 +502,106 @@ export default {
         isValid = false
       }
 
+      const uploading = form.images.some(i => i.uploading)
+      if (uploading) {
+        errors.images = 'Espera a que terminen de subirse las imágenes'
+        isValid = false
+      }
+
       return isValid
     }
  
-    const addImage = () => {
-      if (form.images.length < 4) {
-        const placeholderImages = [
-          'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300&h=200&fit=crop&crop=center',
-          'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=300&h=200&fit=crop&crop=center',
-          'https://images.unsplash.com/photo-1556742111-a301076d9d18?w=300&h=200&fit=crop&crop=center',
-          'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300&h=200&fit=crop&crop=center'
-        ]
-        form.images.push(placeholderImages[form.images.length])
-      }
-    }
-
-    // Manejar la selección de archivos
-    const handleImageUpload = (event) => {
-      const file = event.target.files[0]
-      if (!file) return
-
-      if (!file.type.startsWith('image/')) {
+    const openFileDialog = () => {
+      if (form.images.length >= maxImages) {
+        Swal.fire('Límite alcanzado', `Máximo ${maxImages} imágenes`, 'warning')
         return
       }
-      //VERIFICAR
-      if (form.images.length >= 4) {
-        event.target.value = ''
+      fileInput.value?.click()
+    }
+
+    const uploadImage = async (file) => {
+      if (form.images.length >= maxImages) {
+        Swal.fire('Límite alcanzado', `Máximo ${maxImages} imágenes`, 'warning')
         return
       }
 
-      const imageUrl = URL.createObjectURL(file)
-      form.images.push(imageUrl)
-      event.target.value = ''
+      const tempObj = {
+        url: URL.createObjectURL(file),
+        public_id: null,
+        uploading: true
+      }
+      form.images.push(tempObj)
+      const idx = form.images.length - 1
+
+      try {
+        const fd = new FormData()
+        fd.append('image', file)
+
+        const res = await axios.post('/api/uploads', fd, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          timeout: 120000
+        })
+
+        form.images[idx].url = res.data.url
+        form.images[idx].public_id = res.data.public_id || null
+        form.images[idx].uploading = false
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Imagen subida',
+          timer: 1000,
+          showConfirmButton: false
+        })
+      } catch (err) {
+        console.error('Upload error:', err)
+        try { URL.revokeObjectURL(tempObj.url) } catch(e){}
+        form.images.splice(idx, 1)
+        Swal.fire('Error', err.response?.data?.message || 'Error subiendo la imagen', 'error')
+      }
     }
 
-    // Eliminar imagen
-    const removeImage = (index) => {
-      const image = form.images[index]
-      if (image.startsWith('blob:')) {
-        URL.revokeObjectURL(image)
+    const onFileChange = async (e) => {
+      const files = Array.from(e.target.files || [])
+      if (!files.length) return
+      
+      const available = maxImages - form.images.length
+      const toUpload = files.slice(0, available)
+      
+      for (const f of toUpload) {
+        if (!f.type.startsWith('image/')) {
+          Swal.fire('Archivo inválido', 'Solo se permiten imágenes', 'warning')
+          continue
+        }
+        if (f.size > 5 * 1024 * 1024) {
+          Swal.fire('Archivo muy grande', 'Máximo 5 MB por imagen', 'warning')
+          continue
+        }
+        await uploadImage(f)
       }
+      e.target.value = ''
+    }
+
+    const removeImage = async (index) => {
+      const img = form.images[index]
+      if (!img) return
+
+      if (img.public_id) {
+        try {
+          await axios.delete(`/api/uploads/${encodeURIComponent(img.public_id)}`)
+        } catch (err) {
+          console.warn('No se pudo eliminar en Cloudinary:', err?.response?.data || err.message)
+        }
+      }
+
+      try { 
+        if (img.url && img.url.startsWith('blob:')) URL.revokeObjectURL(img.url) 
+      } catch(e){}
+
       form.images.splice(index, 1)
     }
 
-    // Manejar error de carga de imagen
-    const handleImageError = (event) => {
-      const fallbackSvg = `data:image/svg+xml,${encodeURIComponent(`
-        <svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200">
-          <rect width="300" height="200" fill="#fef2f2"/>
-          <rect x="50" y="50" width="200" height="100" fill="#dc2626" opacity="0.1" rx="10"/>
-          <circle cx="120" cy="80" r="20" fill="#dc2626" opacity="0.3"/>
-          <rect x="110" y="95" width="20" height="10" fill="#dc2626" opacity="0.3" rx="2"/>
-          <text x="150" y="140" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#dc2626">
-            Error al cargar
-          </text>
-        </svg>
-      `)}`
-      event.target.src = fallbackSvg
-      if (event.target.src.startsWith('blob:')) {
-        URL.revokeObjectURL(event.target.src)
-      }
+    const handleImageError = (ev) => {
+      ev.target.src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200"><rect width="100%" height="100%" fill="#eee"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#666">Error al cargar</text></svg>')}`
     }
 
     // Actualizar producto
@@ -554,56 +618,45 @@ export default {
 
       const confirmResult = await Swal.fire({
         title: '¿Guardar cambios?',
-        text: '¿Estás seguro de que quieres actualizar este producto?',
+        text: '¿Estás seguro?',
         icon: 'question',
         showCancelButton: true,
         confirmButtonText: 'Sí, guardar',
         cancelButtonText: 'Cancelar',
         confirmButtonColor: '#198754',
         cancelButtonColor: '#6c757d',
-        reverseButtons: true
       })
 
-      if (!confirmResult.isConfirmed) {
-        return
-      }
+      if (!confirmResult.isConfirmed) return
 
       submitting.value = true
 
       try {
-        // ✅ DEFINIR productData AQUÍ
         const productData = {
           title: form.title.trim(),
           categoria_id: parseInt(form.category, 10),
           price: form.price,
           description: form.description.trim(),
           isActive: form.isActive,
-          images: form.images.filter(img => !img.startsWith('blob:'))
+          images: form.images.map(img => ({
+            url: img.url,
+            public_id: img.public_id
+          }))
         }
-
-        console.log('📦 form.category:', form.category)
-        console.log('📦 productData a enviar:', productData)
 
         await productsStore.updateProduct(productId, productData)
 
         await Swal.fire({
-          title: '¡Actualizado!',
-          text: 'El producto ha sido actualizado exitosamente',
           icon: 'success',
-          confirmButtonColor: '#198754',
-          timer: 1500,
+          title: '¡Producto actualizado!',
+          timer: 1400,
           showConfirmButton: false
         })
 
         router.push('/profile')
       } catch (error) {
         console.error('Error al actualizar producto:', error)
-        await Swal.fire({
-          title: 'Error',
-          text: error.response?.data?.message || 'Error al actualizar el producto. Por favor intenta de nuevo.',
-          icon: 'error',
-          confirmButtonColor: '#dc3545'
-        })
+        await Swal.fire('Error', error.response?.data?.message || 'Error al actualizar el producto', 'error')
       } finally {
         submitting.value = false
       }
@@ -716,7 +769,7 @@ export default {
         //console.log('🔍 Métodos disponibles en authStore:', Object.keys(authStore))
         //console.log('🔍 Usuario actual:', authStore.user)
         // 1. Verificar autenticación
-        if (authStore.isAuthenticated) {
+        if (authStore.isAuthenticated && authStore.initAuth) {
           await authStore.initAuth() // o el método que uses para cargar el usuario
         }
 
@@ -733,6 +786,17 @@ export default {
           router.push('/login')
           return
         }
+
+        // 2. Cargar categorías y productos
+        await productsStore.fetchCategories()
+        //console.log('📦 Categorías cargadas:', productsStore.categories)
+
+        await productsStore.fetchProducts()
+        //console.log('🔍 Producto encontrado:', product.value)
+
+        // 3. ESPERAR un tick para que el computed se actualice
+        await new Promise(resolve => setTimeout(resolve, 100))
+        
         // Verificar que el producto existe
         if (!product.value) {
           await Swal.fire({
@@ -744,13 +808,6 @@ export default {
           router.push('/profile')
           return
         }
-
-        // 2. Cargar categorías y productos
-        await productsStore.fetchCategories()
-        //console.log('📦 Categorías cargadas:', productsStore.categories)
-
-        await productsStore.fetchProducts()
-        //console.log('🔍 Producto encontrado:', product.value)
 
         // 4. Verificar permisos
         const productSellerId = String(product.value.sellerId)
@@ -791,12 +848,13 @@ export default {
       deleting,
       fileInput,
       commonPrices,
+      maxImages,              
       productsStore,
       authStore,
-      addImage,
-      removeImage,
-      handleImageError,
-      handleImageUpload,
+      openFileDialog,         
+      onFileChange,           
+      removeImage,            
+      handleImageError,    
       handleSubmit,
       handleCancel,
       deleteProduct,
